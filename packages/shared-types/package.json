@@ -1,0 +1,6 @@
+{
+  "name": "@unisat/ai-shared-types",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Shared types for UniSat AI"
+}

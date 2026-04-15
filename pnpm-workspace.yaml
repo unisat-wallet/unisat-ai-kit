@@ -1,6 +1,0 @@
-# pnpm workspace configuration
-packages:
-  - "packages/*"
-  - "packages/chat-app/*"
-  - "packages/shared/*"
-  - "packages/*/src/*"

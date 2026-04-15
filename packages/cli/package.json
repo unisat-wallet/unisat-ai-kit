@@ -1,0 +1,9 @@
+{
+  "name": "@unisat/ai-cli",
+  "private": true,
+  "version": "0.1.0",
+  "description": "UniSat AI CLI capability layer",
+  "bin": {
+    "unisat-ai-cli": "./bin/unisat-ai.js"
+  }
+}
