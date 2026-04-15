@@ -48,6 +48,26 @@ yarn mcp:server
 bash scripts/install-developer-skill.sh
 ```
 
+## Package Distribution
+
+The repository is now prepared for publishing these npm packages:
+
+- `@unisat/ai-cli`
+- `@unisat/ai-mcp-server`
+
+Recommended install flow for external developers after publication:
+
+```bash
+npm install -g @unisat/ai-cli @unisat/ai-mcp-server
+unisat-ai-cli docs search --query "api key" --format json
+```
+
+Or run the MCP server directly with `npx`:
+
+```bash
+npx -y @unisat/ai-mcp-server
+```
+
 ## Developer Install
 
 If the goal is to let a developer install the skill and get UniSat AI skill, CLI, and MCP wired up in one step, run:

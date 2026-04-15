@@ -2,6 +2,12 @@
 
 This package owns the stable external CLI command surface.
 
+Install globally after publication:
+
+```bash
+npm install -g @unisat/ai-cli
+```
+
 Initial commands:
 
 - `docs search`

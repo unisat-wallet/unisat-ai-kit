@@ -1,9 +1,39 @@
 {
   "name": "@unisat/ai-cli",
-  "private": true,
   "version": "0.1.0",
   "description": "UniSat AI CLI capability layer",
+  "license": "MIT",
+  "main": "./index.js",
   "bin": {
     "unisat-ai-cli": "./bin/unisat-ai.js"
+  },
+  "files": [
+    "README.md",
+    "index.js",
+    "bin",
+    "src",
+    "vendor"
+  ],
+  "scripts": {
+    "prepack": "node ../../scripts/sync-release-assets.mjs",
+    "postpack": "node ../../scripts/clean-release-assets.mjs"
+  },
+  "keywords": [
+    "unisat",
+    "ai",
+    "cli",
+    "openapi",
+    "mcp"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unisat-wallet/unisat-ai.git",
+    "directory": "packages/cli"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

@@ -1,7 +1,18 @@
-const { searchDocs } = require("../../cli/src/docs-search");
-const { explainOpenApi } = require("../../cli/src/openapi-explain");
-const { explainErrorByCode, explainErrorByQuery } = require("../../cli/src/error-explain");
-const { generateSnippet } = require("../../cli/src/snippet-generate");
+function loadCliExports() {
+  try {
+    return require("@unisat/ai-cli");
+  } catch (error) {
+    return require("../../cli");
+  }
+}
+
+const {
+  searchDocs,
+  explainOpenApi,
+  explainErrorByCode,
+  explainErrorByQuery,
+  generateSnippet,
+} = loadCliExports();
 
 function toToolResult(payload, isError = false) {
   return {

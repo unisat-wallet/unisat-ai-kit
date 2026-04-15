@@ -2,6 +2,18 @@
 
 This package exposes CLI capabilities and read-only knowledge sources as standard MCP tools.
 
+Install globally after publication:
+
+```bash
+npm install -g @unisat/ai-mcp-server
+```
+
+Or run it without a global install:
+
+```bash
+npx -y @unisat/ai-mcp-server
+```
+
 Initial tools:
 
 - `search_docs`

@@ -1,3 +1,4 @@
+const path = require("path");
 const { getOpenApiDetail, collectPathBlocks, extractMethods, extractScalar, getSwaggerContext } = require("./openapi-utils");
 
 function explainOpenApi({ apiPath, keyword }) {

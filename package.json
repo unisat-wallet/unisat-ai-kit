@@ -10,6 +10,9 @@
     "doctor": "node scripts/doctor.mjs",
     "cli": "node packages/cli/bin/unisat-ai.js",
     "mcp:server": "node packages/mcp-server/bin/server.js",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "sync:release-assets": "node scripts/sync-release-assets.mjs",
+    "clean:release-assets": "node scripts/clean-release-assets.mjs",
+    "release:smoke": "node scripts/release-smoke.mjs"
   }
 }
