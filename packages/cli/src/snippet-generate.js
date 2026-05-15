@@ -1,55 +1,9 @@
-const { getOpenApiDetail } = require("./openapi-utils");
-
-function exampleValue(parameter) {
-  if (parameter.type === "integer" || parameter.type === "number") {
-    return "1";
-  }
-  if (parameter.type === "boolean") {
-    return "true";
-  }
-  if (parameter.name.toLowerCase().includes("address")) {
-    return "YOUR_ADDRESS";
-  }
-  if (parameter.name.toLowerCase().includes("ticker") || parameter.name.toLowerCase().includes("tick")) {
-    return "ordi";
-  }
-  if (parameter.name.toLowerCase().includes("id")) {
-    return "YOUR_ID";
-  }
-  return `YOUR_${parameter.name.toUpperCase()}`;
-}
-
-function buildResolvedPath(apiPath, pathParams) {
-  let resolvedPath = apiPath;
-  pathParams.forEach((parameter) => {
-    resolvedPath = resolvedPath.replace(`{${parameter.name}}`, exampleValue(parameter));
-  });
-  return resolvedPath;
-}
-
-function buildQueryEntries(parameters) {
-  return parameters
-    .filter((parameter) => parameter.in === "query")
-    .map((parameter) => ({
-      name: parameter.name,
-      required: parameter.required,
-      description: parameter.description,
-      value: exampleValue(parameter),
-    }));
-}
-
-function buildQueryString(entries) {
-  if (entries.length === 0) {
-    return "";
-  }
-
-  return entries
-    .map((entry) => `${encodeURIComponent(entry.name)}=${encodeURIComponent(entry.value)}`)
-    .join("&");
-}
+const { buildRequestPlan } = require("./openapi-request");
 
 function buildCurlSnippet(detail, baseUrl, resolvedPath, queryEntries) {
-  const queryString = buildQueryString(queryEntries);
+  const queryString = queryEntries
+    .map((entry) => `${encodeURIComponent(entry.name)}=${encodeURIComponent(entry.value)}`)
+    .join("&");
   const url = queryString ? `${baseUrl}${resolvedPath}?${queryString}` : `${baseUrl}${resolvedPath}`;
   const lines = [
     `curl --request ${detail.method.toUpperCase()} \\`,
@@ -94,8 +48,8 @@ function buildTsFetchSnippet(detail, baseUrl, resolvedPath, queryEntries) {
 }
 
 function generateSnippet({ apiPath, language }) {
-  const detail = getOpenApiDetail(apiPath);
-  if (!detail) {
+  const plan = buildRequestPlan(apiPath);
+  if (!plan) {
     return {
       command: "snippet.generate",
       mode: "not_found",
@@ -104,10 +58,7 @@ function generateSnippet({ apiPath, language }) {
     };
   }
 
-  const baseUrl = detail.servers[0] || "https://open-api.unisat.io";
-  const pathParams = detail.parameters.filter((parameter) => parameter.in === "path");
-  const queryEntries = buildQueryEntries(detail.parameters);
-  const resolvedPath = buildResolvedPath(detail.path, pathParams);
+  const { detail, baseUrl, pathParams, queryEntries, resolvedPath } = plan;
 
   const snippet =
     language === "typescript"
@@ -126,7 +77,7 @@ function generateSnippet({ apiPath, language }) {
     baseUrl,
     pathParams: pathParams.map((parameter) => ({
       name: parameter.name,
-      value: exampleValue(parameter),
+      value: parameter.value,
     })),
     queryParams: queryEntries,
     hasRequestBody: Boolean(detail.requestBodyTemplate),

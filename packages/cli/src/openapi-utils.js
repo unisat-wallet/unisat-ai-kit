@@ -6,7 +6,7 @@ function getSwaggerContext() {
   const { openapiSwaggerDir } = getSourceRoots();
   return {
     openapiSwaggerDir,
-    swaggerDir: path.join(openapiSwaggerDir, "project", "open-api", "swagger"),
+    swaggerDir: openapiSwaggerDir,
   };
 }
 
@@ -295,6 +295,7 @@ function getOpenApiDetail(apiPath) {
 
 module.exports = {
   collectPathBlocks,
+  extractTags,
   extractMethods,
   extractScalar,
   getOpenApiDetail,

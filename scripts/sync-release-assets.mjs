@@ -1,15 +1,15 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const rootDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cliDir = path.join(rootDir, "packages", "cli");
 const vendorDir = path.join(cliDir, "vendor");
 const bundledDevDocsDir = path.join(vendorDir, "unisat-dev-docs");
 const bundledSwaggerDir = path.join(vendorDir, "openapi-swagger");
 
 const sourceDevDocsDir = process.env.UNISAT_DEV_DOCS_DIR || path.resolve(rootDir, "..", "unisat-dev-docs");
-const sourceSwaggerDir =
-  process.env.OPENAPI_SWAGGER_DIR || path.resolve(rootDir, "..", "openapi-swagger");
+const sourceSwaggerDir = process.env.OPENAPI_SWAGGER_DIR || path.join(rootDir, "swagger");
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
@@ -69,8 +69,8 @@ function main() {
   ensureDir(path.dirname(targetErrorsFile));
   fs.copyFileSync(sourceErrorsFile, targetErrorsFile);
 
-  const sourceSwaggerFilesDir = path.join(sourceSwaggerDir, "project", "open-api", "swagger");
-  const targetSwaggerFilesDir = path.join(bundledSwaggerDir, "project", "open-api", "swagger");
+  const sourceSwaggerFilesDir = sourceSwaggerDir;
+  const targetSwaggerFilesDir = bundledSwaggerDir;
   copyTree(sourceSwaggerFilesDir, targetSwaggerFilesDir, (filePath) => filePath.endsWith(".yaml"));
 
 }

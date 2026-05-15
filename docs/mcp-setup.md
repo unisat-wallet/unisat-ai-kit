@@ -21,11 +21,11 @@ The server currently runs over stdio and exposes five read-only tools:
 
 ## Environment Overrides
 
-If your knowledge-source repositories are not in the default sibling paths, override them before launch:
+By default, OpenAPI data is read from the repository-local `swagger/` directory. If your docs repository is not in the default sibling path, or if you need to point OpenAPI loading at a different directory, override them before launch:
 
 ```bash
 export UNISAT_DEV_DOCS_DIR=/absolute/path/to/unisat-dev-docs
-export OPENAPI_SWAGGER_DIR=/absolute/path/to/openapi-swagger
+export OPENAPI_SWAGGER_DIR=/absolute/path/to/custom-swagger-dir
 yarn mcp:server
 ```
 
@@ -43,7 +43,7 @@ Example stdio MCP configuration:
       ],
       "env": {
         "UNISAT_DEV_DOCS_DIR": "/Users/avani/workplace/github-repo/unisat-dev-docs",
-        "OPENAPI_SWAGGER_DIR": "/Users/avani/workplace/github-repo/openapi-swagger"
+        "OPENAPI_SWAGGER_DIR": "/Users/avani/workplace/github-repo/unisat-ai/swagger"
       }
     }
   }

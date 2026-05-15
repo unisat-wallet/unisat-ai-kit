@@ -195,6 +195,42 @@ async function main() {
         assert(typeof payload.snippet === "string" && payload.snippet.includes("curl --request GET"), "snippet output invalid");
       },
     },
+    {
+      name: "cli intro find address brc20 balance list",
+      args: ["packages/cli/bin/unisat-ai.js", "intro", "find", "--query", "address brc20 balance list", "--format", "json"],
+      validate(stdout) {
+        const payload = JSON.parse(stdout);
+        assert(payload.command === "intro.find", "intro find payload invalid");
+        assert(
+          payload.matches[0]?.path === "/v1/indexer/address/{address}/brc20/summary",
+          "address brc20 balance list should prefer address brc20 summary"
+        );
+      },
+    },
+    {
+      name: "cli intro find brc20-prog ticker info",
+      args: ["packages/cli/bin/unisat-ai.js", "intro", "find", "--query", "brc20 prog ticker info", "--format", "json"],
+      validate(stdout) {
+        const payload = JSON.parse(stdout);
+        assert(payload.command === "intro.find", "intro find payload invalid");
+        assert(
+          payload.matches[0]?.path === "/v1/indexer/brc20-prog/{ticker}/info",
+          "brc20 prog ticker info should prefer brc20-prog ticker info"
+        );
+      },
+    },
+    {
+      name: "cli intro find marketplace brc20 ticker history",
+      args: ["packages/cli/bin/unisat-ai.js", "intro", "find", "--query", "marketplace brc20 ticker history", "--format", "json"],
+      validate(stdout) {
+        const payload = JSON.parse(stdout);
+        assert(payload.command === "intro.find", "intro find payload invalid");
+        assert(
+          payload.matches[0]?.path === "/v3/market/brc20/auction/brc20_kline",
+          "marketplace brc20 ticker history should prefer brc20 kline"
+        );
+      },
+    },
   ];
 
   for (const check of cliChecks) {

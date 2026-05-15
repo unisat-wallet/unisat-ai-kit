@@ -9,14 +9,23 @@ function parseArgs(argv) {
       continue;
     }
 
-    const key = token.slice(2);
+    const inlineEqualsIndex = token.indexOf("=");
+    const hasInlineValue = inlineEqualsIndex !== -1;
+    const key = hasInlineValue ? token.slice(2, inlineEqualsIndex) : token.slice(2);
+    const inlineValue = hasInlineValue ? token.slice(inlineEqualsIndex + 1) : undefined;
     const nextToken = argv[index + 1];
-    if (!nextToken || nextToken.startsWith("--")) {
-      options[key] = "true";
+
+    if (hasInlineValue) {
+      pushOption(options, key, inlineValue);
       continue;
     }
 
-    options[key] = nextToken;
+    if (!nextToken || nextToken.startsWith("--")) {
+      pushOption(options, key, "true");
+      continue;
+    }
+
+    pushOption(options, key, nextToken);
     index += 1;
   }
 
@@ -26,6 +35,20 @@ function parseArgs(argv) {
   };
 }
 
+function pushOption(options, key, value) {
+  if (!Object.prototype.hasOwnProperty.call(options, key)) {
+    options[key] = value;
+    return;
+  }
+
+  if (Array.isArray(options[key])) {
+    options[key].push(value);
+    return;
+  }
+
+  options[key] = [options[key], value];
+}
+
 function toInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   return Number.isNaN(parsed) ? fallback : parsed;
@@ -33,5 +56,6 @@ function toInt(value, fallback) {
 
 module.exports = {
   parseArgs,
+  pushOption,
   toInt,
 };

@@ -19,6 +19,8 @@ function resolveRepoPath(envName, bundledSegments, fallbackSegments) {
 }
 
 function getSourceRoots() {
+  const repoRoot = path.resolve(__dirname, "..", "..", "..");
+
   return {
     unisatDevDocsDir: resolveRepoPath(
       "UNISAT_DEV_DOCS_DIR",
@@ -28,8 +30,9 @@ function getSourceRoots() {
     openapiSwaggerDir: resolveRepoPath(
       "OPENAPI_SWAGGER_DIR",
       ["openapi-swagger"],
-      ["..", "openapi-swagger"]
+      ["swagger"]
     ),
+    repoRoot,
   };
 }
 

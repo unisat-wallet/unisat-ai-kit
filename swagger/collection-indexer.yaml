@@ -1,0 +1,557 @@
+openapi: 3.0.3
+info:
+  title: Collection Indexer API
+  version: 1.0.4
+  description: >-
+    This is the API for collections. Currently, it only indexes a single whitelisted collection.
+  contact:
+    email: contact@unisat.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://open-api.unisat.io
+    description: Mainnet endpoint for public.
+tags:
+  - name: Collection-Indexer
+    description: Collection Indexer Service (Experience Stage)
+paths:
+  /v1/collection-indexer/collection/status:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getCollectionStatus
+      summary: Return the overall information of the collection service
+      description: >-
+        Returns the latest height of the collection indexer, the last handled
+        height, and the total number of collections.
+
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      newestHeight:
+                        type: number
+                      lastHandledHeight:
+                        type: number
+                      totalCollection:
+                        type: number
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+  /v1/collection-indexer/collection/{collectionId}/info:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getCollectionInfo
+      summary: Return the details of the specified collection
+      description: >-
+        Returns the details of a specific collection, including its name, icon,
+        supply, description, and social media links.
+
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: height
+          required: false
+        - schema:
+            type: string
+          in: path
+          name: collectionId
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      height:
+                        type: number
+                      holders:
+                        type: number
+                      totalItems:
+                        type: number
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+  /v1/collection-indexer/collection/{collectionId}/holders:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getCollectionHolders
+      summary: Return the owner information of a specific collection
+      description: >-
+        Returns the list of addresses that hold items from a specific collection,
+        along with the count of items each address holds.
+
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: height
+          required: false
+        - schema:
+            type: number
+          in: query
+          name: start
+          required: true
+        - schema:
+            type: number
+          in: query
+          name: limit
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: collectionId
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: number
+                      list:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            address:
+                              type: string
+                            count:
+                              type: number
+                          additionalProperties: false
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+  /v1/collection-indexer/address/{address}/collection/list:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getAddressCollectionList
+      summary: Return the collection summary for the specified address.
+      description: >-
+        Returns the summary of all collections that the specified address holds,
+        including collection name, icon, supply, and social media links.
+
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: height
+          required: false
+        - schema:
+            type: number
+          in: query
+          name: start
+          required: true
+        - schema:
+            type: number
+          in: query
+          name: limit
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: address
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: number
+                      list:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            count:
+                              type: number
+                            name:
+                              type: string
+                            iconInscription:
+                              type: string
+                            iconUrl:
+                              type: string
+                            iconContentType:
+                              type: string
+                            supply:
+                              type: string
+                            collectionId:
+                              type: string
+                            desc:
+                              type: string
+                            twitter:
+                              type: string
+                            discord:
+                              type: string
+                            website:
+                              type: string
+                          additionalProperties: false
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+  /v1/collection-indexer/collection/{collectionId}/items:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getCollectionItems
+      summary: Return the list of inscriptions for a specific collection.
+      description: >-
+        Returns the list of inscriptions that belong to a specific collection,
+        including details such as inscription ID, name, content type, and height.
+
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: height
+          required: false
+        - schema:
+            type: number
+          in: query
+          name: start
+          required: true
+        - schema:
+            type: number
+          in: query
+          name: limit
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: collectionId
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: number
+                      list:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            inscriptionId:
+                              type: string
+                            collectionId:
+                              type: string
+                            collectionItemName:
+                              type: string
+                            inscriptionIndex:
+                              type: number
+                            inscriptionNumber:
+                              type: number
+                            inscriptionName:
+                              type: string
+                            contentBody:
+                              type: string
+                            contentLength:
+                              type: number
+                            contentType:
+                              type: string
+                            height:
+                              type: number
+                            holders:
+                              type: number
+                            totalItems:
+                              type: number
+                          additionalProperties: false
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+  /v1/collection-indexer/address/{address}/collection/{collectionId}/summary:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getAddressCollectionSummary
+      summary: Return the summary of a specific collection for the designated address.
+      description: >-
+        Returns the summary of a specific collection for a designated address,
+        including collection name, icon, supply, description, and social media links.
+
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: height
+          required: false
+        - schema:
+            type: string
+          in: path
+          name: address
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: collectionId
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: number
+                      name:
+                        type: string
+                      iconInscription:
+                        type: string
+                      iconUrl:
+                        type: string
+                      iconContentType:
+                        type: string
+                      supply:
+                        type: string
+                      collectionId:
+                        type: string
+                      desc:
+                        type: string
+                      twitter:
+                        type: string
+                      discord:
+                        type: string
+                      website:
+                        type: string
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+  /v1/collection-indexer/address/{address}/collection/{collectionId}/items:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getAddressCollectionItems
+      summary: Get the list of inscriptions for a specific collection at a designated address.
+      description: >-
+        Returns the list of inscriptions that belong to a specific collection at
+        a designated address, including details such as inscription ID, name,
+
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: height
+          required: false
+        - schema:
+            type: number
+          in: query
+          name: start
+          required: true
+        - schema:
+            type: number
+          in: query
+          name: limit
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: address
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: collectionId
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: number
+                      list:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            inscriptionId:
+                              type: string
+                            collectionId:
+                              type: string
+                            collectionItemName:
+                              type: string
+                            inscriptionIndex:
+                              type: number
+                            inscriptionNumber:
+                              type: number
+                            inscriptionName:
+                              type: string
+                            contentBody:
+                              type: string
+                            contentLength:
+                              type: number
+                            contentType:
+                              type: string
+                            height:
+                              type: number
+                            holders:
+                              type: number
+                            totalItems:
+                              type: number
+                          additionalProperties: false
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+  /v1/collection-indexer/inscription/{inscriptionId}/collection/list:
+    get:
+      tags:
+        - Collection-Indexer
+      operationId: getInscriptionCollectionList
+      summary: Get inscription collection list
+      description: >-
+        Returns the list of collections that a specific inscription belongs to,
+        including collection name, icon, supply, and social media links.
+
+      parameters:
+        - schema:
+            type: string
+          in: path
+          name: inscriptionId
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  msg:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: number
+                      list:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            iconInscription:
+                              type: string
+                            iconUrl:
+                              type: string
+                            iconContentType:
+                              type: string
+                            supply:
+                              type: string
+                            collectionId:
+                              type: string
+                            desc:
+                              type: string
+                            twitter:
+                              type: string
+                            discord:
+                              type: string
+                            website:
+                              type: string
+                          additionalProperties: false
+                    additionalProperties: false
+                required:
+                  - msg
+                  - code
+                  - data
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

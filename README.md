@@ -35,7 +35,7 @@ Current branch roles:
 ## Current Boundaries
 
 - Docs, OpenAPI, SDKs, and error catalogs remain upstream sources of truth and should not be duplicated here
-- `openapi-swagger` still owns the public OpenAPI definitions
+- The repository-local `swagger/` directory is the default OpenAPI source consumed by CLI and MCP
 - `unisat-dev-docs` still owns developer docs, the site, and SDK artifacts
 - `sloth-workspace` still owns internal playbooks and agent orchestration
 

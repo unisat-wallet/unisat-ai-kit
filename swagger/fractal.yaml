@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Fractal Only API
+  version: 1.0.4
+  description: >-
+    This API is limited to Fractal only. It provides endpoints to interact with the Fractal network, including supply information, address statistics, and rich lists.
+  contact:
+    email: contact@unisat.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://open-api-fractal.unisat.io
+  - url: https://open-api-fractal-testnet.unisat.io
+tags:
+  - name: Fractal
+    description: Fractal Only
+paths:
+  /v1/public/fractal/supply:
+    get:
+      tags:
+        - Fractal
+      operationId: getFractalSupply
+      summary: Get circulating FB in fractal mainnet
+      description: >-
+        Retrieves the circulating supply of Fractal Bitcoin (FB) in the mainnet.
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  msg:
+                    type: string
+                    example: OK
+                  data:
+                    $ref: "#/components/schemas/FractalSupply"
+        "401":
+          description: Invalid API Key
+  /v1/public/fractal/total-supply:
+    get:
+      tags:
+        - Fractal
+      operationId: getFractalTotalSupply
+      summary: Get total supply FB in fractal mainnet
+      description: >-
+        Retrieves the total supply of Fractal Bitcoin (FB) in the mainnet.
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  msg:
+                    type: string
+                    example: OK
+                  data:
+                    $ref: "#/components/schemas/FractalSupply"
+        "401":
+          description: Invalid API Key
+  /v1/public/address/total:
+    get:
+      tags:
+        - Fractal
+      operationId: getFractalTotalAddress
+      summary: Get total address
+      description: >-
+        Retrieves the total number of addresses in the Fractal network.
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  msg:
+                    type: string
+                    example: OK
+                  data:
+                    type: number
+        "401":
+          description: Invalid API Key
+  /v1/public/address/rich-list:
+    get:
+      tags:
+        - Fractal
+      operationId: getFractalRichList
+      summary: Get address rich list
+      description: >-
+        Retrieves a list of addresses sorted by their balance in descending order.
+      parameters:
+        - name: cursor
+          description: Start offset
+          in: query
+          required: true
+          schema:
+            type: integer
+          example: 0
+        - name: size
+          description: Number of items returned (Max 10000)
+          in: query
+          required: true
+          schema:
+            type: integer
+          example: 16
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  msg:
+                    type: string
+                    example: OK
+                  data:
+                    $ref: "#/components/schemas/AddressBalance"
+        "401":
+          description: Invalid API Key
+components:
+  schemas:
+    FractalSupply:
+      type: object
+      properties:
+        blocks:
+          type: number
+        supply:
+          type: number
+    AddressBalance:
+      type: array
+      items:
+        properties:
+          address:
+            type: string
+          balance:
+            type: number
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
