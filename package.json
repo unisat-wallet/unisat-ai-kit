@@ -9,6 +9,8 @@
   "scripts": {
     "doctor": "node scripts/doctor.mjs",
     "cli": "node packages/cli/bin/unisat-ai.js",
+    "package:cli": "node scripts/package-single-cli.mjs",
+    "package:cli:portable": "node scripts/package-portable-cli.mjs",
     "mcp:server": "node packages/mcp-server/bin/server.js",
     "smoke": "node scripts/smoke.mjs",
     "sync:release-assets": "node scripts/sync-release-assets.mjs",

@@ -1,6 +1,6 @@
 # @unisat/ai-mcp-server
 
-This package exposes CLI capabilities and read-only knowledge sources as standard MCP tools.
+This package exposes the supported UniSat AI interface discovery capabilities as standard MCP tools.
 
 Install globally after publication:
 
@@ -14,13 +14,10 @@ Or run it without a global install:
 npx -y @unisat/ai-mcp-server
 ```
 
-Initial tools:
+Tools:
 
-- `search_docs`
-- `find_openapi`
-- `explain_api`
-- `generate_snippet`
-- `explain_error`
+- `resolve_api`
+- `show_api`
 
 Run locally:
 

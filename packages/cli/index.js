@@ -1,14 +1,8 @@
-const { searchDocs } = require("./src/docs-search");
-const { explainOpenApi } = require("./src/openapi-explain");
-const { explainErrorByCode, explainErrorByQuery } = require("./src/error-explain");
-const { generateSnippet } = require("./src/snippet-generate");
 const { callApi } = require("./src/api-call");
+const { introResolve, introShow } = require("./src/intro");
 
 module.exports = {
   callApi,
-  searchDocs,
-  explainOpenApi,
-  explainErrorByCode,
-  explainErrorByQuery,
-  generateSnippet,
+  introResolve,
+  introShow,
 };

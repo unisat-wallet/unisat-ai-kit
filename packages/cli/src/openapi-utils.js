@@ -1,21 +1,48 @@
 const path = require("path");
+const sea = require("node:sea");
 const { getSourceRoots } = require("./repo-paths");
 const { walkFiles, readUtf8 } = require("./file-utils");
+
+const SWAGGER_ASSET_NAME = "openapi-swagger.json";
+let embeddedSwaggerFiles = null;
 
 function getSwaggerContext() {
   const { openapiSwaggerDir } = getSourceRoots();
   return {
     openapiSwaggerDir,
     swaggerDir: openapiSwaggerDir,
+    embedded: getEmbeddedSwaggerFiles() !== null,
   };
 }
 
+function getEmbeddedSwaggerFiles() {
+  if (embeddedSwaggerFiles !== null) {
+    return embeddedSwaggerFiles;
+  }
+
+  embeddedSwaggerFiles = false;
+  if (!sea.isSea()) {
+    return null;
+  }
+
+  try {
+    const raw = sea.getAsset(SWAGGER_ASSET_NAME, "utf8");
+    embeddedSwaggerFiles = JSON.parse(raw);
+    return embeddedSwaggerFiles;
+  } catch (_error) {
+    return null;
+  }
+}
+
 function collectPathBlocks(swaggerDir) {
-  const files = walkFiles(swaggerDir, (filePath) => filePath.endsWith(".yaml")).sort();
+  const embeddedFiles = getEmbeddedSwaggerFiles();
+  const files = embeddedFiles
+    ? Object.keys(embeddedFiles).sort()
+    : walkFiles(swaggerDir, (filePath) => filePath.endsWith(".yaml")).sort();
   const blocks = [];
 
   files.forEach((filePath) => {
-    const content = readUtf8(filePath);
+    const content = embeddedFiles ? embeddedFiles[filePath] : readUtf8(filePath);
     const lines = content.split(/\r?\n/);
     let index = 0;
 
@@ -267,7 +294,7 @@ function buildRequestBodyTemplate(lines) {
 }
 
 function getOpenApiDetail(apiPath) {
-  const { openapiSwaggerDir, swaggerDir } = getSwaggerContext();
+  const { openapiSwaggerDir, swaggerDir, embedded } = getSwaggerContext();
   const blocks = collectPathBlocks(swaggerDir);
   const block = blocks.find((item) => item.path === apiPath);
 
@@ -281,7 +308,7 @@ function getOpenApiDetail(apiPath) {
   return {
     path: block.path,
     method,
-    file: path.relative(openapiSwaggerDir, block.filePath),
+    file: embedded ? block.filePath : path.relative(openapiSwaggerDir, block.filePath),
     operationId: extractScalar(block.blockLines, /^\s{6}operationId:\s+/),
     summary: extractScalar(block.blockLines, /^\s{6}summary:\s+/),
     description: extractScalar(block.blockLines, /^\s{6}description:\s+/),

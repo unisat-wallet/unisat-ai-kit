@@ -1,5 +1,6 @@
 const path = require("path");
 const { buildRequestPlan } = require("./openapi-request");
+const { DEFAULT_OPENAPI_ENVIRONMENT } = require("./openapi-environments");
 const {
   collectPathBlocks,
   extractMethods,
@@ -63,19 +64,68 @@ function hasAnyToken(tokens, values) {
 }
 
 const ACTION_TOKENS = new Set([
+  "action",
+  "actions",
+  "add",
+  "all",
+  "available",
   "balance",
+  "balances",
+  "batch",
+  "bid",
+  "block",
+  "blockchain",
+  "cancel",
+  "claim",
+  "commit",
+  "config",
+  "confirm",
+  "create",
+  "deploy",
   "list",
+  "events",
+  "fee",
+  "fees",
+  "gas",
   "info",
+  "kline",
   "history",
   "holders",
   "holder",
+  "inscribe",
+  "inscriptions",
+  "limit",
+  "liquidity",
+  "market",
+  "mint",
+  "order",
+  "orders",
+  "pool",
+  "pre",
+  "price",
+  "psbt",
+  "quote",
+  "raw",
+  "records",
+  "remove",
+  "send",
+  "sell",
+  "split",
+  "stat",
+  "stats",
+  "status",
+  "summary",
+  "swap",
+  "token",
+  "tokens",
+  "transaction",
+  "transactions",
   "transferable",
   "inscriptions",
-  "summary",
   "details",
   "detail",
-  "raw",
   "utxo",
+  "withdraw",
 ]);
 
 const CONNECTOR_TOKENS = new Set([
@@ -89,12 +139,26 @@ const CONNECTOR_TOKENS = new Set([
 ]);
 
 const HINT_KIND_MAP = {
+  address: "address",
+  addr: "address",
   ticker: "ticker",
   token: "ticker",
   tick: "ticker",
   symbol: "ticker",
   runeid: "runeid",
+  rune: "runeid",
   txid: "txid",
+  tx: "txid",
+  alkaneid: "alkaneid",
+  alkane: "alkaneid",
+  collectionid: "collectionid",
+  collection: "collectionid",
+  inscriptionid: "inscriptionid",
+  inscription: "inscriptionid",
+  orderid: "orderid",
+  order: "orderid",
+  blockid: "blockid",
+  block: "blockid",
   height: "height",
   module: "module",
   index: "index",
@@ -126,6 +190,138 @@ const BARE_TICKER_EXCLUDED_TOKENS = new Set([
   "utxo",
 ]);
 
+const DOMAIN_TOKEN_ALIASES = {
+  alkane: "alkane",
+  alkanes: "alkane",
+  auction: "marketplace",
+  bitcoin: "blockchain",
+  brc20: "brc20",
+  cat20: "cat20",
+  collection: "collection",
+  collections: "collection",
+  dex: "dex",
+  domain: "domain",
+  domains: "domain",
+  fb: "fractal",
+  fractal: "fractal",
+  inscribe: "inscribe",
+  inscription: "inscription",
+  inscriptions: "inscription",
+  market: "marketplace",
+  marketplace: "marketplace",
+  price: "price",
+  rune: "runes",
+  runes: "runes",
+  swap: "swap",
+};
+
+const ACTION_TOKEN_ALIASES = {
+  actions: "actions",
+  add: "add",
+  all: "all",
+  available: "available",
+  balance: "balance",
+  balances: "balance",
+  batch: "batch",
+  bid: "bid",
+  bids: "bid",
+  block: "block",
+  blocks: "block",
+  cancel: "cancel",
+  claim: "claim",
+  commit: "commit",
+  config: "config",
+  confirm: "confirm",
+  create: "create",
+  deploy: "deploy",
+  detail: "detail",
+  details: "detail",
+  event: "event",
+  events: "event",
+  fee: "fee",
+  fees: "fee",
+  gas: "gas",
+  history: "history",
+  holder: "holders",
+  holders: "holders",
+  info: "info",
+  kline: "kline",
+  list: "list",
+  listing: "list",
+  listings: "list",
+  liquidity: "liquidity",
+  mint: "mint",
+  order: "order",
+  orders: "order",
+  pool: "pool",
+  price: "price",
+  psbt: "psbt",
+  quote: "quote",
+  raw: "raw",
+  records: "records",
+  remove: "remove",
+  send: "send",
+  sell: "sell",
+  split: "split",
+  stat: "stat",
+  stats: "stat",
+  status: "status",
+  summary: "summary",
+  swap: "swap",
+  transaction: "transaction",
+  transactions: "transaction",
+  transferable: "transferable",
+  transfers: "transfer",
+  transfer: "transfer",
+  utxo: "utxo",
+  withdraw: "withdraw",
+};
+
+const RESOURCE_TOKEN_ALIASES = {
+  addr: "address",
+  address: "address",
+  alkane: "alkaneid",
+  alkaneid: "alkaneid",
+  block: "blockid",
+  blockid: "blockid",
+  collection: "collectionid",
+  collectionid: "collectionid",
+  height: "height",
+  index: "index",
+  inscription: "inscriptionid",
+  inscriptionid: "inscriptionid",
+  module: "module",
+  order: "orderid",
+  orderid: "orderid",
+  rune: "runeid",
+  runeid: "runeid",
+  symbol: "ticker",
+  tick: "ticker",
+  ticker: "ticker",
+  token: "ticker",
+  tx: "txid",
+  txid: "txid",
+};
+
+function normalizeToken(token) {
+  return normalize(token).replace(/[^a-z0-9]+/g, "");
+}
+
+function canonicalResourceKind(kind) {
+  const normalized = normalizeToken(kind);
+  return RESOURCE_TOKEN_ALIASES[normalized] || normalized;
+}
+
+function addCanonical(set, aliases, token) {
+  const normalized = normalizeToken(token);
+  const canonical = aliases[normalized];
+  if (canonical) {
+    set.add(canonical);
+    return canonical;
+  }
+  return "";
+}
+
 function parseQuery(query) {
   const rawTokens = normalize(query)
     .split(/[^a-z0-9]+/)
@@ -134,31 +330,44 @@ function parseQuery(query) {
   const consumedValueIndexes = new Set();
   const entityValues = [];
   const resourceIntents = new Set();
+  const domainIntents = new Set();
+  const actionIntents = new Set();
 
   for (let index = 0; index < rawTokens.length; index += 1) {
     const token = rawTokens[index];
-    const kind = HINT_KIND_MAP[token];
-    if (token === "address") {
-      resourceIntents.add("address");
+    const nextToken = rawTokens[index + 1];
+
+    if (token === "brc20" && nextToken === "prog") {
+      domainIntents.add("brc20-prog");
+      consumedValueIndexes.add(index + 1);
+      index += 1;
       continue;
     }
+
+    addCanonical(domainIntents, DOMAIN_TOKEN_ALIASES, token);
+    addCanonical(actionIntents, ACTION_TOKEN_ALIASES, token);
+
+    const kind = HINT_KIND_MAP[token] || RESOURCE_TOKEN_ALIASES[token];
     if (!kind) {
       continue;
     }
 
-    resourceIntents.add(kind);
+    const canonicalKind = canonicalResourceKind(kind);
+    resourceIntents.add(canonicalKind);
 
-    const nextToken = rawTokens[index + 1];
     if (!nextToken) {
       continue;
     }
     if (ACTION_TOKENS.has(nextToken) || CONNECTOR_TOKENS.has(nextToken)) {
       continue;
     }
+    if (DOMAIN_TOKEN_ALIASES[nextToken] || RESOURCE_TOKEN_ALIASES[nextToken]) {
+      continue;
+    }
 
     consumedValueIndexes.add(index + 1);
     entityValues.push({
-      kind,
+      kind: canonicalKind,
       value: nextToken,
     });
     index += 1;
@@ -167,28 +376,19 @@ function parseQuery(query) {
   const effectiveTokens = rawTokens.filter(
     (token, index) => !consumedValueIndexes.has(index) && !CONNECTOR_TOKENS.has(token)
   );
-  const domainIntents = new Set();
 
-  for (let index = 0; index < effectiveTokens.length; index += 1) {
-    const token = effectiveTokens[index];
-    const nextToken = effectiveTokens[index + 1];
-    if (token === "brc20" && nextToken === "prog") {
-      domainIntents.add("brc20-prog");
-      index += 1;
-      continue;
-    }
-    if (token === "marketplace" || token === "market" || token === "auction") {
-      domainIntents.add("marketplace");
-      continue;
-    }
-    if (token === "brc20" || token === "runes" || token === "collection" || token === "domain" || token === "alkane" || token === "alkanes" || token === "swap") {
-      domainIntents.add(token);
-    }
+  effectiveTokens.forEach((token) => {
+    addCanonical(domainIntents, DOMAIN_TOKEN_ALIASES, token);
+    addCanonical(actionIntents, ACTION_TOKEN_ALIASES, token);
+  });
+
+  if (domainIntents.has("brc20-prog")) {
+    domainIntents.delete("brc20");
   }
 
   const hasTickerHint = resourceIntents.has("ticker");
-  const hasBareTickerValue = (domainIntents.has("brc20") || domainIntents.has("brc20-prog")) && !hasTickerHint;
-  if (hasBareTickerValue) {
+  const canInferBareTicker = (domainIntents.has("brc20") || domainIntents.has("brc20-prog")) && !hasTickerHint;
+  if (canInferBareTicker) {
     const bareTickerCandidate = effectiveTokens.find((token) => {
       if (domainIntents.has(token)) {
         return false;
@@ -197,6 +397,9 @@ function parseQuery(query) {
         return false;
       }
       if (Object.prototype.hasOwnProperty.call(HINT_KIND_MAP, token)) {
+        return false;
+      }
+      if (DOMAIN_TOKEN_ALIASES[token] || RESOURCE_TOKEN_ALIASES[token]) {
         return false;
       }
       if (BARE_TICKER_EXCLUDED_TOKENS.has(token)) {
@@ -219,6 +422,7 @@ function parseQuery(query) {
     entityValues,
     resourceIntents: Array.from(resourceIntents),
     domainIntents: Array.from(domainIntents),
+    actionIntents: Array.from(actionIntents),
   };
 }
 
@@ -261,48 +465,15 @@ function detectIntentConflicts(parsedQuery) {
     conflicts.push("query mixes transaction/txid intent with ticker intent");
   }
 
-  if (marketplaceIntent && tickerIntent && tokens.includes("info")) {
+  if (marketplaceIntent && tickerIntent && tokens.includes("info") && !brc20Intent && !runesIntent) {
     conflicts.push("query mixes marketplace intent with generic ticker info intent");
   }
 
-  if (marketplaceIntent && tickerIntent && tokens.includes("history")) {
+  if (marketplaceIntent && tickerIntent && tokens.includes("history") && !brc20Intent && !runesIntent) {
     conflicts.push("query mixes marketplace intent with generic ticker history intent");
   }
 
   return conflicts;
-}
-
-function introList({ domain, method, keyword }) {
-  const operations = listOperations()
-    .filter((item) => !domain || item.domain === normalize(domain))
-    .filter((item) => !method || item.method === normalize(method))
-    .filter((item) => {
-      if (!keyword) {
-        return true;
-      }
-      const haystack = [
-        item.path,
-        item.summary,
-        item.description,
-        item.domain,
-        ...(item.tags || []),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(keyword.toLowerCase());
-    })
-    .sort((left, right) => `${left.path}:${left.method}`.localeCompare(`${right.path}:${right.method}`));
-
-  return {
-    command: "intro.list",
-    mode: "list",
-    filters: {
-      domain: domain || "",
-      method: method || "",
-      keyword: keyword || "",
-    },
-    results: operations,
-  };
 }
 
 function introShow(apiPath) {
@@ -327,18 +498,16 @@ function introShow(apiPath) {
   };
 }
 
-function introParams(apiPath) {
+function buildParamsPayload(apiPath) {
   const detail = getOpenApiDetail(apiPath);
   if (!detail) {
     return {
-      command: "intro.params",
       mode: "not_found",
       path: apiPath,
     };
   }
 
   return {
-    command: "intro.params",
     mode: "detail",
     path: detail.path,
     method: detail.method,
@@ -358,18 +527,34 @@ function quoteForShell(value, shell) {
   return `"${String(value).replace(/"/g, '\\"')}"`;
 }
 
-function introExample(apiPath, shell = "powershell") {
-  const plan = buildRequestPlan(apiPath, { includeOptionalQuery: false });
+function buildExamplePayload(apiPath, shell = "powershell", environment = DEFAULT_OPENAPI_ENVIRONMENT) {
+  const plan = buildRequestPlan(apiPath, { environment, includeOptionalQuery: false });
   if (!plan) {
     return {
-      command: "intro.example",
       mode: "not_found",
       path: apiPath,
       shell,
     };
   }
 
-  const parts = ["unisat-ai-cli", "api", "call", "--path", quoteForShell(plan.detail.path, shell)];
+  if (plan.mode === "invalid_environment") {
+    return {
+      mode: "invalid_environment",
+      path: apiPath,
+      shell,
+      environment,
+    };
+  }
+
+  const parts = [
+    "unisat-ai-cli",
+    "api",
+    "call",
+    "--env",
+    quoteForShell(plan.environment.name, shell),
+    "--path",
+    quoteForShell(plan.detail.path, shell),
+  ];
 
   plan.pathParams.forEach((item) => {
     parts.push("--path-param", quoteForShell(`${item.name}=${item.value}`, shell));
@@ -386,12 +571,13 @@ function introExample(apiPath, shell = "powershell") {
   parts.push("--format", "json");
 
   return {
-    command: "intro.example",
     mode: "detail",
     path: plan.detail.path,
     method: plan.detail.method,
     domain: inferDomain(plan.detail),
     shell,
+    environment: plan.environment.name,
+    environmentLabel: plan.environment.label,
     pathParams: plan.pathParams.map((item) => ({ name: item.name, value: item.value })),
     queryParams: plan.queryEntries,
     body: plan.detail.requestBodyTemplate,
@@ -399,407 +585,308 @@ function introExample(apiPath, shell = "powershell") {
   };
 }
 
-function introDomains() {
-  const results = Array.from(new Set(listOperations().map((item) => item.domain))).sort();
-  return {
-    command: "intro.domains",
-    mode: "list",
-    results,
-  };
+function tokenizeText(value) {
+  return normalize(value)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
 }
 
-function scoreMatch(operation, parsedQuery) {
+function canonicalDomainToken(token) {
+  return DOMAIN_TOKEN_ALIASES[normalizeToken(token)] || "";
+}
+
+function canonicalActionToken(token) {
+  return ACTION_TOKEN_ALIASES[normalizeToken(token)] || "";
+}
+
+function inferProfileDomains(operation, detail, pathTokens, tagTokens) {
+  const domains = new Set();
+  const fileBase = path.basename(detail?.file || operation.file || "", ".yaml");
+  const sources = [operation.domain, fileBase, ...(operation.tags || []), ...(detail?.tags || []), ...pathTokens, ...tagTokens];
+
+  sources.forEach((source) => {
+    tokenizeText(source).forEach((token) => {
+      const domain = canonicalDomainToken(token);
+      if (domain) {
+        domains.add(domain);
+      }
+    });
+  });
+
+  if (pathTokens.includes("market") || pathTokens.includes("auction") || fileBase.includes("marketplace")) {
+    domains.add("marketplace");
+  }
+  if (operation.path.includes("brc20-prog") || fileBase.includes("brc20-prog") || normalize(operation.domain).includes("brc20-prog")) {
+    domains.add("brc20-prog");
+    domains.delete("brc20");
+  }
+  if (pathTokens.includes("brc20") && pathTokens.includes("swap")) {
+    domains.add("brc20");
+    domains.add("swap");
+  }
+  if (fileBase.includes("indexer")) {
+    domains.add("indexer");
+  }
+  if (fileBase.includes("marketplace")) {
+    domains.add("marketplace");
+  }
+
+  return domains;
+}
+
+function inferProfileActions(operation, detail, allTokens) {
+  const actions = new Set();
+  allTokens.forEach((token) => {
+    const action = canonicalActionToken(token);
+    if (action) {
+      actions.add(action);
+    }
+  });
+
+  const pathText = normalize(operation.path);
+  const summaryText = normalize(`${operation.summary || ""} ${detail?.summary || ""}`);
+  if (pathText.includes("balance-list") || summaryText.includes("balance list")) {
+    actions.add("balance");
+    actions.add("list");
+  }
+  if (pathText.includes("kline")) {
+    actions.add("history");
+    actions.add("kline");
+  }
+  if (pathText.includes("utxo")) {
+    actions.add("utxo");
+  }
+  if (pathText.includes("rawtx")) {
+    actions.add("raw");
+    actions.add("transaction");
+  }
+  if (pathText.includes("statistic") || pathText.includes("stats")) {
+    actions.add("stat");
+  }
+
+  return actions;
+}
+
+function buildOperationProfile(operation) {
   const detail = getOpenApiDetail(operation.path);
-  const fields = {
+  const parameters = detail?.parameters || [];
+  const pathParams = parameters
+    .filter((item) => item.in === "path")
+    .map((item) => canonicalResourceKind(item.name));
+  const requiredParams = parameters
+    .filter((item) => item.required && (item.in === "path" || item.in === "query"))
+    .map((item) => canonicalResourceKind(item.name));
+  const pathTokens = tokenizeText(operation.path.replace(/[{}]/g, " "));
+  const summaryTokens = tokenizeText(operation.summary);
+  const descriptionTokens = tokenizeText(operation.description);
+  const tagTokens = tokenizeText((operation.tags || []).join(" "));
+  const domainTokens = tokenizeText(operation.domain);
+  const allTokens = [...pathTokens, ...summaryTokens, ...descriptionTokens, ...tagTokens, ...domainTokens];
+
+  return {
+    operation,
+    detail,
+    method: operation.method,
     path: normalize(operation.path),
     summary: normalize(operation.summary),
     description: normalize(operation.description),
     domain: normalize(operation.domain),
-    tags: normalize((operation.tags || []).join(" ")),
-  };
-
-  let score = 0;
-  const reasons = [];
-  const tokens = parsedQuery.effectiveTokens;
-  const rawTokens = parsedQuery.rawTokens;
-  const intentConflicts = detectIntentConflicts(parsedQuery);
-  const runeIdentifierIntent = hasRuneIdentifierIntent(parsedQuery);
-  const tickerValue = getEntityValue(parsedQuery, "ticker");
-  const hasTickerValue = Boolean(tickerValue);
-  const assetActionIntent = hasAnyToken(tokens, ["balance", "info", "history", "holders", "transferable", "inscriptions"]);
-
-  tokens.forEach((token) => {
-    if (fields.path.includes(token)) {
-      score += 5;
-      reasons.push(`path matches "${token}"`);
-      return;
-    }
-    if (fields.summary.includes(token)) {
-      score += 4;
-      reasons.push(`summary matches "${token}"`);
-      return;
-    }
-    if (fields.domain.includes(token) || fields.tags.includes(token)) {
-      score += 3;
-      reasons.push(`domain/tag matches "${token}"`);
-      return;
-    }
-    if (fields.description.includes(token)) {
-      score += 2;
-      reasons.push(`description matches "${token}"`);
-    }
-  });
-
-  if (hasResourceIntent(parsedQuery, "address") && operation.path.includes("/address/{address}/")) {
-    score += 3;
-    reasons.push("address-scoped path");
-  }
-
-  if (hasResourceIntent(parsedQuery, "address") && tokens.includes("balance") && fields.domain === "addresses" && fields.path === "/v1/indexer/address/{address}/balance") {
-    score += 10;
-    reasons.push("generic address balance endpoint preferred");
-  }
-
-  if (hasResourceIntent(parsedQuery, "address") && tokens.includes("balance") && fields.domain === "addresses" && fields.path === "/v1/indexer/address/{address}/available-balance") {
-    score += 8;
-    reasons.push("available address balance endpoint preferred");
-  }
-
-  if (hasResourceIntent(parsedQuery, "address") && tokens.includes("balance") && !parsedQuery.domainIntents.includes("runes") && !parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("alkane") && !parsedQuery.domainIntents.includes("swap") && fields.domain !== "addresses") {
-    score -= 6;
-    reasons.push("asset-specific balance endpoint is less preferred for a generic address balance query");
-  }
-
-  if (parsedQuery.domainIntents.includes("runes") && (fields.domain === "runes" || fields.tags.includes("runes"))) {
-    score += 5;
-    reasons.push("runes domain match");
-  }
-
-  if (parsedQuery.domainIntents.includes("marketplace") && fields.domain.includes("marketplace")) {
-    score += 8;
-    reasons.push("marketplace intent match");
-  }
-
-  if (parsedQuery.domainIntents.includes("marketplace") && !fields.domain.includes("marketplace")) {
-    score -= 4;
-    reasons.push("non-marketplace endpoint is less preferred for marketplace intent");
-  }
-
-  if (parsedQuery.domainIntents.includes("marketplace") && tokens.includes("list") && !parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("runes") && !parsedQuery.domainIntents.includes("collection") && !parsedQuery.domainIntents.includes("domain") && !parsedQuery.domainIntents.includes("alkane")) {
-    if (fields.domain !== "marketplace-brc20") {
-      score -= 2;
-      reasons.push("ambiguous marketplace list query should avoid arbitrarily preferring a non-default market domain");
-    } else {
-      score += 2;
-      reasons.push("default marketplace domain preference for ambiguous market list query");
-    }
-  }
-
-  if (parsedQuery.domainIntents.includes("collection") && fields.domain === "collection-indexer") {
-    score += 6;
-    reasons.push("collection-indexer domain match");
-  }
-
-  if (parsedQuery.domainIntents.includes("collection") && fields.domain === "alkanes" && !parsedQuery.domainIntents.includes("alkane")) {
-    score -= 6;
-    reasons.push("alkanes endpoint is less preferred unless query explicitly asks for alkane");
-  }
-
-  if (parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("brc20-prog") && (fields.domain.includes("brc-20") || fields.domain === "brc20" || fields.tags.includes("brc-20"))) {
-    score += 5;
-    reasons.push("brc20 domain match");
-  }
-
-  if (parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("brc20-prog") && fields.domain === "brc-20") {
-    score += 3;
-    reasons.push("standard brc20 endpoint preference");
-  }
-
-  if (parsedQuery.domainIntents.includes("brc20-prog") && fields.domain === "brc20-prog") {
-    score += 8;
-    reasons.push("brc20-prog domain match");
-  }
-
-  if (parsedQuery.domainIntents.includes("brc20-prog") && fields.domain === "brc-20") {
-    score -= 8;
-    reasons.push("standard brc20 endpoint is less preferred for brc20-prog intent");
-  }
-
-  if (parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("brc20-prog") && fields.domain === "brc20-prog") {
-    score -= 4;
-    reasons.push("brc20-prog is deprioritized unless query explicitly asks for brc20-prog");
-  }
-
-  if (hasResourceIntent(parsedQuery, "ticker") && tokens.includes("info") && fields.path === "/v1/indexer/brc20/{ticker}/info") {
-    score += 8;
-    reasons.push("standard brc20 ticker info endpoint preferred");
-  }
-
-  if (parsedQuery.domainIntents.includes("runes") && tokens.includes("info") && fields.path === "/v1/indexer/runes/{runeid}/info") {
-    score += 10;
-    reasons.push("standard runes info endpoint preferred");
-  }
-
-  if (tokens.includes("runes") && runeIdentifierIntent && fields.path === "/v1/indexer/runes/{runeid}/info") {
-    score += 8;
-    reasons.push("runes identifier intent maps to {runeid}");
-  }
-
-  if (tokens.includes("runes") && tokens.includes("holders") && fields.path === "/v1/indexer/runes/{runeid}/holders") {
-    score += 12;
-    reasons.push("standard runes holders endpoint preferred");
-  }
-
-  if (tokens.includes("runes") && tokens.includes("holders") && runeIdentifierIntent && fields.path === "/v1/indexer/runes/{runeid}/holders") {
-    score += 8;
-    reasons.push("runes holder query maps identifier intent to {runeid}");
-  }
-
-  if (tokens.includes("runes") && tokens.includes("history") && fields.path === "/v1/indexer/runes/event") {
-    score += 12;
-    reasons.push("runes history maps to event endpoint");
-  }
-
-  if (tokens.includes("runes") && tokens.includes("balance") && tokens.includes("runeid") && fields.path === "/v1/indexer/address/{address}/runes/{runeid}/balance") {
-    score += 12;
-    reasons.push("runes balance by runeid prefers address-scoped balance endpoint");
-  }
-
-  if (tokens.includes("runes") && tokens.includes("utxo") && tokens.includes("runeid") && fields.path === "/v1/indexer/address/{address}/runes/{runeid}/utxo") {
-    score += 12;
-    reasons.push("runes utxo by runeid prefers address-scoped utxo endpoint");
-  }
-
-  if ((tokens.includes("marketplace") || tokens.includes("market") || tokens.includes("auction")) && tokens.includes("ticker") && tokens.includes("info") && fields.path === "/v1/indexer/brc20/{ticker}/info") {
-    score -= 7;
-    reasons.push("generic ticker info endpoint is less preferred when marketplace intent is explicit");
-  }
-
-  if (parsedQuery.domainIntents.includes("runes") && fields.path === "/v1/indexer/brc20/{ticker}/info") {
-    score -= 9;
-    reasons.push("brc20 ticker info is less preferred for runes intent");
-  }
-
-  if (hasResourceIntent(parsedQuery, "ticker") && tokens.includes("info") && fields.path === "/v1/indexer/brc20-prog/{ticker}/info" && !parsedQuery.domainIntents.includes("brc20-prog")) {
-    score -= 5;
-    reasons.push("brc20-prog ticker info is less preferred unless query explicitly asks for prog");
-  }
-
-  if (tokens.includes("balance") && fields.description.includes("balance")) {
-    score += 3;
-    reasons.push("description mentions balance");
-  }
-
-  if (tokens.includes("list") && fields.path.includes("list")) {
-    score += 4;
-    reasons.push("list-style path");
-  }
-
-  if (tokens.includes("list") && (fields.summary.includes("summary") || fields.description.includes("summary"))) {
-    score += 2;
-    reasons.push('summary can act as a token list');
-  }
-
-  if (tokens.includes("balance") && fields.path.includes("balance-list")) {
-    score += 4;
-    reasons.push("balance-list path");
-  }
-
-  if (tokens.includes("transferable") && tokens.includes("inscriptions") && fields.path.includes("transferable-inscriptions")) {
-    score += 12;
-    reasons.push("explicit transferable-inscriptions action match");
-  }
-
-  if ((tokens.includes("marketplace") || tokens.includes("market")) && tokens.includes("list") && fields.path.endsWith("/auction/list")) {
-    score += 6;
-    reasons.push("generic marketplace list endpoint preferred");
-  }
-
-  if ((tokens.includes("marketplace") || tokens.includes("market")) && tokens.includes("list") && fields.path.includes("info_list") && !tokens.includes("inscription") && !tokens.includes("info")) {
-    score -= 4;
-    reasons.push("specialized info-list endpoint is less preferred for a generic marketplace list query");
-  }
-
-  if (tokens.includes("collection") && tokens.includes("items") && fields.path.includes("/collection/{collectionid}/items")) {
-    score += 10;
-    reasons.push("explicit collection items action match");
-  }
-
-  if (tokens.includes("collection") && tokens.includes("id") && fields.path.includes("{collectionid}")) {
-    score += 6;
-    reasons.push("collectionId resource match");
-  }
-
-  if (parsedQuery.domainIntents.includes("runes") && fields.description.includes("will not be included")) {
-    score -= 6;
-    reasons.push('description excludes "runes" balances');
-  }
-
-  if (parsedQuery.domainIntents.includes("runes") && fields.description.includes("not be included")) {
-    score -= 4;
-  }
-
-  if (parsedQuery.domainIntents.includes("runes") && !fields.path.includes("runes") && !fields.domain.includes("runes")) {
-    score -= 3;
-    reasons.push("not a runes-scoped interface");
-  }
-
-  if (tokens.includes("list") && fields.path.includes("/{runeid}/")) {
-    score -= 4;
-    reasons.push("requires a specific runeid instead of returning a list");
-  }
-
-  const requiredPathParams = (detail?.parameters || [])
-    .filter((item) => item.in === "path" && item.required)
-    .map((item) => normalize(item.name));
-
-  if (hasEntityValue(parsedQuery, "ticker") && requiredPathParams.includes("ticker")) {
-    score += 8;
-    reasons.push("query provides a ticker value");
-  }
-
-  if (hasTickerValue && parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("brc20-prog") && requiredPathParams.includes("ticker")) {
-    score += 10;
-    reasons.push("brc20 query with a consumed ticker value prefers ticker-parameterized interfaces");
-  }
-
-  if (hasTickerValue && parsedQuery.domainIntents.includes("brc20-prog") && requiredPathParams.includes("ticker") && fields.domain === "brc20-prog") {
-    score += 10;
-    reasons.push("brc20-prog query with a consumed ticker value prefers prog ticker interfaces");
-  }
-
-  if (hasTickerValue && (parsedQuery.domainIntents.includes("brc20") || parsedQuery.domainIntents.includes("brc20-prog")) && assetActionIntent && !requiredPathParams.includes("ticker") && fields.domain === "addresses") {
-    score -= 16;
-    reasons.push("generic address balance/info endpoint is less preferred when query already specifies an asset ticker value");
-  }
-
-  if (hasTickerValue && parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("brc20-prog") && assetActionIntent && !requiredPathParams.includes("ticker") && fields.domain === "brc-20" && !fields.path.includes("/{ticker}")) {
-    score -= 10;
-    reasons.push("non-ticker brc20 endpoint is less preferred when query already specifies a ticker value");
-  }
-
-  if (hasTickerValue && parsedQuery.domainIntents.includes("brc20") && !parsedQuery.domainIntents.includes("brc20-prog") && assetActionIntent && requiredPathParams.includes("ticker") && fields.path.includes("/address/{address}/brc20/{ticker}/")) {
-    score += 10;
-    reasons.push("address-level brc20 ticker endpoint preferred when query includes a concrete ticker value");
-  }
-
-  if (hasEntityValue(parsedQuery, "runeid") && requiredPathParams.includes("runeid")) {
-    score += 8;
-    reasons.push("query provides a runeid-like value");
-  }
-
-  if (tokens.includes("list") && fields.summary.includes("summary")) {
-    score += 3;
-    reasons.push("summary endpoint fits list-style query");
-  }
-
-  if (tokens.includes("brc20") && tokens.includes("list") && fields.path.includes("/brc20/summary")) {
-    score += 4;
-    reasons.push("address-level brc20 summary is preferred for balance lists");
-  }
-
-  if (tokens.includes("runes") && tokens.includes("list") && fields.path.includes("/runes/balance-list")) {
-    score += 4;
-    reasons.push("address-level runes balance list is preferred");
-  }
-
-  if ((tokens.includes("transaction") || tokens.includes("tx")) && fields.domain === "transactions") {
-    score += 3;
-    reasons.push("transactions domain match");
-  }
-
-  if ((tokens.includes("details") || tokens.includes("detail") || tokens.includes("info")) && fields.path === "/v1/indexer/tx/{txid}") {
-    score += 6;
-    reasons.push("standard tx detail endpoint preferred for details/info queries");
-  }
-
-  if (!tokens.includes("transaction") && !tokens.includes("tx") && !tokens.includes("raw") && fields.path === "/v1/indexer/tx/{txid}") {
-    score -= 6;
-    reasons.push("tx detail endpoint is less preferred when query is not about transactions");
-  }
-
-  if ((tokens.includes("details") || tokens.includes("detail") || tokens.includes("info")) && fields.path === "/v1/indexer/rawtx/{txid}") {
-    score -= 4;
-    reasons.push("raw tx endpoint is less preferred for details/info queries");
-  }
-
-  if (tokens.includes("raw") && fields.path === "/v1/indexer/rawtx/{txid}") {
-    score += 6;
-    reasons.push("raw tx endpoint preferred for raw queries");
-  }
-
-  if (tokens.includes("raw") && tokens.includes("ticker") && fields.path === "/v1/indexer/rawtx/{txid}") {
-    score -= 4;
-    reasons.push("raw tx endpoint is weakened because query also asks for ticker");
-  }
-
-  if (tokens.includes("raw") && fields.path === "/v1/indexer/tx/{txid}") {
-    score -= 3;
-    reasons.push("standard tx detail endpoint is less preferred for raw queries");
-  }
-
-  if ((tokens.includes("transaction") || tokens.includes("tx") || tokens.includes("raw")) && tokens.includes("ticker") && fields.path === "/v1/indexer/brc20/{ticker}/info") {
-    score -= 6;
-    reasons.push("ticker info endpoint is weakened because query also asks for transaction/raw tx");
-  }
-
-  if ((tokens.includes("transaction") || tokens.includes("tx") || tokens.includes("raw")) && tokens.includes("ticker") && fields.path.includes("/{ticker}/history")) {
-    score -= 6;
-    reasons.push("ticker history endpoint is weakened because query also asks for transaction/raw tx");
-  }
-
-  if ((tokens.includes("marketplace") || tokens.includes("market") || tokens.includes("auction")) && tokens.includes("ticker") && tokens.includes("history") && fields.path.includes("/{ticker}/history")) {
-    score -= 6;
-    reasons.push("generic ticker history endpoint is less preferred when marketplace intent is explicit");
-  }
-
-  if ((tokens.includes("marketplace") || tokens.includes("market") || tokens.includes("auction")) && tokens.includes("brc20") && (tokens.includes("ticker") || tokens.includes("tick")) && tokens.includes("history") && fields.path.endsWith("/brc20_kline")) {
-    score += 8;
-    reasons.push("marketplace brc20 ticker history maps to kline endpoint");
-  }
-
-  if ((tokens.includes("details") || tokens.includes("detail") || tokens.includes("info")) && fields.path.includes("/utxo/")) {
-    score -= 3;
-    reasons.push("utxo endpoint is less preferred for transaction detail queries");
-  }
-
-  if (!hasResourceIntent(parsedQuery, "address") && operation.path.includes("/address/{address}/")) {
-    score -= 5;
-    reasons.push("address-scoped endpoint is less preferred when query does not mention address");
-  }
-
-  if (!hasResourceIntent(parsedQuery, "ticker") && !hasEntityValue(parsedQuery, "ticker") && requiredPathParams.includes("ticker")) {
-    score -= 10;
-    reasons.push("requires ticker but query did not provide one");
-  }
-
-  if (!hasResourceIntent(parsedQuery, "txid") && !hasEntityValue(parsedQuery, "txid") && requiredPathParams.includes("txid")) {
-    score -= 8;
-    reasons.push("requires txid but query did not provide one");
-  }
-
-  if (!runeIdentifierIntent && requiredPathParams.includes("runeid")) {
-    score -= 6;
-    reasons.push("requires runeid but query did not provide one");
-  }
-
-  if (!tokens.includes("height") && requiredPathParams.includes("height")) {
-    score -= 3;
-    reasons.push("requires height but query did not request a historical view");
-  }
-
-  if (intentConflicts.length > 0) {
-    score -= Math.min(6, intentConflicts.length * 3);
-    reasons.push(...intentConflicts);
-  }
-
-  return {
-    score,
-    reasons,
+    file: detail?.file || operation.file || "",
+    pathTokens: new Set(pathTokens),
+    summaryTokens: new Set(summaryTokens),
+    descriptionTokens: new Set(descriptionTokens),
+    tagTokens: new Set(tagTokens),
+    domainTokens: new Set(domainTokens),
+    allTokens: new Set(allTokens),
+    domains: inferProfileDomains(operation, detail, pathTokens, tagTokens),
+    actions: inferProfileActions(operation, detail, allTokens),
+    pathParams: new Set(pathParams),
+    requiredParams: new Set(requiredParams),
+    hasRequestBody: Boolean(detail?.requestBodyTemplate),
   };
 }
 
-function introFind(query) {
+function addScore(result, points, reason) {
+  if (!points) {
+    return;
+  }
+  result.score += points;
+  result.reasons.push(reason);
+}
+
+function setOverlap(left, right) {
+  return [...left].filter((item) => right.has(item));
+}
+
+function pathDepth(profile) {
+  return profile.path.split("/").filter(Boolean).length;
+}
+
+function scoreTextSignals(profile, parsedQuery, result) {
+  parsedQuery.effectiveTokens.forEach((token) => {
+    if (profile.pathTokens.has(token)) {
+      addScore(result, 8, `path token matches "${token}"`);
+    } else if (profile.summaryTokens.has(token)) {
+      addScore(result, 5, `summary token matches "${token}"`);
+    } else if (profile.tagTokens.has(token) || profile.domainTokens.has(token)) {
+      addScore(result, 4, `domain/tag token matches "${token}"`);
+    } else if (profile.descriptionTokens.has(token)) {
+      addScore(result, 2, `description token matches "${token}"`);
+    } else if (profile.allTokens.has(token)) {
+      addScore(result, 1, `metadata token matches "${token}"`);
+    }
+  });
+}
+
+function scoreDomainSignals(profile, parsedQuery, result) {
+  const queryDomains = new Set(parsedQuery.domainIntents || []);
+  const matchedDomains = setOverlap(queryDomains, profile.domains);
+  matchedDomains.forEach((domain) => addScore(result, 20, `domain intent matches ${domain}`));
+
+  if (queryDomains.has("marketplace") && !profile.domains.has("marketplace")) {
+    addScore(result, -34, "marketplace intent excludes non-marketplace endpoint");
+  }
+  if (!queryDomains.has("marketplace") && profile.domains.has("marketplace")) {
+    addScore(result, -5, "marketplace endpoint requires marketplace intent");
+  }
+  if (queryDomains.has("brc20-prog") && profile.domains.has("brc20") && !profile.domains.has("brc20-prog")) {
+    addScore(result, -34, "brc20-prog intent excludes standard brc20 endpoint");
+  }
+  if (queryDomains.has("brc20") && !queryDomains.has("brc20-prog") && profile.domains.has("brc20-prog")) {
+    addScore(result, -24, "standard brc20 intent excludes brc20-prog endpoint");
+  }
+  if (queryDomains.has("runes") && profile.domains.has("brc20")) {
+    addScore(result, -34, "runes intent excludes brc20 endpoint");
+  }
+  if (queryDomains.has("brc20") && profile.domains.has("runes")) {
+    addScore(result, -34, "brc20 intent excludes runes endpoint");
+  }
+  if (queryDomains.has("runes") && !profile.domains.has("runes")) {
+    addScore(result, -34, "runes intent prefers runes endpoint");
+  }
+  if (queryDomains.has("brc20") && !queryDomains.has("brc20-prog") && !profile.domains.has("brc20")) {
+    addScore(result, -18, "brc20 intent prefers brc20 endpoint");
+  }
+  if (queryDomains.has("fractal") && !profile.domains.has("fractal")) {
+    addScore(result, -34, "fractal intent prefers fractal endpoint");
+  }
+  if (queryDomains.has("alkane") && !profile.domains.has("alkane")) {
+    addScore(result, -18, "alkane intent prefers alkane endpoint");
+  }
+  if (queryDomains.has("collection") && !profile.domains.has("collection")) {
+    addScore(result, -18, "collection intent prefers collection endpoint");
+  }
+  if (queryDomains.has("domain") && !profile.domains.has("domain")) {
+    addScore(result, -18, "domain intent prefers domain endpoint");
+  }
+}
+
+function scoreActionSignals(profile, parsedQuery, result) {
+  const queryActions = new Set(parsedQuery.actionIntents || []);
+  const matchedActions = setOverlap(queryActions, profile.actions);
+  matchedActions.forEach((action) => addScore(result, 10, `action intent matches ${action}`));
+
+  if (queryActions.has("balance") && !profile.actions.has("balance")) {
+    addScore(result, -8, "balance intent excludes non-balance endpoint");
+  }
+  if (queryActions.has("info") && !profile.actions.has("info") && !profile.actions.has("detail") && !profile.actions.has("summary")) {
+    addScore(result, -5, "info intent prefers info/detail/summary endpoint");
+  }
+  if (queryActions.has("history") && !profile.actions.has("history") && !profile.actions.has("kline") && !profile.actions.has("event")) {
+    addScore(result, -6, "history intent prefers history/kline/event endpoint");
+  }
+  if (queryActions.has("list") && !profile.actions.has("list") && !profile.actions.has("all")) {
+    addScore(result, -6, "list intent prefers list endpoint");
+  }
+}
+
+function scoreResourceSignals(profile, parsedQuery, result) {
+  const queryResources = new Set((parsedQuery.resourceIntents || []).map(canonicalResourceKind));
+  const entityResources = new Set((parsedQuery.entityValues || []).map((item) => canonicalResourceKind(item.kind)));
+  const providedResources = new Set([...queryResources, ...entityResources]);
+  const matchedPathParams = setOverlap(providedResources, profile.pathParams);
+
+  matchedPathParams.forEach((param) => addScore(result, 16, `provided resource matches path param ${param}`));
+  setOverlap(providedResources, profile.requiredParams).forEach((param) => addScore(result, 8, `provided resource satisfies required param ${param}`));
+
+  if (providedResources.has("ticker") && profile.pathParams.has("runeid") && profile.domains.has("runes")) {
+    addScore(result, 10, "runes ticker intent can identify runeid endpoint");
+  }
+  if (providedResources.has("ticker") && profile.pathParams.has("alkaneid") && profile.domains.has("alkane")) {
+    addScore(result, 8, "alkane token intent can identify alkaneid endpoint");
+  }
+
+  profile.requiredParams.forEach((param) => {
+    if (!providedResources.has(param) && ["address", "ticker", "txid", "runeid", "alkaneid", "collectionid", "inscriptionid", "orderid", "blockid"].includes(param)) {
+      addScore(result, -16, `missing required business input ${param}`);
+    }
+  });
+
+  profile.pathParams.forEach((param) => {
+    if (!providedResources.has(param) && ["address", "ticker", "txid", "runeid", "alkaneid", "collectionid", "inscriptionid", "orderid", "blockid"].includes(param)) {
+      addScore(result, -8, `path-scoped ${param} endpoint without ${param} intent`);
+    }
+  });
+}
+
+function scoreOperationShape(profile, parsedQuery, result) {
+  const queryActions = new Set(parsedQuery.actionIntents || []);
+  const queryDomains = new Set(parsedQuery.domainIntents || []);
+
+  if (queryActions.has("list") && profile.method === "POST" && profile.domains.has("marketplace")) {
+    addScore(result, 4, "marketplace list APIs use POST filters");
+  }
+  if (queryActions.has("info") && profile.pathParams.size === 0 && profile.actions.has("info")) {
+    addScore(result, 2, "general info endpoint has no path parameter burden");
+  }
+  if (queryActions.has("balance") && queryDomains.size === 0 && profile.domain === "addresses") {
+    addScore(result, 10, "generic balance query prefers address domain");
+  }
+  if (queryActions.has("balance") && queryDomains.size === 0 && profile.domains.has("brc20")) {
+    addScore(result, -5, "asset balance endpoint needs asset intent");
+  }
+  if (queryDomains.has("brc20") && !queryDomains.has("swap") && profile.domains.has("swap")) {
+    addScore(result, -16, "plain brc20 query deprioritizes swap endpoint");
+  }
+  if (queryDomains.has("swap") && profile.domains.has("swap")) {
+    addScore(result, 12, "swap intent prefers swap endpoint");
+  }
+  if (queryActions.has("balance") && profile.actions.has("utxo") && !parsedQuery.effectiveTokens.includes("utxo")) {
+    addScore(result, -28, "balance query without utxo intent deprioritizes utxo endpoint");
+  }
+  if (queryActions.has("status") && profile.actions.has("refund")) {
+    addScore(result, -12, "status query should not prefer refund endpoint");
+  }
+  if (queryActions.has("list") && profile.actions.has("info") && profile.actions.has("list") && !parsedQuery.effectiveTokens.includes("info")) {
+    addScore(result, -5, "generic list query deprioritizes specialized info-list endpoint");
+  }
+  if (queryActions.has("list") && queryDomains.has("marketplace") && profile.path.endsWith("/auction/list")) {
+    addScore(result, 8, "generic marketplace list query prefers auction/list endpoint");
+  }
+  if (queryActions.has("list") && profile.path.includes("statistic_list") && !parsedQuery.effectiveTokens.includes("statistic") && !parsedQuery.effectiveTokens.includes("stats")) {
+    addScore(result, -8, "generic list query deprioritizes statistic-list endpoint");
+  }
+  if (profile.hasRequestBody && queryActions.size === 0 && !queryDomains.has("marketplace") && !queryDomains.has("swap") && !queryDomains.has("inscribe")) {
+    addScore(result, -3, "body-based operation needs stronger intent");
+  }
+
+  addScore(result, Math.max(0, 6 - Math.floor(pathDepth(profile) / 2)), "shallower endpoint tie-breaker");
+}
+
+function scoreMatch(operation, parsedQuery) {
+  const profile = buildOperationProfile(operation);
+  const result = { score: 0, reasons: [] };
+
+  scoreTextSignals(profile, parsedQuery, result);
+  scoreDomainSignals(profile, parsedQuery, result);
+  scoreActionSignals(profile, parsedQuery, result);
+  scoreResourceSignals(profile, parsedQuery, result);
+  scoreOperationShape(profile, parsedQuery, result);
+
+  return result;
+}
+
+function findOperations(query) {
   const parsedQuery = parseQuery(query);
 
   const matches = listOperations()
@@ -816,7 +903,6 @@ function introFind(query) {
     .slice(0, 10);
 
   return {
-    command: "intro.find",
     mode: "matches",
     query,
     matches,
@@ -840,11 +926,10 @@ function commonPathPrefix(left, right) {
   return shared.length;
 }
 
-function introRelated(apiPath) {
+function findRelatedOperations(apiPath) {
   const detail = getOpenApiDetail(apiPath);
   if (!detail) {
     return {
-      command: "intro.related",
       mode: "not_found",
       path: apiPath,
     };
@@ -871,124 +956,9 @@ function introRelated(apiPath) {
     .map(({ score, ...item }) => item);
 
   return {
-    command: "intro.related",
     mode: "list",
     path: detail.path,
     results: related,
-  };
-}
-
-function introGuide() {
-  return {
-    command: "intro.guide",
-    mode: "detail",
-    title: "CLI onboarding",
-    steps: [
-      {
-        step: 1,
-        goal: "See the major API domains supported by this CLI.",
-        command: "unisat-ai-cli intro domains --format text",
-      },
-      {
-        step: 2,
-        goal: "Resolve the best interface, parameters, and runnable example in one step.",
-        command: 'unisat-ai-cli intro resolve --query "address brc20 balance list" --shell powershell --format text',
-      },
-      {
-        step: 3,
-        goal: "Call the real API after replacing placeholders with real values.",
-        command:
-          'unisat-ai-cli api call --path "/v1/indexer/address/{address}/brc20/summary" --path-params "address=YOUR_ADDRESS" --query "start=0&limit=16" --format json',
-      },
-    ],
-    notes: [
-      "Prefer the compact flow: intro resolve -> api call.",
-      "Only use intro find/show/params/example when you need manual control over candidate selection or request construction.",
-      "Use --format json when another agent or script needs stable machine-readable output.",
-      "api call requires either --api-key or UNISAT_API_KEY in the current shell.",
-    ],
-  };
-}
-
-function introCapabilities() {
-  const operations = listOperations();
-  const domains = Array.from(new Set(operations.map((item) => item.domain))).sort();
-  const actions = Array.from(
-    new Set(
-      operations.flatMap((item) =>
-        item.path
-          .split("/")
-          .filter(Boolean)
-          .filter((part) => !part.startsWith("{") && !/^v\d+$/.test(part))
-      )
-    )
-  ).sort();
-
-  return {
-    command: "intro.capabilities",
-    mode: "detail",
-    domains,
-    actions,
-    totalOperations: operations.length,
-  };
-}
-
-function introTasks() {
-  const tasks = [
-    {
-      name: "get-address-brc20-balances",
-      summary: "Find the BRC-20 token balance list for an address.",
-      query: "address brc20 balance list",
-      suggestedPath: "/v1/indexer/address/{address}/brc20/summary",
-    },
-    {
-      name: "get-address-runes-balances",
-      summary: "Find the runes balance list for an address.",
-      query: "address runes balance list",
-      suggestedPath: "/v1/indexer/address/{address}/runes/balance-list",
-    },
-    {
-      name: "get-transaction-info",
-      summary: "Find the transaction detail interface by txid.",
-      query: "transaction details by txid",
-      suggestedPath: "/v1/indexer/tx/{txid}",
-    },
-    {
-      name: "get-brc20-ticker-info",
-      summary: "Find token information for a BRC-20 ticker.",
-      query: "brc20 ticker info",
-      suggestedPath: "/v1/indexer/brc20/{ticker}/info",
-    },
-  ];
-
-  return {
-    command: "intro.tasks",
-    mode: "list",
-    tasks,
-  };
-}
-
-function introTask(name, shell = "powershell") {
-  const tasksPayload = introTasks();
-  const task = tasksPayload.tasks.find((item) => item.name === name);
-
-  if (!task) {
-    return {
-      command: "intro.task",
-      mode: "not_found",
-      name,
-      available: tasksPayload.tasks.map((item) => item.name),
-    };
-  }
-
-  return {
-    command: "intro.task",
-    mode: "detail",
-    ...task,
-    resolveCommand: `unisat-ai-cli intro resolve --query ${quoteForShell(task.query, shell)} --shell ${shell} --format text`,
-    showCommand: `unisat-ai-cli intro show --path ${quoteForShell(task.suggestedPath, shell)} --format text`,
-    paramsCommand: `unisat-ai-cli intro params --path ${quoteForShell(task.suggestedPath, shell)} --format text`,
-    exampleCommand: `unisat-ai-cli intro example --path ${quoteForShell(task.suggestedPath, shell)} --shell ${shell} --format text`,
   };
 }
 
@@ -1042,7 +1012,7 @@ function collectAmbiguitySignals(queryPayload, selectedMatch, parsedQuery) {
   const topScoreGap = topMatches.length > 1 ? topMatches[0].score - topMatches[1].score : null;
 
   if (selectedMatch) {
-    rankingNotes.push("selected from intro.find top-ranked candidate");
+    rankingNotes.push("selected from ranked interface candidates");
   }
 
   if (topMatches.length > 1) {
@@ -1066,7 +1036,7 @@ function collectAmbiguitySignals(queryPayload, selectedMatch, parsedQuery) {
   };
 }
 
-function introResolve({ query, apiPath, shell = "powershell", top = 5 }) {
+function introResolve({ query, apiPath, shell = "powershell", environment = DEFAULT_OPENAPI_ENVIRONMENT, top = 5 }) {
   if (!query && !apiPath) {
     return {
       command: "intro.resolve",
@@ -1082,7 +1052,7 @@ function introResolve({ query, apiPath, shell = "powershell", top = 5 }) {
 
   if (query) {
     parsedQuery = parseQuery(query);
-    queryPayload = introFind(query);
+    queryPayload = findOperations(query);
     if (queryPayload.matches.length === 0) {
       return {
         command: "intro.resolve",
@@ -1106,9 +1076,9 @@ function introResolve({ query, apiPath, shell = "powershell", top = 5 }) {
     };
   }
 
-  const paramsPayload = introParams(selectedPath);
-  const examplePayload = introExample(selectedPath, shell);
-  const relatedPayload = introRelated(selectedPath);
+  const paramsPayload = buildParamsPayload(selectedPath);
+  const examplePayload = buildExamplePayload(selectedPath, shell, environment);
+  const relatedPayload = findRelatedOperations(selectedPath);
   const alternatives = queryPayload
     ? dedupeAlternatives(queryPayload.matches, selectedPath, top)
     : dedupeAlternatives(relatedPayload.results, selectedPath, top);
@@ -1171,6 +1141,7 @@ function introResolve({ query, apiPath, shell = "powershell", top = 5 }) {
     query: query || "",
     path: apiPath || "",
     shell,
+    environment,
     top,
     selected: {
       path: showPayload.path,
@@ -1202,6 +1173,7 @@ function introResolve({ query, apiPath, shell = "powershell", top = 5 }) {
     },
     example: {
       shell: examplePayload.shell,
+      environment: examplePayload.environment,
       command: shouldReturnAmbiguous ? "" : examplePayload.example,
     },
     alternatives,
@@ -1209,16 +1181,6 @@ function introResolve({ query, apiPath, shell = "powershell", top = 5 }) {
 }
 
 module.exports = {
-  introCapabilities,
-  introGuide,
-  introDomains,
-  introExample,
-  introFind,
-  introList,
-  introParams,
   introResolve,
-  introRelated,
   introShow,
-  introTask,
-  introTasks,
 };

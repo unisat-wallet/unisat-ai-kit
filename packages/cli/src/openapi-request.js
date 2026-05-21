@@ -1,4 +1,5 @@
 const { getOpenApiDetail } = require("./openapi-utils");
+const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("./openapi-environments");
 
 function exampleValue(parameter) {
   const normalizedName = parameter.name.toLowerCase();
@@ -76,7 +77,15 @@ function buildRequestPlan(apiPath, overrides = {}) {
     return null;
   }
 
-  const baseUrl = overrides.baseUrl || detail.servers[0] || "https://open-api.unisat.io";
+  const environment = getOpenApiEnvironment(overrides.environment || DEFAULT_OPENAPI_ENVIRONMENT);
+  if (!environment) {
+    return {
+      mode: "invalid_environment",
+      environment: overrides.environment,
+    };
+  }
+
+  const baseUrl = environment.baseUrl;
   const pathParams = detail.parameters
     .filter((parameter) => parameter.in === "path")
     .map((parameter) => ({
@@ -94,6 +103,7 @@ function buildRequestPlan(apiPath, overrides = {}) {
 
   return {
     detail,
+    environment,
     baseUrl,
     pathParams,
     queryEntries,

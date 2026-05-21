@@ -1,5 +1,7 @@
 const { buildRequestPlan, parseKeyValueString } = require("./openapi-request");
 
+const DEVELOPER_PORTAL_URL = "https://developer.unisat.io/";
+
 function buildHeaders(apiKey, hasJsonBody) {
   const headers = {
     Authorization: `Bearer ${apiKey}`,
@@ -64,17 +66,19 @@ function parseKeyValueEntries(input) {
   return result;
 }
 
-async function callApi({ apiPath, apiKey, apiKeySource, baseUrl, query, queryParamsList, pathParams, pathParamsList, body }) {
+async function callApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body }) {
   if (!apiKey) {
     return {
       command: "api.call",
       mode: "missing_api_key",
-      message: "API key is not configured. Provide --api-key <key> or set UNISAT_API_KEY before running api call.",
+      environment,
+      message: `API key is not configured. Provide --api-key <key> or set the environment-specific key before running api call. If you have not registered an API key yet, register at ${DEVELOPER_PORTAL_URL}`,
+      developerPortalUrl: DEVELOPER_PORTAL_URL,
     };
   }
 
   const plan = buildRequestPlan(apiPath, {
-    baseUrl,
+    environment,
     queryParams: Object.keys(parseKeyValueEntries(queryParamsList)).length
       ? parseKeyValueEntries(queryParamsList)
       : parseKeyValueString(query),
@@ -89,6 +93,15 @@ async function callApi({ apiPath, apiKey, apiKeySource, baseUrl, query, queryPar
       command: "api.call",
       mode: "not_found",
       path: apiPath,
+    };
+  }
+
+  if (plan.mode === "invalid_environment") {
+    return {
+      command: "api.call",
+      mode: "invalid_environment",
+      environment: plan.environment,
+      message: "Unsupported environment. Use --env bitcoin or --env fractal.",
     };
   }
 
@@ -110,11 +123,13 @@ async function callApi({ apiPath, apiKey, apiKeySource, baseUrl, query, queryPar
     command: "api.call",
     mode: apiKeyProblem ? "api_key_error" : "detail",
     message: apiKeyProblem
-      ? "API key is missing, invalid, or not authorized. Check --api-key or UNISAT_API_KEY and try again."
+      ? "API key is missing, invalid, or not authorized. Check --api-key or the selected environment key and try again."
       : undefined,
     path: plan.detail.path,
     method: plan.detail.method,
     file: plan.detail.file,
+    environment: plan.environment.name,
+    environmentLabel: plan.environment.label,
     baseUrl: plan.baseUrl,
     url: plan.url,
     usedApiKeyFrom: apiKeySource || "provided",

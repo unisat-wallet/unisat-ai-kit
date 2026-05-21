@@ -9,12 +9,11 @@
 
 ## Day 30-60
 
-- Ship the first CLI release: `docs search`, `openapi explain`, `error explain`
+- Ship the compact CLI release: `intro resolve`, `intro show`, `api call`
 - Ship the first MCP server release with 3-5 high-value tools
 - Dogfood the flow with internal agents
 
 ## Day 60-90
 
-- Add `snippet generate`
 - Add citations, confidence signaling, and failure classification
 - Evaluate integration into developer-center and API entry points

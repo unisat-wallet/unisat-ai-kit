@@ -66,52 +66,30 @@ async function main() {
     const binDir = path.join(tempDir, "node_modules", ".bin");
     const cliBin = path.join(binDir, "unisat-ai-cli");
     const mcpBin = path.join(binDir, "unisat-ai-mcp-server");
+    const env = {
+      ...process.env,
+      UNISAT_DEV_DOCS_DIR: "",
+      OPENAPI_SWAGGER_DIR: "",
+    };
 
-    const cliDocs = await run(cliBin, ["docs", "search", "--query", "api key", "--limit", "1", "--format", "json"], {
+    const cliShow = await run(cliBin, ["intro", "show", "--path", "/v1/indexer/brc20/{ticker}/info", "--format", "json"], {
       cwd: tempDir,
-      env: {
-        ...process.env,
-        UNISAT_DEV_DOCS_DIR: "",
-        OPENAPI_SWAGGER_DIR: "",
-      },
+      env,
     });
-    const docsPayload = JSON.parse(cliDocs.stdout);
-    assert(docsPayload.command === "docs.search", "packed cli docs search failed");
-    assert(Array.isArray(docsPayload.results), "packed cli docs results invalid");
+    const showPayload = JSON.parse(cliShow.stdout);
+    assert(showPayload.command === "intro.show", "packed cli intro show failed");
 
-    const cliOpenApi = await run(
-      cliBin,
-      ["openapi", "explain", "--path", "/v1/indexer/brc20/status", "--format", "json"],
-      {
-        cwd: tempDir,
-        env: {
-          ...process.env,
-          UNISAT_DEV_DOCS_DIR: "",
-          OPENAPI_SWAGGER_DIR: "",
-        },
-      }
-    );
-    const openApiPayload = JSON.parse(cliOpenApi.stdout);
-    assert(openApiPayload.command === "openapi.explain", "packed cli openapi explain failed");
-
-    const cliError = await run(cliBin, ["error", "explain", "--code", "-154", "--format", "json"], {
+    const cliResolve = await run(cliBin, ["intro", "resolve", "--env", "bitcoin", "--query", "marketplace brc20 ticker history", "--format", "json"], {
       cwd: tempDir,
-      env: {
-        ...process.env,
-        UNISAT_DEV_DOCS_DIR: "",
-        OPENAPI_SWAGGER_DIR: "",
-      },
+      env,
     });
-    const errorPayload = JSON.parse(cliError.stdout);
-    assert(errorPayload.command === "error.explain", "packed cli error explain failed");
+    const resolvePayload = JSON.parse(cliResolve.stdout);
+    assert(resolvePayload.command === "intro.resolve", "packed cli intro resolve failed");
+    assert(resolvePayload.selected?.path === "/v3/market/brc20/auction/brc20_kline", "packed cli resolve path invalid");
 
     const mcpBoot = await run("node", [mcpBin, "--help"], {
       cwd: tempDir,
-      env: {
-        ...process.env,
-        UNISAT_DEV_DOCS_DIR: "",
-        OPENAPI_SWAGGER_DIR: "",
-      },
+      env,
     }).catch(() => null);
 
     if (mcpBoot === null) {

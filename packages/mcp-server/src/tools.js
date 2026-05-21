@@ -6,13 +6,7 @@ function loadCliExports() {
   }
 }
 
-const {
-  searchDocs,
-  explainOpenApi,
-  explainErrorByCode,
-  explainErrorByQuery,
-  generateSnippet,
-} = loadCliExports();
+const { introResolve, introShow } = loadCliExports();
 
 function toToolResult(payload, isError = false) {
   return {
@@ -29,139 +23,68 @@ function toToolResult(payload, isError = false) {
 
 const tools = [
   {
-    name: "search_docs",
-    title: "Search Developer Docs",
-    description: "Search UniSat developer markdown docs by keyword.",
+    name: "resolve_api",
+    title: "Resolve API Interface",
+    description: "Resolve the best UniSat OpenAPI interface, parameters, and runnable CLI example from a natural-language task.",
     inputSchema: {
       type: "object",
       properties: {
         query: {
           type: "string",
-          description: "Keyword or phrase to search in UniSat developer docs.",
+          description: "Natural-language task to resolve.",
         },
-        limit: {
+        path: {
+          type: "string",
+          description: "Exact OpenAPI path to resolve directly.",
+        },
+        shell: {
+          type: "string",
+          description: "Shell style for generated example commands.",
+          enum: ["powershell", "bash"],
+        },
+        environment: {
+          type: "string",
+          description: "OpenAPI environment. Supported values: bitcoin, fractal.",
+          enum: ["bitcoin", "fractal"],
+        },
+        top: {
           type: "integer",
-          description: "Max number of matches to return.",
-          minimum: 1,
-          maximum: 20,
+          description: "Number of alternatives to include.",
+          minimum: 0,
+          maximum: 10,
         },
       },
-      required: ["query"],
       additionalProperties: false,
     },
     handler(args) {
-      return toToolResult(searchDocs(args.query, args.limit || 5));
-    },
-  },
-  {
-    name: "find_openapi",
-    title: "Find OpenAPI Paths",
-    description: "Find matching UniSat OpenAPI paths by keyword.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        keyword: {
-          type: "string",
-          description: "Keyword to search in OpenAPI paths.",
-        },
-      },
-      required: ["keyword"],
-      additionalProperties: false,
-    },
-    handler(args) {
-      return toToolResult(explainOpenApi({ keyword: args.keyword }));
-    },
-  },
-  {
-    name: "explain_api",
-    title: "Explain OpenAPI Operation",
-    description: "Explain a UniSat OpenAPI operation by exact path.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Exact OpenAPI path, for example /v1/indexer/brc20/status.",
-        },
-      },
-      required: ["path"],
-      additionalProperties: false,
-    },
-    handler(args) {
-      const payload = explainOpenApi({ apiPath: args.path });
-      return toToolResult(payload, payload.mode === "not_found");
-    },
-  },
-  {
-    name: "generate_snippet",
-    title: "Generate API Snippet",
-    description: "Generate curl or TypeScript fetch example by exact OpenAPI path.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Exact OpenAPI path, for example /v1/indexer/brc20/status.",
-        },
-        language: {
-          type: "string",
-          description: "Snippet language. Supported values: curl, typescript.",
-          enum: ["curl", "typescript"],
-        },
-      },
-      required: ["path"],
-      additionalProperties: false,
-    },
-    handler(args) {
-      const payload = generateSnippet({
+      const payload = introResolve({
+        query: args.query,
         apiPath: args.path,
-        language: args.language || "curl",
+        shell: args.shell || "powershell",
+        environment: args.environment || "bitcoin",
+        top: args.top || 5,
       });
-      return toToolResult(payload, payload.mode === "not_found");
+      return toToolResult(payload, payload.mode === "not_found" || payload.mode === "missing_input");
     },
   },
   {
-    name: "explain_error",
-    title: "Explain Error Code",
-    description: "Explain a UniSat error code or search known error messages.",
+    name: "show_api",
+    title: "Show API Interface",
+    description: "Show raw OpenAPI detail for a known UniSat interface path.",
     inputSchema: {
       type: "object",
       properties: {
-        code: {
-          type: "integer",
-          description: "Exact negative error code.",
-        },
-        query: {
+        path: {
           type: "string",
-          description: "Keyword to search in error keys and messages.",
-        },
-        limit: {
-          type: "integer",
-          description: "Max number of fuzzy matches to return.",
-          minimum: 1,
-          maximum: 20,
+          description: "Exact OpenAPI path, for example /v1/indexer/brc20/status.",
         },
       },
+      required: ["path"],
       additionalProperties: false,
     },
     handler(args) {
-      if (typeof args.code === "number") {
-        const payload = explainErrorByCode(args.code);
-        return toToolResult(payload, !payload.found);
-      }
-
-      if (typeof args.query === "string" && args.query.trim()) {
-        return toToolResult(explainErrorByQuery(args.query, args.limit || 5));
-      }
-
-      return toToolResult(
-        {
-          command: "error.explain",
-          mode: "invalid_arguments",
-          message: "explain_error requires code or query",
-        },
-        true
-      );
+      const payload = introShow(args.path);
+      return toToolResult(payload, payload.mode === "not_found");
     },
   },
 ];

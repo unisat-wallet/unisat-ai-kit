@@ -40,10 +40,7 @@ bash skills/unisat-ai-developer/scripts/install.sh
 bash skills/unisat-ai-developer/scripts/doctor.sh
 
 # Use the CLI directly
-unisat-ai-cli docs search --query "api key" --format json
-unisat-ai-cli openapi explain --path "/v1/indexer/brc20/status" --format text
-unisat-ai-cli error explain --code -154 --format text
-unisat-ai-cli snippet generate --path "/v1/indexer/brc20/status" --language curl --format text
+unisat-ai-cli intro resolve --query "address brc20 balance list" --format json\r\nunisat-ai-cli intro show --path "/v1/indexer/brc20/{ticker}/info" --format text\r\nunisat-ai-cli api call --path "/v1/indexer/brc20/status" --query-param start=0 --query-param limit=1 --format json
 
 # Start the MCP server
 unisat-ai-mcp-server

@@ -11,15 +11,7 @@ git checkout main-next
 yarn mcp:server
 ```
 
-The server currently runs over stdio and exposes five read-only tools:
-
-- `search_docs`
-- `find_openapi`
-- `explain_api`
-- `generate_snippet`
-- `explain_error`
-
-## Environment Overrides
+The server currently runs over stdio and exposes two read-only tools:\r\n\r\n- `resolve_api`\r\n- `show_api`\r\n\r\n## Environment Overrides
 
 By default, OpenAPI data is read from the repository-local `swagger/` directory. If your docs repository is not in the default sibling path, or if you need to point OpenAPI loading at a different directory, override them before launch:
 
@@ -59,12 +51,4 @@ node scripts/doctor.mjs
 node scripts/smoke.mjs
 ```
 
-`smoke` verifies:
-
-- CLI `docs search`
-- CLI `openapi explain`
-- CLI `error explain`
-- CLI `snippet generate`
-- MCP `initialize`
-- MCP `tools/list`
-- MCP `tools/call`
+`smoke` verifies:\r\n\r\n- CLI `intro resolve`\r\n- CLI `intro show`\r\n- CLI `api call` missing-key handling\r\n- MCP `initialize`\r\n- MCP `tools/list`\r\n- MCP `tools/call`\r\n

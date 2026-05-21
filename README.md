@@ -1,16 +1,16 @@
-# UniSat AI
+﻿# UniSat AI
 
 UniSat AI is the foundation repository for developer assistant capabilities. The official repository name remains `unisat-ai`, and the current CLI-first architecture lives on the `main-next` branch.
 
 - `packages/cli`: stable CLI capability layer
 - `packages/mcp-server`: MCP layer exposing CLI capabilities and read-only knowledge sources
 - `packages/shared-types`: shared structured contracts across CLI and MCP
-- `skills/unisat-ai-developer`: installable distribution skill for developer use
+- `skill./unisat-cli-developer`: installable distribution skill for developer use
 
 Current priorities:
 
 - Primary audience: developer platform and external developers
-- First capability set: docs Q&A, OpenAPI explanation, snippet generation, and error troubleshooting
+- First capability set: API interface resolution, raw interface inspection, and direct API calls
 - Technical order: stabilize CLI first, expose MCP second, then let skills and agents consume it
 
 ## Repo Layout
@@ -59,7 +59,7 @@ Recommended install flow for external developers after publication:
 
 ```bash
 npm install -g @unisat/ai-cli @unisat/ai-mcp-server
-unisat-ai-cli docs search --query "api key" --format json
+unisat-ai-cli intro resolve --env bitcoin --query "address brc20 balance list" --format json
 ```
 
 Or run the MCP server directly with `npx`:
@@ -67,6 +67,48 @@ Or run the MCP server directly with `npx`:
 ```bash
 npx -y @unisat/ai-mcp-server
 ```
+
+## CLI Downloads
+
+For website downloads, build single-executable archives. Users do not need to install Node.js or npm, and each archive contains one runnable CLI file.
+
+Build the current computer's package:
+
+```bash
+npm run package:cli
+```
+
+Build a specific platform package on matching host hardware:
+
+```bash
+npm run package:cli -- --target windows-x64
+```
+
+Outputs are written to `dist/single-cli`:
+
+- `unisat-cli-windows-x64.zip`
+- `unisat-cli-linux-x64.tar.gz`
+- `unisat-cli-linux-arm64.tar.gz`
+- `unisat-cli-macos-x64.tar.gz`
+- `unisat-cli-macos-arm64.tar.gz`
+- `checksums.txt`
+
+Each archive contains only:
+
+- `unisat-cli.exe` on Windows
+- `unisat-ai` on macOS/Linux
+
+End-user flow after download:
+
+```bash
+unisat-cli --help
+unisat-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+unisat-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+```
+
+Windows users run `unisat-cli.exe` from the extracted zip. macOS and Linux users run `./unisat-cli` from the extracted tarball.
+
+The GitHub Actions workflow `.github/workflows/portable-cli-release.yml` builds all platform archives on tag pushes like `v0.1.0` and uploads them to the GitHub Release.
 
 ## Developer Install
 
@@ -86,6 +128,7 @@ The install script will:
 
 ## Near-term Plan
 
-1. Finalize the initial command surface: `docs search`, `openapi explain`, `snippet generate`, `error explain`
+1. Finalize the compact command surface: `intro resolve`, `intro show`, `api call`
 2. Keep improving the MCP server so CLI outputs map cleanly to tool results
 3. Dogfood the flow through internal agents and developer-facing entry points
+
