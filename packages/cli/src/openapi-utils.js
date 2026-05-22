@@ -1,5 +1,10 @@
 const path = require("path");
-const sea = require("node:sea");
+let sea = null;
+try {
+  sea = require("node:sea");
+} catch (_error) {
+  sea = null;
+}
 const { getSourceRoots } = require("./repo-paths");
 const { walkFiles, readUtf8 } = require("./file-utils");
 
@@ -21,7 +26,7 @@ function getEmbeddedSwaggerFiles() {
   }
 
   embeddedSwaggerFiles = false;
-  if (!sea.isSea()) {
+  if (!sea || !sea.isSea()) {
     return null;
   }
 

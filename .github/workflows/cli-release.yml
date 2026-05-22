@@ -1,4 +1,4 @@
-﻿name: CLI Release
+name: CLI Release
 
 on:
   workflow_dispatch:
@@ -20,6 +20,7 @@ jobs:
             target: windows-x64
           - os: ubuntu-latest
             target: linux-x64
+            node-runtime: linux-x64-glibc-217
           - os: ubuntu-24.04-arm
             target: linux-arm64
           - os: macos-13
@@ -34,7 +35,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20.15.1
+
+      - name: Setup CentOS 7 compatible Node.js
+        if: matrix.node-runtime == 'linux-x64-glibc-217'
+        run: |
+          set -euo pipefail
+          node_version="20.15.1"
+          archive="node-v${node_version}-linux-x64-glibc-217.tar.xz"
+          url="https://unofficial-builds.nodejs.org/download/release/v${node_version}/${archive}"
+          mkdir -p .cache/node-runtime
+          curl -fsSL "$url" -o ".cache/node-runtime/${archive}"
+          tar -xJf ".cache/node-runtime/${archive}" -C .cache/node-runtime
+          echo "$PWD/.cache/node-runtime/node-v${node_version}-linux-x64-glibc-217/bin" >> "$GITHUB_PATH"
+
+      - name: Check Node.js
+        run: node --version
 
       - name: Smoke test
         run: npm run smoke
