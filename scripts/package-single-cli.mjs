@@ -230,6 +230,9 @@ async function build(options) {
   fs.rmSync(buildDir, { recursive: true, force: true });
   ensureDir(buildDir);
   ensureDir(distDir);
+  fs.rmSync(path.join(distDir, archiveName(options.target)), { force: true });
+  fs.rmSync(path.join(distDir, `unisat-ai-${options.target}.zip`), { force: true });
+  fs.rmSync(path.join(distDir, `unisat-ai-${options.target}.tar.gz`), { force: true });
 
   const assetPath = writeSwaggerAsset();
   const mainPath = writeAppSource();

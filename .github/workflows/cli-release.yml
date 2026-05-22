@@ -42,14 +42,11 @@ jobs:
       - name: Build single executable archive
         run: npm run package:cli -- --target ${{ matrix.target }}
 
-      - name: Upload artifact
+      - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
           name: unisat-cli-${{ matrix.target }}
-          path: |
-            dist/single-cli/*.zip
-            dist/single-cli/*.tar.gz
-            dist/single-cli/checksums.txt
+          path: dist/single-cli/unisat-cli-${{ matrix.target }}/
 
   release:
     name: Publish release
@@ -62,14 +59,23 @@ jobs:
         with:
           path: artifacts
 
-      - name: Merge checksums
+      - name: Create release archives
         run: |
-          find artifacts -name checksums.txt -print0 | xargs -0 cat > checksums.txt
+          set -euo pipefail
+          mkdir -p release-assets
+          cd artifacts
+          zip -qr ../release-assets/unisat-cli-windows-x64.zip unisat-cli-windows-x64
+          tar -czf ../release-assets/unisat-cli-linux-x64.tar.gz unisat-cli-linux-x64
+          tar -czf ../release-assets/unisat-cli-linux-arm64.tar.gz unisat-cli-linux-arm64
+          tar -czf ../release-assets/unisat-cli-macos-x64.tar.gz unisat-cli-macos-x64
+          tar -czf ../release-assets/unisat-cli-macos-arm64.tar.gz unisat-cli-macos-arm64
+          cd ../release-assets
+          sha256sum *.zip *.tar.gz > checksums.txt
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/**/*.zip
-            artifacts/**/*.tar.gz
-            checksums.txt
+            release-assets/*.zip
+            release-assets/*.tar.gz
+            release-assets/checksums.txt
