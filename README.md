@@ -11,7 +11,6 @@ Download the single-executable archive for your operating system. You do not nee
 ```bash
 curl -L -o unisat-cli-macos-x64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-macos-x64.tar.gz
 tar -xzf unisat-cli-macos-x64.tar.gz
-cd unisat-cli-macos-x64
 ./unisat-cli --help
 ```
 
@@ -20,7 +19,6 @@ cd unisat-cli-macos-x64
 ```bash
 curl -L -o unisat-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-macos-arm64.tar.gz
 tar -xzf unisat-cli-macos-arm64.tar.gz
-cd unisat-cli-macos-arm64
 ./unisat-cli --help
 ```
 
@@ -29,7 +27,6 @@ cd unisat-cli-macos-arm64
 ```bash
 curl -L -o unisat-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-linux-x64.tar.gz
 tar -xzf unisat-cli-linux-x64.tar.gz
-cd unisat-cli-linux-x64
 ./unisat-cli --help
 ```
 
@@ -38,7 +35,6 @@ cd unisat-cli-linux-x64
 ```bash
 curl -L -o unisat-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-linux-arm64.tar.gz
 tar -xzf unisat-cli-linux-arm64.tar.gz
-cd unisat-cli-linux-arm64
 ./unisat-cli --help
 ```
 
@@ -47,7 +43,6 @@ cd unisat-cli-linux-arm64
 ```powershell
 Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-windows-x64.zip" -OutFile "unisat-cli-windows-x64.zip"
 Expand-Archive unisat-cli-windows-x64.zip -DestinationPath .
-cd unisat-cli-windows-x64
 .\unisat-cli.exe --help
 ```
 
