@@ -9,7 +9,7 @@ Download the single-executable archive for your operating system. You do not nee
 ### macOS x64
 
 ```bash
-curl -L -o unisat-cli-macos-x64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.0/unisat-cli-macos-x64.tar.gz
+curl -L -o unisat-cli-macos-x64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-macos-x64.tar.gz
 tar -xzf unisat-cli-macos-x64.tar.gz
 cd unisat-cli-macos-x64
 ./unisat-cli --help
@@ -18,7 +18,7 @@ cd unisat-cli-macos-x64
 ### macOS ARM64
 
 ```bash
-curl -L -o unisat-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.0/unisat-cli-macos-arm64.tar.gz
+curl -L -o unisat-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-macos-arm64.tar.gz
 tar -xzf unisat-cli-macos-arm64.tar.gz
 cd unisat-cli-macos-arm64
 ./unisat-cli --help
@@ -27,7 +27,7 @@ cd unisat-cli-macos-arm64
 ### Linux x64
 
 ```bash
-curl -L -o unisat-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.0/unisat-cli-linux-x64.tar.gz
+curl -L -o unisat-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-linux-x64.tar.gz
 tar -xzf unisat-cli-linux-x64.tar.gz
 cd unisat-cli-linux-x64
 ./unisat-cli --help
@@ -36,7 +36,7 @@ cd unisat-cli-linux-x64
 ### Linux ARM64
 
 ```bash
-curl -L -o unisat-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.0/unisat-cli-linux-arm64.tar.gz
+curl -L -o unisat-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-linux-arm64.tar.gz
 tar -xzf unisat-cli-linux-arm64.tar.gz
 cd unisat-cli-linux-arm64
 ./unisat-cli --help
@@ -45,7 +45,7 @@ cd unisat-cli-linux-arm64
 ### Windows x64
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.0/unisat-cli-windows-x64.zip" -OutFile "unisat-cli-windows-x64.zip"
+Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.2/unisat-cli-windows-x64.zip" -OutFile "unisat-cli-windows-x64.zip"
 Expand-Archive unisat-cli-windows-x64.zip -DestinationPath .
 cd unisat-cli-windows-x64
 .\unisat-cli.exe --help
@@ -118,7 +118,7 @@ Build a specific platform package on matching host hardware:
 npm run package:cli -- --target windows-x64
 ```
 
-The GitHub Actions workflow `.github/workflows/cli-release.yml` builds all platform archives on tag pushes like `v0.1.0` and uploads them to the GitHub Release. It can also be run manually from the GitHub Actions page via `workflow_dispatch`.
+The GitHub Actions workflow `.github/workflows/cli-release.yml` builds all platform archives on tag pushes like `v0.1.2` and uploads them to the GitHub Release. It can also be run manually from the GitHub Actions page via `workflow_dispatch`.
 
 ## Repository Layout
 
