@@ -64,64 +64,6 @@ async function runMcpSmoke() {
 
     let buffer = Buffer.alloc(0);
     const responses = [];
-    let settled = false;
-    let requestsSent = false;
-
-    function finish(error) {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timeout);
-      child.kill();
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve();
-    }
-
-    function validateResponses() {
-      const initResponse = responses.find((item) => item.id === 1);
-      const listResponse = responses.find((item) => item.id === 2);
-      const callResponse = responses.find((item) => item.id === 3);
-      if (!initResponse || !listResponse || !callResponse) {
-        return;
-      }
-
-      try {
-        assert(initResponse?.result?.protocolVersion === "2025-06-18", "initialize response invalid");
-        assert(Array.isArray(listResponse?.result?.tools), "tools/list response invalid");
-        assert(listResponse.result.tools.some((item) => item.name === "resolve_api"), "resolve_api tool missing");
-        assert(callResponse?.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid");
-        finish();
-      } catch (error) {
-        finish(error);
-      }
-    }
-
-    function sendMcpRequests() {
-      if (requestsSent) {
-        return;
-      }
-      requestsSent = true;
-      sendMessage(child.stdin, { jsonrpc: "2.0", method: "notifications/initialized", params: {} });
-      sendMessage(child.stdin, { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 3,
-        method: "tools/call",
-        params: {
-          name: "resolve_api",
-          arguments: { query: "marketplace brc20 ticker history" },
-        },
-      });
-    }
-
-    const timeout = setTimeout(() => {
-      const receivedIds = responses.map((item) => item.id).filter((id) => id !== undefined).join(", ") || "none";
-      finish(new Error(`mcp smoke timed out waiting for responses 1,2,3; received ids: ${receivedIds}`));
-    }, 10000);
 
     function parseMessages() {
       while (true) {
@@ -144,12 +86,7 @@ async function runMcpSmoke() {
         }
         const body = buffer.slice(bodyStart, bodyEnd).toString("utf8");
         buffer = buffer.slice(bodyEnd);
-        const message = JSON.parse(body);
-        responses.push(message);
-        if (message.id === 1) {
-          sendMcpRequests();
-        }
-        validateResponses();
+        responses.push(JSON.parse(body));
       }
     }
 
@@ -157,12 +94,7 @@ async function runMcpSmoke() {
       buffer = Buffer.concat([buffer, chunk]);
       parseMessages();
     });
-    child.on("error", finish);
-    child.on("close", (code) => {
-      if (!settled && code !== 0) {
-        finish(new Error(`mcp server exited before smoke completed: ${code}`));
-      }
-    });
+    child.on("error", reject);
 
     sendMessage(child.stdin, {
       jsonrpc: "2.0",
@@ -175,6 +107,36 @@ async function runMcpSmoke() {
       },
     });
 
+    setTimeout(() => {
+      sendMessage(child.stdin, { jsonrpc: "2.0", method: "notifications/initialized", params: {} });
+      sendMessage(child.stdin, { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: {
+          name: "resolve_api",
+          arguments: { query: "marketplace brc20 ticker history" },
+        },
+      });
+    }, 100);
+
+    setTimeout(() => {
+      try {
+        const initResponse = responses.find((item) => item.id === 1);
+        const listResponse = responses.find((item) => item.id === 2);
+        const callResponse = responses.find((item) => item.id === 3);
+        assert(initResponse?.result?.protocolVersion === "2025-06-18", "initialize response invalid");
+        assert(Array.isArray(listResponse?.result?.tools), "tools/list response invalid");
+        assert(listResponse.result.tools.some((item) => item.name === "resolve_api"), "resolve_api tool missing");
+        assert(callResponse?.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid or timed out");
+        child.kill();
+        resolve();
+      } catch (error) {
+        child.kill();
+        reject(error);
+      }
+    }, 1500);
   });
 }
 
