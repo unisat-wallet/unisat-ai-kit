@@ -24,20 +24,20 @@ Environments:
 Recommended flow:
 
 ```bash
-node bi./unisat-cli.js config bitcoin-key --api-key YOUR_BITCOIN_KEY
-node bi./unisat-cli.js intro resolve --env bitcoin --query "address brc20 balance list" --format json
-node bi./unisat-cli.js api call --env bitcoin --path "/v1/indexer/address/{address}/balance" --path-param address=YOUR_ADDRESS --format json
+node bin/unisat-ai.js config bitcoin-key --api-key YOUR_BITCOIN_KEY
+node bin/unisat-ai.js intro resolve --env bitcoin --query "address brc20 balance list" --format json
+node bin/unisat-ai.js api call --env bitcoin --path "/v1/indexer/address/{address}/balance" --path-param address=YOUR_ADDRESS --format json
 ```
 
 Fractal example:
 
 ```bash
-node bi./unisat-cli.js config fractal-key --api-key YOUR_FRACTAL_KEY
-node bi./unisat-cli.js intro resolve --env fractal --query "get fractal address balance" --format json
-node bi./unisat-cli.js api call --env fractal --path "/v1/public/fractal/supply" --format json
+node bin/unisat-ai.js config fractal-key --api-key YOUR_FRACTAL_KEY
+node bin/unisat-ai.js intro resolve --env fractal --query "get fractal address balance" --format json
+node bin/unisat-ai.js api call --env fractal --path "/v1/public/fractal/supply" --format json
 ```
 
-Use `node bi./unisat-cli.js --help` for agent-oriented workflow notes and command usage.
+Use `node bin/unisat-ai.js --help` for agent-oriented workflow notes and command usage.
 
 API keys are stored in a user config `.env` file by the config commands. `api call` reads keys in this order: `--api-key`, process environment, user config `.env`.
 
@@ -51,7 +51,7 @@ npm run package:cli
 
 Each archive contains:
 
-- `unisat-cli.exe` on Windows, or `unisat-ai` on macOS/Linux
+- `unisat-cli.exe` on Windows, or `unisat-cli` on macOS/Linux
 - bundled CLI code
 - embedded OpenAPI swagger data
 
