@@ -18,15 +18,20 @@ jobs:
         include:
           - os: windows-latest
             target: windows-x64
+            archive: zip
           - os: ubuntu-latest
             target: linux-x64
+            archive: tar.gz
             node-runtime: linux-x64-glibc-217
           - os: ubuntu-24.04-arm
             target: linux-arm64
+            archive: tar.gz
           - os: macos-13
             target: macos-x64
+            archive: tar.gz
           - os: macos-latest
             target: macos-arm64
+            archive: tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -58,11 +63,12 @@ jobs:
       - name: Build single executable archive
         run: npm run package:cli -- --target ${{ matrix.target }}
 
-      - name: Upload executable artifact
+      - name: Upload executable archive
         uses: actions/upload-artifact@v4
         with:
           name: unisat-cli-${{ matrix.target }}
-          path: dist/single-cli/unisat-cli-${{ matrix.target }}/
+          path: dist/single-cli/unisat-cli-${{ matrix.target }}.${{ matrix.archive }}
+          if-no-files-found: error
 
   release:
     name: Publish release
@@ -75,17 +81,12 @@ jobs:
         with:
           path: artifacts
 
-      - name: Create release archives
+      - name: Create release checksums
         run: |
           set -euo pipefail
           mkdir -p release-assets
-          cd artifacts
-          zip -qr ../release-assets/unisat-cli-windows-x64.zip unisat-cli-windows-x64
-          tar -czf ../release-assets/unisat-cli-linux-x64.tar.gz unisat-cli-linux-x64
-          tar -czf ../release-assets/unisat-cli-linux-arm64.tar.gz unisat-cli-linux-arm64
-          tar -czf ../release-assets/unisat-cli-macos-x64.tar.gz unisat-cli-macos-x64
-          tar -czf ../release-assets/unisat-cli-macos-arm64.tar.gz unisat-cli-macos-arm64
-          cd ../release-assets
+          find artifacts -type f \( -name '*.zip' -o -name '*.tar.gz' \) -exec cp {} release-assets/ \;
+          cd release-assets
           sha256sum *.zip *.tar.gz > checksums.txt
 
       - name: Publish GitHub release

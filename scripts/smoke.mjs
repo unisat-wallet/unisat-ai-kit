@@ -63,6 +63,7 @@ async function runMcpSmoke() {
     });
 
     let buffer = Buffer.alloc(0);
+    let settled = false;
     const responses = [];
 
     function parseMessages() {
@@ -74,8 +75,7 @@ async function runMcpSmoke() {
         const headerText = buffer.slice(0, delimiterIndex).toString("utf8");
         const lengthMatch = headerText.match(/Content-Length:\s*(\d+)/i);
         if (!lengthMatch) {
-          reject(new Error("mcp smoke failed: missing Content-Length"));
-          child.kill();
+          finish(new Error("mcp smoke failed: missing Content-Length"));
           return;
         }
         const length = Number.parseInt(lengthMatch[1], 10);
@@ -87,14 +87,50 @@ async function runMcpSmoke() {
         const body = buffer.slice(bodyStart, bodyEnd).toString("utf8");
         buffer = buffer.slice(bodyEnd);
         responses.push(JSON.parse(body));
+        validateResponses();
       }
     }
 
+    function finish(error) {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      child.kill();
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    }
+
+    function validateResponses() {
+      try {
+        const initResponse = responses.find((item) => item.id === 1);
+        const listResponse = responses.find((item) => item.id === 2);
+        const callResponse = responses.find((item) => item.id === 3);
+        if (!initResponse || !listResponse || !callResponse) {
+          return;
+        }
+        assert(initResponse.result?.protocolVersion === "2025-06-18", "initialize response invalid");
+        assert(Array.isArray(listResponse.result?.tools), "tools/list response invalid");
+        assert(listResponse.result.tools.some((item) => item.name === "resolve_api"), "resolve_api tool missing");
+        assert(callResponse.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid");
+        finish();
+      } catch (error) {
+        finish(error);
+      }
+    }
+
+    const timeout = setTimeout(() => {
+      finish(new Error("tools/call resolve_api invalid or timed out"));
+    }, 10000);
     child.stdout.on("data", (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);
       parseMessages();
     });
-    child.on("error", reject);
+    child.on("error", finish);
 
     sendMessage(child.stdin, {
       jsonrpc: "2.0",
@@ -121,22 +157,6 @@ async function runMcpSmoke() {
       });
     }, 100);
 
-    setTimeout(() => {
-      try {
-        const initResponse = responses.find((item) => item.id === 1);
-        const listResponse = responses.find((item) => item.id === 2);
-        const callResponse = responses.find((item) => item.id === 3);
-        assert(initResponse?.result?.protocolVersion === "2025-06-18", "initialize response invalid");
-        assert(Array.isArray(listResponse?.result?.tools), "tools/list response invalid");
-        assert(listResponse.result.tools.some((item) => item.name === "resolve_api"), "resolve_api tool missing");
-        assert(callResponse?.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid or timed out");
-        child.kill();
-        resolve();
-      } catch (error) {
-        child.kill();
-        reject(error);
-      }
-    }, 1500);
   });
 }
 
