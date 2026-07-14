@@ -1,21 +1,21 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const rootDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
 const requiredPaths = [
-  "README.md",
-  "docs/architecture.md",
-  "docs/roadmap-90d.md",
+  "package.json",
+  "swagger",
   "packages/cli/package.json",
   "packages/cli/bin/unisat-ai.js",
+  "packages/cli/src",
   "packages/mcp-server/package.json",
   "packages/mcp-server/bin/server.js",
-  "packages/shared-types/package.json",
+  "packages/mcp-server/src/tools.js",
 ];
 
-const missing = requiredPaths.filter((item) => {
-  return !fs.existsSync(path.join(rootDir, item));
-});
+const missing = requiredPaths.filter((item) => !fs.existsSync(path.join(rootDir, item)));
 
 if (missing.length > 0) {
   console.error("doctor failed");

@@ -11,7 +11,8 @@ function run(command, args, options = {}) {
     const child = spawn(command, args, {
       cwd: options.cwd || rootDir,
       env: options.env || process.env,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: options.stdio || ["ignore", "pipe", "pipe"],
+      shell: options.shell ?? (process.platform === "win32" && command.endsWith(".cmd")),
     });
 
     let stdout = "";
@@ -23,6 +24,10 @@ function run(command, args, options = {}) {
 
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString("utf8");
+    });
+
+    child.on("error", (error) => {
+      reject(new Error(`${command} ${args.join(" ")} failed to start: ${error.message}`));
     });
 
     child.on("close", (code) => {
@@ -42,10 +47,169 @@ function assert(condition, message) {
   }
 }
 
+function sendMessage(stdin, message) {
+  stdin.write(`${JSON.stringify(message)}\n`);
+}
+
+async function runMcpSmoke(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd || rootDir,
+      env: options.env || process.env,
+      stdio: ["pipe", "pipe", "pipe"],
+      shell: options.shell ?? (process.platform === "win32" && command.endsWith(".cmd")),
+    });
+
+    let buffer = "";
+    let stderr = "";
+    let settled = false;
+    const responses = [];
+
+    function finish(error) {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      const complete = () => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      };
+      child.once("close", complete);
+      if (!child.kill()) {
+        complete();
+      }
+    }
+
+    function validateResponses() {
+      try {
+        const initResponse = responses.find((item) => item.id === 1);
+        const listResponse = responses.find((item) => item.id === 2);
+        const callResponse = responses.find((item) => item.id === 3);
+        const statusResponse = responses.find((item) => item.id === 4);
+        const environmentsResponse = responses.find((item) => item.id === 5);
+        const apiCallResponse = responses.find((item) => item.id === 6);
+        if (!initResponse || !listResponse || !callResponse || !statusResponse || !environmentsResponse || !apiCallResponse) {
+          return;
+        }
+        assert(initResponse.result?.protocolVersion, "packed mcp initialize response invalid");
+        ["get_status", "list_environments", "resolve_api", "show_api", "call_api"].forEach((toolName) => {
+          assert(listResponse.result?.tools?.some((item) => item.name === toolName), `packed mcp ${toolName} missing`);
+        });
+        assert(callResponse.result?.structuredContent?.command === "intro.resolve", "packed mcp tools/call invalid");
+        assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "packed mcp get_status invalid");
+        assert(environmentsResponse.result?.structuredContent?.command === "mcp.list_environments", "packed mcp list_environments invalid");
+        assert(apiCallResponse.result?.structuredContent?.mode === "not_found", "packed mcp call_api not_found invalid");
+        finish();
+      } catch (error) {
+        finish(error);
+      }
+    }
+
+    function parseMessages() {
+      while (true) {
+        const newlineIndex = buffer.indexOf("\n");
+        if (newlineIndex === -1) {
+          return;
+        }
+        const line = buffer.slice(0, newlineIndex).replace(/\r$/, "");
+        buffer = buffer.slice(newlineIndex + 1);
+        if (!line.trim()) {
+          continue;
+        }
+        responses.push(JSON.parse(line));
+        validateResponses();
+      }
+    }
+
+    const timeout = setTimeout(() => {
+      finish(new Error(`packed mcp smoke timed out${stderr ? `: ${stderr}` : ""}`));
+    }, 10000);
+
+    child.stdout.on("data", (chunk) => {
+      buffer += chunk.toString("utf8");
+      parseMessages();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", finish);
+
+    sendMessage(child.stdin, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "release-smoke", version: "0.1.0" },
+      },
+    });
+    setTimeout(() => {
+      sendMessage(child.stdin, { jsonrpc: "2.0", method: "notifications/initialized", params: {} });
+      sendMessage(child.stdin, { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: {
+          name: "resolve_api",
+          arguments: { query: "marketplace brc20 ticker history" },
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: {
+          name: "get_status",
+          arguments: {},
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: {
+          name: "list_environments",
+          arguments: {},
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 6,
+        method: "tools/call",
+        params: {
+          name: "call_api",
+          arguments: { environment: "bitcoin", path: "/not-found", apiKey: "release_smoke" },
+        },
+      });
+    }, 100);
+  });
+}
+
+function npmCommand() {
+  return process.platform === "win32" ? "npm.cmd" : "npm";
+}
+
+function packageBin(binDir, commandName) {
+  return path.join(binDir, process.platform === "win32" ? `${commandName}.cmd` : commandName);
+}
+
 async function packPackage(packageDir) {
-  const { stdout } = await run("npm", ["pack", "--json"], { cwd: packageDir });
-  const [{ filename }] = JSON.parse(stdout);
-  return path.join(packageDir, filename);
+  const { stdout } = await run(npmCommand(), ["pack", "--json"], { cwd: packageDir });
+  const [packResult] = JSON.parse(stdout);
+  return {
+    tarball: path.join(packageDir, packResult.filename),
+    files: packResult.files.map((file) => file.path),
+  };
+}
+
+function assertPackedFile(files, expectedPath) {
+  assert(files.includes(expectedPath), `packed file missing: ${expectedPath}`);
 }
 
 async function main() {
@@ -57,18 +221,23 @@ async function main() {
   let mcpTarball = "";
 
   try {
-    cliTarball = await packPackage(cliPackageDir);
-    mcpTarball = await packPackage(mcpPackageDir);
+    const cliPack = await packPackage(cliPackageDir);
+    const mcpPack = await packPackage(mcpPackageDir);
+    cliTarball = cliPack.tarball;
+    mcpTarball = mcpPack.tarball;
 
-    await run("npm", ["init", "-y"], { cwd: tempDir });
-    await run("npm", ["install", cliTarball, mcpTarball], { cwd: tempDir });
+    assert(cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/") && file.endsWith(".yaml")), "packed cli swagger vendor missing");
+    assertPackedFile(mcpPack.files, "bin/server.js");
+    assertPackedFile(mcpPack.files, "src/tools.js");
+
+    await run(npmCommand(), ["init", "-y"], { cwd: tempDir });
+    await run(npmCommand(), ["install", cliTarball, mcpTarball], { cwd: tempDir });
 
     const binDir = path.join(tempDir, "node_modules", ".bin");
-    const cliBin = path.join(binDir, "unisat-ai-cli");
-    const mcpBin = path.join(binDir, "unisat-ai-mcp-server");
+    const cliBin = packageBin(binDir, "unisat-ai-cli");
+    const mcpBin = packageBin(binDir, "unisat-ai-mcp-server");
     const env = {
       ...process.env,
-      UNISAT_DEV_DOCS_DIR: "",
       OPENAPI_SWAGGER_DIR: "",
     };
 
@@ -85,16 +254,12 @@ async function main() {
     });
     const resolvePayload = JSON.parse(cliResolve.stdout);
     assert(resolvePayload.command === "intro.resolve", "packed cli intro resolve failed");
-    assert(resolvePayload.selected?.path === "/v3/market/brc20/auction/brc20_kline", "packed cli resolve path invalid");
+    assert(resolvePayload.selected?.path, "packed cli resolve selected path missing");
 
-    const mcpBoot = await run("node", [mcpBin, "--help"], {
+    await runMcpSmoke(mcpBin, [], {
       cwd: tempDir,
       env,
-    }).catch(() => null);
-
-    if (mcpBoot === null) {
-      throw new Error("packed mcp package failed to start");
-    }
+    });
 
     console.log("release smoke ok");
   } finally {

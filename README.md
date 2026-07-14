@@ -51,6 +51,49 @@ Windows:
 
 Add the extracted `unisat-cli-windows-x64` folder containing `unisat-cli.exe` to your system `PATH`.
 
+## MCP Quick Start
+
+For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the recommended public configuration is `npx`:
+
+```json
+{
+  "mcpServers": {
+    "unisat-ai": {
+      "command": "npx",
+      "args": ["-y", "@unisat/ai-mcp-server"],
+      "env": {
+        "UNISAT_BITCOIN_API_KEY": "YOUR_BITCOIN_API_KEY",
+        "UNISAT_FRACTAL_API_KEY": "YOUR_FRACTAL_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Alternatively, install globally:
+
+```bash
+npm install -g @unisat/ai-mcp-server
+```
+
+```json
+{
+  "mcpServers": {
+    "unisat-ai": {
+      "command": "unisat-ai-mcp-server",
+      "env": {
+        "UNISAT_BITCOIN_API_KEY": "YOUR_BITCOIN_API_KEY",
+        "UNISAT_FRACTAL_API_KEY": "YOUR_FRACTAL_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Portable MCP archives are also available from GitHub Releases. Configure the extracted absolute launcher path, such as `/absolute/path/to/unisat-ai-mcp-server` on macOS/Linux or `C:/absolute/path/to/unisat-ai-mcp-server.cmd` on Windows.
+
+The MCP server exposes `get_status`, `list_environments`, `resolve_api`, `show_api`, and `call_api`. See `docs/mcp-setup.md` for full setup details.
+
 ## Configure API Keys
 
 Register an API key at https://developer.unisat.io/, then configure each OpenAPI environment separately:
@@ -58,6 +101,13 @@ Register an API key at https://developer.unisat.io/, then configure each OpenAPI
 ```bash
 unisat-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
 unisat-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+```
+
+For MCP usage, set the same keys in the agent process environment or configure them with the npm CLI package:
+
+```bash
+npx -y @unisat/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @unisat/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
 ## Use The CLI

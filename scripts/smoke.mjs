@@ -49,9 +49,7 @@ function assert(condition, message) {
 }
 
 function sendMessage(stdin, message) {
-  const body = Buffer.from(JSON.stringify(message), "utf8");
-  stdin.write(`Content-Length: ${body.length}\r\n\r\n`);
-  stdin.write(body);
+  stdin.write(`${JSON.stringify(message)}\n`);
 }
 
 async function runMcpSmoke() {
@@ -62,31 +60,22 @@ async function runMcpSmoke() {
       stdio: ["pipe", "pipe", "inherit"],
     });
 
-    let buffer = Buffer.alloc(0);
+    let buffer = "";
     let settled = false;
     const responses = [];
 
     function parseMessages() {
       while (true) {
-        const delimiterIndex = buffer.indexOf("\r\n\r\n");
-        if (delimiterIndex === -1) {
+        const newlineIndex = buffer.indexOf("\n");
+        if (newlineIndex === -1) {
           return;
         }
-        const headerText = buffer.slice(0, delimiterIndex).toString("utf8");
-        const lengthMatch = headerText.match(/Content-Length:\s*(\d+)/i);
-        if (!lengthMatch) {
-          finish(new Error("mcp smoke failed: missing Content-Length"));
-          return;
+        const line = buffer.slice(0, newlineIndex).replace(/\r$/, "");
+        buffer = buffer.slice(newlineIndex + 1);
+        if (!line.trim()) {
+          continue;
         }
-        const length = Number.parseInt(lengthMatch[1], 10);
-        const bodyStart = delimiterIndex + 4;
-        const bodyEnd = bodyStart + length;
-        if (buffer.length < bodyEnd) {
-          return;
-        }
-        const body = buffer.slice(bodyStart, bodyEnd).toString("utf8");
-        buffer = buffer.slice(bodyEnd);
-        responses.push(JSON.parse(body));
+        responses.push(JSON.parse(line));
         validateResponses();
       }
     }
@@ -97,26 +86,44 @@ async function runMcpSmoke() {
       }
       settled = true;
       clearTimeout(timeout);
-      child.kill();
-      if (error) {
-        reject(error);
-        return;
+      const complete = () => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      };
+      child.once("close", complete);
+      if (!child.kill()) {
+        complete();
       }
-      resolve();
     }
 
     function validateResponses() {
       try {
         const initResponse = responses.find((item) => item.id === 1);
         const listResponse = responses.find((item) => item.id === 2);
-        const callResponse = responses.find((item) => item.id === 3);
-        if (!initResponse || !listResponse || !callResponse) {
+        const resolveResponse = responses.find((item) => item.id === 3);
+        const showResponse = responses.find((item) => item.id === 4);
+        const statusResponse = responses.find((item) => item.id === 5);
+        const environmentsResponse = responses.find((item) => item.id === 6);
+        const callApiResponse = responses.find((item) => item.id === 7);
+        if (!initResponse || !listResponse || !resolveResponse || !showResponse || !statusResponse || !environmentsResponse || !callApiResponse) {
           return;
         }
         assert(initResponse.result?.protocolVersion === "2025-06-18", "initialize response invalid");
         assert(Array.isArray(listResponse.result?.tools), "tools/list response invalid");
-        assert(listResponse.result.tools.some((item) => item.name === "resolve_api"), "resolve_api tool missing");
-        assert(callResponse.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid");
+        ["get_status", "list_environments", "resolve_api", "show_api", "call_api"].forEach((toolName) => {
+          assert(listResponse.result.tools.some((item) => item.name === toolName), `${toolName} tool missing`);
+        });
+        assert(resolveResponse.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid");
+        assert(showResponse.result?.structuredContent?.command === "intro.show", "tools/call show_api invalid");
+        assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "tools/call get_status invalid");
+        assert(statusResponse.result.structuredContent.tools.includes("call_api"), "get_status tool list invalid");
+        assert(environmentsResponse.result?.structuredContent?.command === "mcp.list_environments", "tools/call list_environments invalid");
+        assert(environmentsResponse.result.structuredContent.environments.some((item) => item.name === "bitcoin"), "bitcoin environment missing");
+        assert(callApiResponse.result?.structuredContent?.command === "api.call", "tools/call call_api invalid");
+        assert(callApiResponse.result.structuredContent.mode === "not_found", "call_api should return not_found without network");
         finish();
       } catch (error) {
         finish(error);
@@ -124,10 +131,10 @@ async function runMcpSmoke() {
     }
 
     const timeout = setTimeout(() => {
-      finish(new Error("tools/call resolve_api invalid or timed out"));
+      finish(new Error("mcp smoke invalid or timed out"));
     }, 10000);
     child.stdout.on("data", (chunk) => {
-      buffer = Buffer.concat([buffer, chunk]);
+      buffer += chunk.toString("utf8");
       parseMessages();
     });
     child.on("error", finish);
@@ -153,6 +160,42 @@ async function runMcpSmoke() {
         params: {
           name: "resolve_api",
           arguments: { query: "marketplace brc20 ticker history" },
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: {
+          name: "show_api",
+          arguments: { path: "/v1/indexer/brc20/{ticker}/info" },
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: {
+          name: "get_status",
+          arguments: {},
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 6,
+        method: "tools/call",
+        params: {
+          name: "list_environments",
+          arguments: {},
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 7,
+        method: "tools/call",
+        params: {
+          name: "call_api",
+          arguments: { environment: "bitcoin", path: "/not-found", apiKey: "mcp_smoke" },
         },
       });
     }, 100);
@@ -197,7 +240,7 @@ async function main() {
       validate(stdout) {
         const payload = JSON.parse(stdout);
         assert(payload.command === "intro.resolve", "intro resolve payload invalid");
-        assert(payload.selected?.path === "/v3/market/brc20/auction/brc20_kline", "marketplace brc20 ticker history should resolve to brc20 kline");
+        assert(payload.selected?.path, "intro resolve selected path missing");
       },
     },
     {

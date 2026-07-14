@@ -22,11 +22,6 @@ function getSourceRoots() {
   const repoRoot = path.resolve(__dirname, "..", "..", "..");
 
   return {
-    unisatDevDocsDir: resolveRepoPath(
-      "UNISAT_DEV_DOCS_DIR",
-      ["unisat-dev-docs"],
-      ["..", "unisat-dev-docs"]
-    ),
     openapiSwaggerDir: resolveRepoPath(
       "OPENAPI_SWAGGER_DIR",
       ["openapi-swagger"],

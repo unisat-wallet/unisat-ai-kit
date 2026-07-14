@@ -1,54 +1,139 @@
 # MCP Setup
 
-UniSat AI remains the product name. The official repository is `unisat-ai`, and the current CLI-first architecture lives on the `main-next` branch.
+UniSat AI provides a stdio MCP server for UniSat OpenAPI discovery and calls. Public users should configure an installed command, not a local source path.
 
-## Local Start
+## Option A: npx configuration
 
-```bash
-git clone git@github.com:unisat-wallet/unisat-ai.git
-cd unisat-ai
-git checkout main-next
-yarn mcp:server
+This is the recommended setup for Cursor, Claude, Codex, and other agents that support MCP command + args configuration.
+
+```json
+{
+  "mcpServers": {
+    "unisat-ai": {
+      "command": "npx",
+      "args": ["-y", "@unisat/ai-mcp-server"]
+    }
+  }
+}
 ```
 
-The server currently runs over stdio and exposes two read-only tools:\r\n\r\n- `resolve_api`\r\n- `show_api`\r\n\r\n## Environment Overrides
+The package includes the MCP server and depends on `@unisat/ai-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
 
-By default, OpenAPI data is read from the repository-local `swagger/` directory. If your docs repository is not in the default sibling path, or if you need to point OpenAPI loading at a different directory, override them before launch:
+## Option B: global npm install
+
+Install once:
 
 ```bash
-export UNISAT_DEV_DOCS_DIR=/absolute/path/to/unisat-dev-docs
-export OPENAPI_SWAGGER_DIR=/absolute/path/to/custom-swagger-dir
-yarn mcp:server
+npm install -g @unisat/ai-mcp-server
 ```
 
-## Example MCP Config
+Configure the agent:
 
-Example stdio MCP configuration:
+```json
+{
+  "mcpServers": {
+    "unisat-ai": {
+      "command": "unisat-ai-mcp-server"
+    }
+  }
+}
+```
+
+## Option C: GitHub Release portable package
+
+Download and extract the portable MCP package for your platform from GitHub Releases.
+
+macOS/Linux configuration:
+
+```json
+{
+  "mcpServers": {
+    "unisat-ai": {
+      "command": "/absolute/path/to/unisat-ai-mcp-server"
+    }
+  }
+}
+```
+
+Windows configuration:
+
+```json
+{
+  "mcpServers": {
+    "unisat-ai": {
+      "command": "C:/absolute/path/to/unisat-ai-mcp-server.cmd"
+    }
+  }
+}
+```
+
+Use an absolute path to the extracted launcher. The portable archive contains production dependencies and bundled swagger data.
+
+## Option D: local source development
+
+For repository development only:
+
+```bash
+npm install
+npm run mcp:server
+```
+
+Local source MCP config:
 
 ```json
 {
   "mcpServers": {
     "unisat-ai": {
       "command": "node",
-      "args": [
-        "/absolute/path/to/unisat-ai/packages/mcp-server/bin/server.js"
-      ],
-      "env": {
-        "UNISAT_DEV_DOCS_DIR": "/Users/avani/workplace/github-repo/unisat-dev-docs",
-        "OPENAPI_SWAGGER_DIR": "/Users/avani/workplace/github-repo/unisat-ai/swagger"
-      }
+      "args": ["/absolute/path/to/unisat-ai/packages/mcp-server/bin/server.js"]
     }
   }
 }
 ```
 
-## Validation
+## Tools
 
-After changing CLI or MCP behavior locally, run at least:
+The MCP server exposes:
+
+- `get_status`: returns MCP version, Node.js version, CLI capability status, swagger source, and available tools.
+- `list_environments`: lists `bitcoin` and `fractal` OpenAPI environments, base URLs, API key environment names, and whether keys are configured.
+- `resolve_api`: resolves a natural-language task or exact path to a UniSat OpenAPI interface.
+- `show_api`: shows raw OpenAPI detail for an exact path.
+- `call_api`: calls a UniSat OpenAPI interface through the CLI capability layer.
+
+## API keys
+
+OpenAPI calls require environment-specific API keys. Register at https://developer.unisat.io/ and configure one of these environment variables in the agent process environment:
 
 ```bash
-node scripts/doctor.mjs
-node scripts/smoke.mjs
+UNISAT_BITCOIN_API_KEY=YOUR_BITCOIN_KEY
+UNISAT_FRACTAL_API_KEY=YOUR_FRACTAL_KEY
 ```
 
-`smoke` verifies:\r\n\r\n- CLI `intro resolve`\r\n- CLI `intro show`\r\n- CLI `api call` missing-key handling\r\n- MCP `initialize`\r\n- MCP `tools/list`\r\n- MCP `tools/call`\r\n
+You can also configure keys with the CLI package:
+
+```bash
+npx -y @unisat/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @unisat/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+```
+
+The MCP `list_environments` tool reports whether each key is configured.
+
+## Optional environment overrides
+
+The public npm and portable packages already include swagger data. Override the swagger directory only for development or custom builds:
+
+```bash
+OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/ai-mcp-server
+```
+
+## Validation
+
+Local maintainers should verify three scenarios before release:
+
+```bash
+npm run smoke
+npm run release:smoke
+```
+
+The smoke checks cover MCP `initialize`, `tools/list`, and `tools/call` for `resolve_api`, `show_api`, `get_status`, `list_environments`, and a no-network `call_api` not-found case.

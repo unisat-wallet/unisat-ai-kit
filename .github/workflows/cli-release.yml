@@ -63,11 +63,21 @@ jobs:
       - name: Build single executable archive
         run: npm run package:cli -- --target ${{ matrix.target }}
 
+      - name: Build MCP portable archive
+        run: npm run package:mcp:portable -- --target ${{ matrix.target }}
+
       - name: Upload executable archive
         uses: actions/upload-artifact@v4
         with:
           name: unisat-cli-${{ matrix.target }}
           path: dist/single-cli/unisat-cli-${{ matrix.target }}.${{ matrix.archive }}
+          if-no-files-found: error
+
+      - name: Upload MCP portable archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: unisat-ai-mcp-server-${{ matrix.target }}
+          path: dist/portable-mcp/unisat-ai-mcp-server-${{ matrix.target }}.${{ matrix.archive }}
           if-no-files-found: error
 
   release:

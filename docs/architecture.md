@@ -31,4 +31,4 @@
 
 - `unisat-ai/swagger`: default local OpenAPI source consumed by CLI and MCP
 - `unisat-dev-docs`: developer docs, site, and SDK outputs
-- `unisat-ai` on `main-next`: AI capability packaging, retrieval, tool contracts, evaluation, and consumption interfaces
+- `unisat-ai`: AI capability packaging, retrieval, tool contracts, evaluation, and consumption interfaces

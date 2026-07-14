@@ -28,8 +28,7 @@ write_wrapper() {
   cat >"$file_path" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-export UNISAT_DEV_DOCS_DIR="\${UNISAT_DEV_DOCS_DIR:-$ROOT_DIR/../unisat-dev-docs}"
-export OPENAPI_SWAGGER_DIR="\${OPENAPI_SWAGGER_DIR:-$ROOT_DIR/../openapi-swagger}"
+export OPENAPI_SWAGGER_DIR="\${OPENAPI_SWAGGER_DIR:-$ROOT_DIR/swagger}"
 cd "$ROOT_DIR"
 exec node "$target_script" "\$@"
 EOF

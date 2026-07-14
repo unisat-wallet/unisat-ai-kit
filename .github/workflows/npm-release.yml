@@ -1,0 +1,50 @@
+name: npm Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish npm packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.15.1
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Source smoke
+        run: npm run smoke
+
+      - name: Package smoke
+        run: npm run release:smoke
+
+      - name: Prepare release assets
+        run: npm run sync:release-assets
+
+      - name: Publish CLI package
+        run: npm publish --workspace packages/cli --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish MCP package
+        run: npm publish --workspace packages/mcp-server --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Clean release assets
+        if: always()
+        run: npm run clean:release-assets
