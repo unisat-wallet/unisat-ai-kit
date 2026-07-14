@@ -17,7 +17,7 @@ For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the 
   "mcpServers": {
     "unisat-ai": {
       "command": "npx",
-      "args": ["-y", "@api-agent-test/ai-mcp"],
+      "args": ["-y", "--registry=https://registry.npmjs.org/", "@api-agent-test/ai-mcp"],
       "env": {
         "UNISAT_BITCOIN_API_KEY": "YOUR_BITCOIN_API_KEY",
         "UNISAT_FRACTAL_API_KEY": "YOUR_FRACTAL_API_KEY"
@@ -27,7 +27,7 @@ For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the 
 }
 ```
 
-The MCP server exposes `get_status`, `list_environments`, `resolve_api`, `show_api`, and `call_api`. See `docs/mcp-setup.md` for full setup details.
+The explicit `--registry=https://registry.npmjs.org/` option avoids failures caused by stale npm mirrors or private registry configuration. The MCP server exposes `get_status`, `list_environments`, `resolve_api`, `show_api`, and `call_api`. See `docs/mcp-setup.md` for full setup details.
 
 ## CLI Quick Start
 
