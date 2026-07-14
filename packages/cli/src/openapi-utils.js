@@ -92,7 +92,7 @@ function extractScalar(lines, pattern) {
 
   const value = lines[index].replace(pattern, "").trim();
   if (value !== ">-" && value !== "|" && value !== ">") {
-    return value.replace(/^['"]|['"]$/g, "");
+    return value.replace(/^[\'"]|[\'"]$/g, "");
   }
 
   const chunks = [];
@@ -130,11 +130,33 @@ function extractTags(lines) {
   return tags;
 }
 
+function createParameter() {
+  return {
+    name: "",
+    in: "",
+    required: false,
+    description: "",
+    type: "",
+  };
+}
+
+function normalizeYamlScalar(value) {
+  return value.trim().replace(/^[\'"]|[\'"]$/g, "");
+}
+
 function extractParameters(lines) {
   const parameters = [];
   let current = null;
   let inParameters = false;
   let inSchema = false;
+
+  function pushCurrent() {
+    if (current && current.name) {
+      parameters.push(current);
+    }
+    current = null;
+    inSchema = false;
+  }
 
   lines.forEach((line) => {
     if (/^\s{6}parameters:\s*$/.test(line)) {
@@ -146,23 +168,32 @@ function extractParameters(lines) {
       return;
     }
 
-    if (/^\s{8}-\s+name:\s+/.test(line)) {
-      if (current) {
-        parameters.push(current);
+    if (/^\s{6}(responses|requestBody):\s*$/.test(line) || /^\s{4}(get|post|put|delete|patch|options|head):\s*$/.test(line) || /^\s{2}\/.+:\s*$/.test(line)) {
+      pushCurrent();
+      inParameters = false;
+      return;
+    }
+
+    if (/^\s{8}-\s+/.test(line)) {
+      pushCurrent();
+      current = createParameter();
+      const inline = line.replace(/^\s{8}-\s+/, "");
+      const inlineMatch = inline.match(/^(name|in|required|description|schema):\s*(.*)$/);
+      if (inlineMatch) {
+        const [, key, rawValue] = inlineMatch;
+        if (key === "schema") {
+          inSchema = true;
+        } else if (key === "required") {
+          current.required = rawValue.trim() === "true";
+        } else {
+          current[key] = normalizeYamlScalar(rawValue);
+        }
       }
-      current = {
-        name: line.replace(/^\s{8}-\s+name:\s+/, "").trim(),
-        in: "",
-        required: false,
-        description: "",
-        type: "",
-      };
-      inSchema = false;
       return;
     }
 
     if (!current) {
-      if (!/^\s{8}/.test(line) || /^\s{6}(responses|requestBody):\s*$/.test(line)) {
+      if (!/^\s{8,}/.test(line)) {
         inParameters = false;
       }
       return;
@@ -173,34 +204,27 @@ function extractParameters(lines) {
       return;
     }
 
-    if (/^\s{10}(in|required|description):\s+/.test(line)) {
-      const [, key] = line.match(/^\s{10}(in|required|description):\s+/);
-      const value = line.replace(/^\s{10}(in|required|description):\s+/, "").trim();
+    const propertyMatch = line.match(/^\s{10}(name|in|required|description):\s+(.+)\s*$/);
+    if (propertyMatch) {
+      const [, key, rawValue] = propertyMatch;
       if (key === "required") {
-        current.required = value === "true";
+        current.required = rawValue.trim() === "true";
       } else {
-        current[key] = value.replace(/^['"]|['"]$/g, "");
+        current[key] = normalizeYamlScalar(rawValue);
       }
       inSchema = false;
       return;
     }
 
-    if (inSchema && /^\s{12}type:\s+/.test(line)) {
-      current.type = line.replace(/^\s{12}type:\s+/, "").trim();
-      return;
-    }
-
-    if (/^\s{6}(responses|requestBody):\s*$/.test(line) || !/^\s{10,12}/.test(line)) {
-      parameters.push(current);
-      current = null;
-      inSchema = false;
-      inParameters = false;
+    if (inSchema) {
+      const typeMatch = line.match(/^\s{12}type:\s+(.+)\s*$/);
+      if (typeMatch) {
+        current.type = normalizeYamlScalar(typeMatch[1]);
+      }
     }
   });
 
-  if (current) {
-    parameters.push(current);
-  }
+  pushCurrent();
 
   return parameters;
 }
@@ -232,7 +256,7 @@ function extractServers(fileLines) {
 
     const match = line.match(/^\s*-\s+url:\s+(.+)\s*$/);
     if (match) {
-      servers.push(match[1].trim().replace(/^['"]|['"]$/g, ""));
+      servers.push(match[1].trim().replace(/^[\'"]|[\'"]$/g, ""));
     }
   });
 

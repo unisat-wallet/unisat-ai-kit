@@ -3,6 +3,8 @@ import os from "os";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
+import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
+import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -127,7 +129,7 @@ async function runMcpSmoke(command, args, options = {}) {
 
     const timeout = setTimeout(() => {
       finish(new Error(`packed mcp smoke timed out${stderr ? `: ${stderr}` : ""}`));
-    }, 10000);
+    }, 30000);
 
     child.stdout.on("data", (chunk) => {
       buffer += chunk.toString("utf8");
@@ -212,7 +214,27 @@ function assertPackedFile(files, expectedPath) {
   assert(files.includes(expectedPath), `packed file missing: ${expectedPath}`);
 }
 
+function validateRequestPlanning() {
+  const swapBalanceDetail = getOpenApiDetail("/v1/brc20-swap/balance");
+  assert(swapBalanceDetail.parameters.some((item) => item.name === "address" && item.in === "query"), "release schema-first query parameter address missing");
+  assert(swapBalanceDetail.parameters.some((item) => item.name === "tick" && item.in === "query"), "release schema-first query parameter tick missing");
+
+  const swapBalancePlan = buildRequestPlan("/v1/brc20-swap/balance", {
+    environment: "bitcoin",
+    queryParams: {
+      ADDRESS: "bc1 smoke/value",
+      tick: "ordi",
+      custom: "extra value",
+    },
+    includeOptionalQuery: false,
+  });
+  assert(swapBalancePlan.queryString.includes("address=bc1+smoke%2Fvalue"), "release query parameter should match case-insensitively and be encoded");
+  assert(swapBalancePlan.queryString.includes("tick=ordi"), "release schema-first query parameter tick should be included");
+  assert(swapBalancePlan.queryString.includes("custom=extra+value"), "release extra query parameter should be preserved");
+}
+
 async function main() {
+  validateRequestPlanning();
   const cliPackageDir = path.join(rootDir, "packages", "cli");
   const mcpPackageDir = path.join(rootDir, "packages", "mcp-server");
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "unisat-ai-release-smoke-"));

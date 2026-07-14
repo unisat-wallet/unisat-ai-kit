@@ -28,24 +28,87 @@ function exampleValue(parameter) {
   return `YOUR_${parameter.name.toUpperCase()}`;
 }
 
+function valueProvided(value) {
+  return value !== undefined && value !== null;
+}
+
+function stringValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).join(",");
+  }
+  return String(value);
+}
+
+function objectHasCaseInsensitive(object, key) {
+  return Object.keys(object || {}).some((item) => item.toLowerCase() === key.toLowerCase());
+}
+
+function getCaseInsensitiveValue(object, key) {
+  const actualKey = Object.keys(object || {}).find((item) => item.toLowerCase() === key.toLowerCase());
+  return actualKey ? object[actualKey] : undefined;
+}
+
+function extractPathParameterNames(apiPath) {
+  const names = [];
+  const matcher = /\{([^}]+)\}/g;
+  let match = matcher.exec(apiPath);
+  while (match) {
+    names.push(match[1]);
+    match = matcher.exec(apiPath);
+  }
+  return names;
+}
+
+function ensurePathParameters(detail) {
+  const existingNames = new Set(detail.parameters.filter((parameter) => parameter.in === "path").map((parameter) => parameter.name));
+  const inferredParameters = extractPathParameterNames(detail.path)
+    .filter((name) => !existingNames.has(name))
+    .map((name) => ({
+      name,
+      in: "path",
+      required: true,
+      description: "",
+      type: "string",
+    }));
+  return [...detail.parameters, ...inferredParameters];
+}
+
+function encodePathValue(value) {
+  return encodeURIComponent(stringValue(value));
+}
+
 function buildResolvedPath(apiPath, pathParams) {
   let resolvedPath = apiPath;
   pathParams.forEach((parameter) => {
-    resolvedPath = resolvedPath.replace(`{${parameter.name}}`, parameter.value);
+    const escapedName = parameter.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    resolvedPath = resolvedPath.replace(new RegExp(`\\{${escapedName}\\}`, "g"), encodePathValue(parameter.value));
   });
   return resolvedPath;
 }
 
 function buildQueryEntries(parameters, overrides = {}, includeOptional = true) {
-  return parameters
+  const parameterNames = new Set(parameters.filter((parameter) => parameter.in === "query").map((parameter) => parameter.name.toLowerCase()));
+  const documentedEntries = parameters
     .filter((parameter) => parameter.in === "query")
-    .filter((parameter) => includeOptional || parameter.required || Object.hasOwn(overrides, parameter.name))
+    .filter((parameter) => includeOptional || parameter.required || objectHasCaseInsensitive(overrides, parameter.name))
     .map((parameter) => ({
       name: parameter.name,
       required: parameter.required,
       description: parameter.description,
-      value: overrides[parameter.name] || exampleValue(parameter),
+      value: valueProvided(getCaseInsensitiveValue(overrides, parameter.name))
+        ? getCaseInsensitiveValue(overrides, parameter.name)
+        : exampleValue(parameter),
     }));
+  const extraEntries = Object.entries(overrides || {})
+    .filter(([name]) => !parameterNames.has(name.toLowerCase()))
+    .map(([name, value]) => ({
+      name,
+      required: false,
+      description: "",
+      value,
+      undocumented: true,
+    }));
+  return [...documentedEntries, ...extraEntries];
 }
 
 function buildQueryString(entries) {
@@ -53,21 +116,50 @@ function buildQueryString(entries) {
     return "";
   }
 
-  return entries
-    .map((entry) => `${encodeURIComponent(entry.name)}=${encodeURIComponent(entry.value)}`)
-    .join("&");
+  const params = new URLSearchParams();
+  entries.forEach((entry) => {
+    if (!valueProvided(entry.value)) {
+      return;
+    }
+    if (Array.isArray(entry.value)) {
+      entry.value.forEach((value) => params.append(entry.name, String(value)));
+      return;
+    }
+    params.append(entry.name, String(entry.value));
+  });
+  return params.toString();
 }
 
 function parseKeyValueString(input) {
   if (!input) {
     return {};
   }
-
-  const params = new URLSearchParams(input);
-  const result = {};
-  for (const [key, value] of params.entries()) {
-    result[key] = value;
+  if (typeof input === "object" && !Array.isArray(input)) {
+    return input;
   }
+
+  const entries = Array.isArray(input) ? input : String(input).split(String(input).includes("&") ? "&" : ",");
+  const result = {};
+  entries.forEach((entry) => {
+    const text = String(entry).trim();
+    if (!text) {
+      return;
+    }
+    const separatorIndex = text.indexOf("=");
+    if (separatorIndex === -1) {
+      return;
+    }
+    const key = decodeURIComponent(text.slice(0, separatorIndex).trim());
+    const value = decodeURIComponent(text.slice(separatorIndex + 1).trim());
+    if (!key) {
+      return;
+    }
+    if (Object.hasOwn(result, key)) {
+      result[key] = Array.isArray(result[key]) ? [...result[key], value] : [result[key], value];
+      return;
+    }
+    result[key] = value;
+  });
   return result;
 }
 
@@ -77,10 +169,12 @@ function buildRequestPlan(apiPath, overrides = {}) {
     return null;
   }
 
+  const parameters = ensurePathParameters(detail);
+  const pathParamOverrides = overrides.pathParams || {};
   const requirePathParams = overrides.requirePathParams === true;
-  const missingPathParams = detail.parameters
+  const missingPathParams = parameters
     .filter((parameter) => parameter.in === "path")
-    .filter((parameter) => !Object.hasOwn(overrides.pathParams || {}, parameter.name))
+    .filter((parameter) => !objectHasCaseInsensitive(pathParamOverrides, parameter.name))
     .map((parameter) => parameter.name);
 
   if (requirePathParams && missingPathParams.length > 0) {
@@ -100,14 +194,16 @@ function buildRequestPlan(apiPath, overrides = {}) {
   }
 
   const baseUrl = environment.baseUrl;
-  const pathParams = detail.parameters
+  const pathParams = parameters
     .filter((parameter) => parameter.in === "path")
     .map((parameter) => ({
       ...parameter,
-      value: overrides.pathParams?.[parameter.name] || exampleValue(parameter),
+      value: valueProvided(getCaseInsensitiveValue(pathParamOverrides, parameter.name))
+        ? getCaseInsensitiveValue(pathParamOverrides, parameter.name)
+        : exampleValue(parameter),
     }));
   const queryEntries = buildQueryEntries(
-    detail.parameters,
+    parameters,
     overrides.queryParams,
     overrides.includeOptionalQuery !== false
   );
@@ -116,7 +212,10 @@ function buildRequestPlan(apiPath, overrides = {}) {
   const url = queryString ? `${baseUrl}${resolvedPath}?${queryString}` : `${baseUrl}${resolvedPath}`;
 
   return {
-    detail,
+    detail: {
+      ...detail,
+      parameters,
+    },
     environment,
     baseUrl,
     pathParams,

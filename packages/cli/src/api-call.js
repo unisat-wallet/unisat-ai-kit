@@ -44,26 +44,12 @@ function parseJsonBody(body) {
   return JSON.parse(body);
 }
 
-function parseKeyValueEntries(input) {
-  if (!input) {
-    return {};
+function selectParsedParams(primary, fallback) {
+  const primaryParams = parseKeyValueString(primary);
+  if (Object.keys(primaryParams).length > 0) {
+    return primaryParams;
   }
-
-  const entries = Array.isArray(input) ? input : [input];
-  const result = {};
-  entries.forEach((entry) => {
-    const separatorIndex = String(entry).indexOf("=");
-    if (separatorIndex === -1) {
-      return;
-    }
-    const key = entry.slice(0, separatorIndex);
-    const value = entry.slice(separatorIndex + 1);
-    if (!key) {
-      return;
-    }
-    result[key] = value;
-  });
-  return result;
+  return parseKeyValueString(fallback);
 }
 
 async function callApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body }) {
@@ -79,12 +65,8 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
 
   const plan = buildRequestPlan(apiPath, {
     environment,
-    queryParams: Object.keys(parseKeyValueEntries(queryParamsList)).length
-      ? parseKeyValueEntries(queryParamsList)
-      : parseKeyValueString(query),
-    pathParams: Object.keys(parseKeyValueEntries(pathParamsList)).length
-      ? parseKeyValueEntries(pathParamsList)
-      : parseKeyValueString(pathParams),
+    queryParams: selectParsedParams(queryParamsList, query),
+    pathParams: selectParsedParams(pathParamsList, pathParams),
     includeOptionalQuery: false,
     requirePathParams: true,
   });

@@ -81,6 +81,9 @@ const getStatusSchema = z.object({}).strict();
 
 const listEnvironmentsSchema = z.object({}).strict();
 
+const keyValueMapSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number(), z.boolean()]))]));
+const keyValueInputSchema = z.union([z.array(z.string()), keyValueMapSchema]);
+
 const callApiSchema = z
   .object({
     path: z.string().describe("Exact UniSat OpenAPI path to call."),
@@ -88,14 +91,12 @@ const callApiSchema = z
     apiKey: z.string().describe("Optional API key. Prefer environment config for normal use.").optional(),
     apiKeySource: z.string().describe("Optional label for where apiKey came from.").optional(),
     query: z.string().describe("Query parameters as URL query string, for example address=...&cursor=0.").optional(),
-    queryParams: z
-      .array(z.string())
-      .describe("Query parameters as key=value entries. Prefer this field for MCP calls, for example [\"address=...\", \"cursor=0\"].")
+    queryParams: keyValueInputSchema
+      .describe("Query parameters as key=value entries or a JSON object. Prefer this field for MCP calls, for example [\"address=...\", \"cursor=0\"] or {\"address\": \"...\"}.")
       .optional(),
     pathParams: z.string().describe("Path parameters as URL query string, for example address=...&ticker=ordi.").optional(),
-    pathParamEntries: z
-      .array(z.string())
-      .describe("Path parameters as key=value entries. Prefer this field for MCP calls, for example [\"address=...\"].")
+    pathParamEntries: keyValueInputSchema
+      .describe("Path parameters as key=value entries or a JSON object. Prefer this field for MCP calls, for example [\"address=...\"] or {\"address\": \"...\"}.")
       .optional(),
     body: z.string().describe("JSON request body string for POST/PUT style APIs.").optional(),
     confirm: z

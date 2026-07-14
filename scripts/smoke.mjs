@@ -2,6 +2,8 @@ import fs from "fs";
 import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
+import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
+import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const smokeEnvFile = path.join(rootDir, ".smoke.env");
@@ -216,8 +218,39 @@ async function runMcpSmoke() {
   });
 }
 
+function validateRequestPlanning() {
+  const swapBalanceDetail = getOpenApiDetail("/v1/brc20-swap/balance");
+  assert(swapBalanceDetail.parameters.some((item) => item.name === "address" && item.in === "query"), "schema-first query parameter address missing");
+  assert(swapBalanceDetail.parameters.some((item) => item.name === "tick" && item.in === "query"), "schema-first query parameter tick missing");
+
+  const swapBalancePlan = buildRequestPlan("/v1/brc20-swap/balance", {
+    environment: "bitcoin",
+    queryParams: {
+      ADDRESS: "bc1 smoke/value",
+      tick: "ordi",
+      custom: "extra value",
+    },
+    includeOptionalQuery: false,
+  });
+  assert(swapBalancePlan.queryString.includes("address=bc1+smoke%2Fvalue"), "query parameter should match case-insensitively and be encoded");
+  assert(swapBalancePlan.queryString.includes("tick=ordi"), "schema-first query parameter tick should be included");
+  assert(swapBalancePlan.queryString.includes("custom=extra+value"), "extra query parameter should be preserved");
+
+  const pathPlan = buildRequestPlan("/v1/indexer/address/{address}/balance", {
+    environment: "bitcoin",
+    pathParams: {
+      ADDRESS: "bc1 smoke/value",
+    },
+    includeOptionalQuery: false,
+    requirePathParams: true,
+  });
+  assert(pathPlan.resolvedPath === "/v1/indexer/address/bc1%20smoke%2Fvalue/balance", "path parameter should match case-insensitively and be encoded");
+}
+
 async function main() {
   fs.rmSync(smokeEnvFile, { force: true });
+  validateRequestPlanning();
+  console.log("ok request planning");
 
   const cliChecks = [
     {
