@@ -86,6 +86,7 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
       ? parseKeyValueEntries(pathParamsList)
       : parseKeyValueString(pathParams),
     includeOptionalQuery: false,
+    requirePathParams: true,
   });
 
   if (!plan) {
@@ -105,6 +106,16 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
     };
   }
 
+  if (plan.mode === "missing_path_params") {
+    return {
+      command: "api.call",
+      mode: "missing_path_params",
+      path: plan.path,
+      missingPathParams: plan.missingPathParams,
+      message: `Missing required path parameter(s): ${plan.missingPathParams.join(", ")}.`,
+    };
+  }
+
   const requestBody = parseJsonBody(body);
   const method = plan.detail.method.toUpperCase();
   const headers = buildHeaders(apiKey, requestBody !== null);
@@ -118,13 +129,16 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
   const isJson = contentType.includes("application/json");
   const responseBody = isJson ? await response.json() : await response.text();
   const apiKeyProblem = getApiKeyProblem(response, responseBody);
+  const httpError = !response.ok && !apiKeyProblem;
 
   return {
     command: "api.call",
-    mode: apiKeyProblem ? "api_key_error" : "detail",
+    mode: apiKeyProblem ? "api_key_error" : httpError ? "http_error" : "detail",
     message: apiKeyProblem
       ? "API key is missing, invalid, or not authorized. Check --api-key or the selected environment key and try again."
-      : undefined,
+      : httpError
+        ? `UniSat OpenAPI returned HTTP ${response.status}.`
+        : undefined,
     path: plan.detail.path,
     method: plan.detail.method,
     file: plan.detail.file,

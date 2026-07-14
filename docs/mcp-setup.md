@@ -99,7 +99,7 @@ The MCP server exposes:
 - `list_environments`: lists `bitcoin` and `fractal` OpenAPI environments, base URLs, API key environment names, and whether keys are configured.
 - `resolve_api`: resolves a natural-language task or exact path to a UniSat OpenAPI interface.
 - `show_api`: shows raw OpenAPI detail for an exact path.
-- `call_api`: calls a UniSat OpenAPI interface through the CLI capability layer.
+- `call_api`: calls a UniSat OpenAPI interface through the CLI capability layer. `GET` calls run directly; non-GET calls first return `confirmation_required` and must be retried with `confirm: true` after the user explicitly confirms.
 
 ## API keys
 

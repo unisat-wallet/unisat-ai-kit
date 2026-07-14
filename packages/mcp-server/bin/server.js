@@ -13,7 +13,7 @@ const SERVER_INFO = {
 async function main() {
   const server = new McpServer(SERVER_INFO, {
     instructions:
-      "UniSat AI MCP server exposes read-only UniSat OpenAPI discovery tools backed by local swagger data.",
+      "UniSat AI MCP server exposes UniSat OpenAPI discovery and call tools backed by local swagger data. Non-GET calls require explicit user confirmation.",
   });
 
   registerTools(server);

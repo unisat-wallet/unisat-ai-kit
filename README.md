@@ -27,7 +27,7 @@ For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the 
 }
 ```
 
-The explicit `--registry=https://registry.npmjs.org/` option avoids failures caused by stale npm mirrors or private registry configuration. The MCP server exposes `get_status`, `list_environments`, `resolve_api`, `show_api`, and `call_api`. See `docs/mcp-setup.md` for full setup details.
+The explicit `--registry=https://registry.npmjs.org/` option avoids failures caused by stale npm mirrors or private registry configuration. The MCP server exposes `get_status`, `list_environments`, `resolve_api`, `show_api`, and `call_api`. Non-GET `call_api` calls require explicit user confirmation before execution. See `docs/mcp-setup.md` for full setup details.
 
 ## CLI Quick Start
 

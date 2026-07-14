@@ -87,17 +87,21 @@ const callApiSchema = z
     environment: z.enum(["bitcoin", "fractal"]).describe("OpenAPI environment.").optional(),
     apiKey: z.string().describe("Optional API key. Prefer environment config for normal use.").optional(),
     apiKeySource: z.string().describe("Optional label for where apiKey came from.").optional(),
-    query: z.string().describe("Query parameters as key=value pairs separated by commas, for example address=... .").optional(),
+    query: z.string().describe("Query parameters as URL query string, for example address=...&cursor=0.").optional(),
     queryParams: z
       .array(z.string())
-      .describe("Query parameters as key=value entries, for example [\"address=...\"].")
+      .describe("Query parameters as key=value entries. Prefer this field for MCP calls, for example [\"address=...\", \"cursor=0\"].")
       .optional(),
-    pathParams: z.string().describe("Path parameters as key=value pairs separated by commas.").optional(),
+    pathParams: z.string().describe("Path parameters as URL query string, for example address=...&ticker=ordi.").optional(),
     pathParamEntries: z
       .array(z.string())
-      .describe("Path parameters as key=value entries, for example [\"ticker=ordi\"].")
+      .describe("Path parameters as key=value entries. Prefer this field for MCP calls, for example [\"address=...\"].")
       .optional(),
     body: z.string().describe("JSON request body string for POST/PUT style APIs.").optional(),
+    confirm: z
+      .boolean()
+      .describe("Required as true for non-GET API calls after the user explicitly confirms the operation.")
+      .optional(),
   })
   .strict();
 
@@ -189,9 +193,40 @@ const toolDefinitions = [
   {
     name: "call_api",
     title: "Call OpenAPI Interface",
-    description: "Call a UniSat OpenAPI interface through the CLI capability layer.",
+    description: "Call a UniSat OpenAPI interface through the CLI capability layer. Non-GET calls require explicit user confirmation.",
     inputSchema: callApiSchema,
     async handler(args) {
+      const detail = typeof introShow === "function" ? introShow(args.path) : null;
+      if (!detail || detail.mode === "not_found") {
+        return toToolResult(
+          {
+            command: "api.call",
+            mode: "not_found",
+            path: args.path,
+          },
+          true
+        );
+      }
+      const method = String(detail.method || "").toUpperCase();
+      if (method !== "GET" && args.confirm !== true) {
+        return toToolResult(
+          {
+            command: "api.call",
+            mode: "confirmation_required",
+            path: args.path,
+            method: detail.method,
+            summary: detail.summary,
+            message: "This API call may have side effects. Ask the user to confirm before retrying with confirm=true.",
+            confirmation: {
+              required: true,
+              retryWith: {
+                confirm: true,
+              },
+            },
+          },
+          true
+        );
+      }
       const environment = args.environment || "bitcoin";
       const apiKey = args.apiKey || (typeof getConfiguredValue === "function" ? getConfiguredValue(environment === "fractal" ? "UNISAT_FRACTAL_API_KEY" : "UNISAT_BITCOIN_API_KEY") : "");
       const payload = await callApi({

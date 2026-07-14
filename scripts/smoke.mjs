@@ -108,7 +108,8 @@ async function runMcpSmoke() {
         const statusResponse = responses.find((item) => item.id === 5);
         const environmentsResponse = responses.find((item) => item.id === 6);
         const callApiResponse = responses.find((item) => item.id === 7);
-        if (!initResponse || !listResponse || !resolveResponse || !showResponse || !statusResponse || !environmentsResponse || !callApiResponse) {
+        const postConfirmationResponse = responses.find((item) => item.id === 8);
+        if (!initResponse || !listResponse || !resolveResponse || !showResponse || !statusResponse || !environmentsResponse || !callApiResponse || !postConfirmationResponse) {
           return;
         }
         assert(initResponse.result?.protocolVersion === "2025-06-18", "initialize response invalid");
@@ -124,6 +125,9 @@ async function runMcpSmoke() {
         assert(environmentsResponse.result.structuredContent.environments.some((item) => item.name === "bitcoin"), "bitcoin environment missing");
         assert(callApiResponse.result?.structuredContent?.command === "api.call", "tools/call call_api invalid");
         assert(callApiResponse.result.structuredContent.mode === "not_found", "call_api should return not_found without network");
+        assert(postConfirmationResponse.result?.structuredContent?.command === "api.call", "tools/call post confirmation invalid");
+        assert(postConfirmationResponse.result.structuredContent.mode === "confirmation_required", "non-GET call_api should require confirmation");
+        assert(postConfirmationResponse.result.isError === true, "confirmation_required should be an MCP error result");
         finish();
       } catch (error) {
         finish(error);
@@ -196,6 +200,15 @@ async function runMcpSmoke() {
         params: {
           name: "call_api",
           arguments: { environment: "bitcoin", path: "/not-found", apiKey: "mcp_smoke" },
+        },
+      });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 8,
+        method: "tools/call",
+        params: {
+          name: "call_api",
+          arguments: { environment: "bitcoin", path: "/v3/market/runes/auction/runes_types", apiKey: "mcp_smoke" },
         },
       });
     }, 100);

@@ -77,6 +77,20 @@ function buildRequestPlan(apiPath, overrides = {}) {
     return null;
   }
 
+  const requirePathParams = overrides.requirePathParams === true;
+  const missingPathParams = detail.parameters
+    .filter((parameter) => parameter.in === "path")
+    .filter((parameter) => !Object.hasOwn(overrides.pathParams || {}, parameter.name))
+    .map((parameter) => parameter.name);
+
+  if (requirePathParams && missingPathParams.length > 0) {
+    return {
+      mode: "missing_path_params",
+      path: apiPath,
+      missingPathParams,
+    };
+  }
+
   const environment = getOpenApiEnvironment(overrides.environment || DEFAULT_OPENAPI_ENVIRONMENT);
   if (!environment) {
     return {

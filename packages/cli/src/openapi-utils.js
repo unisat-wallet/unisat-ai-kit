@@ -298,6 +298,15 @@ function buildRequestBodyTemplate(lines) {
   return Object.keys(body).length > 0 ? body : null;
 }
 
+function fallbackOperationId(method, apiPath) {
+  const suffix = apiPath
+    .replace(/^\/+/, "")
+    .replace(/\{([^}]+)\}/g, "$1")
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
+    .replace(/[^a-zA-Z0-9]/g, "");
+  return `${method.toLowerCase()}${suffix ? suffix.charAt(0).toUpperCase() + suffix.slice(1) : "Root"}`;
+}
+
 function getOpenApiDetail(apiPath) {
   const { openapiSwaggerDir, swaggerDir, embedded } = getSwaggerContext();
   const blocks = collectPathBlocks(swaggerDir);
@@ -314,7 +323,7 @@ function getOpenApiDetail(apiPath) {
     path: block.path,
     method,
     file: embedded ? block.filePath : path.relative(openapiSwaggerDir, block.filePath),
-    operationId: extractScalar(block.blockLines, /^\s{6}operationId:\s+/),
+    operationId: extractScalar(block.blockLines, /^\s{6}operationId:\s+/) || fallbackOperationId(method, block.path),
     summary: extractScalar(block.blockLines, /^\s{6}summary:\s+/),
     description: extractScalar(block.blockLines, /^\s{6}description:\s+/),
     tags: extractTags(block.blockLines),
