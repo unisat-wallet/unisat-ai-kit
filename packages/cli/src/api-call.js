@@ -2,9 +2,10 @@ const { buildRequestPlan, parseKeyValueString } = require("./openapi-request");
 
 const DEVELOPER_PORTAL_URL = "https://developer.unisat.io/";
 
-function buildHeaders(apiKey, hasJsonBody) {
+function buildHeaders(apiKey, hasJsonBody, clientSource) {
   const headers = {
     Authorization: `Bearer ${apiKey}`,
+    "X-Unisat-AI-Client": clientSource,
   };
 
   if (hasJsonBody) {
@@ -52,7 +53,7 @@ function selectParsedParams(primary, fallback) {
   return parseKeyValueString(fallback);
 }
 
-async function callApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body }) {
+async function callApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body, clientSource = "cli" }) {
   if (!apiKey) {
     return {
       command: "api.call",
@@ -100,7 +101,7 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
 
   const requestBody = parseJsonBody(body);
   const method = plan.detail.method.toUpperCase();
-  const headers = buildHeaders(apiKey, requestBody !== null);
+  const headers = buildHeaders(apiKey, requestBody !== null, clientSource);
   const response = await fetch(plan.url, {
     method,
     headers,
@@ -132,6 +133,7 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
     request: {
       headers: {
         Authorization: "Bearer ***",
+        "X-Unisat-AI-Client": clientSource,
         ...(requestBody !== null ? { "Content-Type": "application/json" } : {}),
       },
       queryParams: plan.queryEntries,

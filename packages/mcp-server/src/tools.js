@@ -240,6 +240,7 @@ const toolDefinitions = [
         pathParams: args.pathParams,
         pathParamsList: args.pathParamEntries,
         body: args.body,
+        clientSource: "mcp",
       });
       return toToolResult(payload, payload.mode !== "detail");
     },
