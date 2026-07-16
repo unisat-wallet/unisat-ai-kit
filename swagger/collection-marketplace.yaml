@@ -325,7 +325,7 @@ paths:
                   - data
   /v3/market/collection/auction/inscription_info:
     post:
-      operationId: getInscriptionInfo
+      operationId: getCollectionMarketInscriptionInfo
       summary:
         Retrieve inscription information, including brc20, names, collection.
         It is necessary to first determine the inscription type before calling
