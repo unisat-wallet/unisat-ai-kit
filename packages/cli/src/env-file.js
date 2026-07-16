@@ -4,19 +4,19 @@ const path = require("path");
 
 function getUserConfigDir() {
   if (process.env.XDG_CONFIG_HOME) {
-    return path.join(process.env.XDG_CONFIG_HOME, "unisat-ai");
+    return path.join(process.env.XDG_CONFIG_HOME, "unisat-ai-kit");
   }
   if (process.platform === "win32") {
-    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "unisat-ai");
+    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "unisat-ai-kit");
   }
   if (process.platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Application Support", "unisat-ai");
+    return path.join(os.homedir(), "Library", "Application Support", "unisat-ai-kit");
   }
-  return path.join(os.homedir(), ".config", "unisat-ai");
+  return path.join(os.homedir(), ".config", "unisat-ai-kit");
 }
 
 function getDotEnvPath() {
-  return process.env.UNISAT_AI_ENV_FILE || path.join(getUserConfigDir(), ".env");
+  return process.env.UNISAT_AI_KIT_ENV_FILE || process.env.UNISAT_AI_ENV_FILE || path.join(getUserConfigDir(), ".env");
 }
 
 function parseDotEnv(content) {

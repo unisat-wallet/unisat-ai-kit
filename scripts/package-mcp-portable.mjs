@@ -11,28 +11,28 @@ const distDir = path.join(rootDir, "dist", "portable-mcp");
 const targets = {
   "windows-x64": {
     archiveExt: ".zip",
-    commandName: "unisat-ai-mcp-server.cmd",
-    launcher: "@echo off\r\n%~dp0\\node_modules\\.bin\\unisat-ai-mcp-server.cmd %*\r\n",
+    commandName: "unisat-openapi-mcp.cmd",
+    launcher: "@echo off\r\n%~dp0\\node_modules\\.bin\\unisat-openapi-mcp.cmd %*\r\n",
   },
   "linux-x64": {
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai-mcp-server",
-    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-ai-mcp-server\" \"$@\"\n",
+    commandName: "unisat-openapi-mcp",
+    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-openapi-mcp\" \"$@\"\n",
   },
   "linux-arm64": {
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai-mcp-server",
-    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-ai-mcp-server\" \"$@\"\n",
+    commandName: "unisat-openapi-mcp",
+    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-openapi-mcp\" \"$@\"\n",
   },
   "macos-x64": {
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai-mcp-server",
-    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-ai-mcp-server\" \"$@\"\n",
+    commandName: "unisat-openapi-mcp",
+    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-openapi-mcp\" \"$@\"\n",
   },
   "macos-arm64": {
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai-mcp-server",
-    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-ai-mcp-server\" \"$@\"\n",
+    commandName: "unisat-openapi-mcp",
+    launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node_modules/.bin/unisat-openapi-mcp\" \"$@\"\n",
   },
 };
 
@@ -142,7 +142,7 @@ async function installPortableDependencies(packageDir) {
       JSON.stringify(
         {
           private: true,
-          name: "unisat-ai-mcp-server-portable",
+          name: "unisat-openapi-mcp-portable",
           version: "0.0.0",
         },
         null,
@@ -161,13 +161,13 @@ function writeReadme(target, packageDir) {
   fs.writeFileSync(
     path.join(packageDir, "README.txt"),
     [
-      "UniSat AI MCP Server portable package",
+      "UniSat AI Kit MCP Server portable package",
       "",
       "Configure your agent with the absolute path to the launcher in this directory.",
       "",
       target.commandName.endsWith(".cmd")
-        ? "Windows command: C:/absolute/path/to/unisat-ai-mcp-server.cmd"
-        : "macOS/Linux command: /absolute/path/to/unisat-ai-mcp-server",
+        ? "Windows command: C:/absolute/path/to/unisat-openapi-mcp.cmd"
+        : "macOS/Linux command: /absolute/path/to/unisat-openapi-mcp",
       "",
       "The package includes production npm dependencies and bundled UniSat OpenAPI swagger data.",
       "Node.js must be available on PATH for this portable package.",
@@ -181,7 +181,7 @@ function writeReadme(target, packageDir) {
 }
 
 async function archivePackage(packageDir, targetName, target) {
-  const outputPath = path.join(distDir, `unisat-ai-mcp-server-${targetName}${target.archiveExt}`);
+  const outputPath = path.join(distDir, `unisat-openapi-mcp-${targetName}${target.archiveExt}`);
   fs.rmSync(outputPath, { force: true });
   if (target.archiveExt === ".zip") {
     await runZipCommand(packageDir, outputPath);
@@ -201,7 +201,7 @@ async function buildTarget(targetName) {
     throw new Error(`unknown target ${targetName}. Use one of: ${Object.keys(targets).join(", ")}`);
   }
 
-  const packageDir = path.join(distDir, `unisat-ai-mcp-server-${targetName}`);
+  const packageDir = path.join(distDir, `unisat-openapi-mcp-${targetName}`);
   fs.rmSync(packageDir, { recursive: true, force: true });
   ensureDir(packageDir);
 

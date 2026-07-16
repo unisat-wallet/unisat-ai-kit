@@ -547,7 +547,7 @@ function buildExamplePayload(apiPath, shell = "powershell", environment = DEFAUL
   }
 
   const parts = [
-    "unisat-ai-cli",
+    "unisat-openapi-cli",
     "api",
     "call",
     "--env",

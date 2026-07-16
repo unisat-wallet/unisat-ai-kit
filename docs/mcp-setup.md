@@ -1,6 +1,6 @@
 # MCP Setup
 
-UniSat AI provides a stdio MCP server for UniSat OpenAPI discovery and calls. Public users should configure an installed command, not a local source path.
+UniSat AI Kit provides a stdio MCP server for UniSat OpenAPI discovery and calls. Public users should configure an installed command, not a local source path.
 
 ## Option A: npx configuration
 
@@ -9,22 +9,22 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 ```json
 {
   "mcpServers": {
-    "unisat-ai": {
+    "unisat-ai-kit": {
       "command": "npx",
-      "args": ["-y", "@unisat/ai-mcp-server"]
+      "args": ["-y", "@unisat/openapi-mcp"]
     }
   }
 }
 ```
 
-The package includes the MCP server and depends on `@unisat/ai-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
+The package includes the MCP server and depends on `@unisat/openapi-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
 
 ## Option B: global npm install
 
 Install once:
 
 ```bash
-npm install -g @unisat/ai-mcp-server
+npm install -g @unisat/openapi-mcp
 ```
 
 Configure the agent:
@@ -32,8 +32,8 @@ Configure the agent:
 ```json
 {
   "mcpServers": {
-    "unisat-ai": {
-      "command": "unisat-ai-mcp-server"
+    "unisat-ai-kit": {
+      "command": "unisat-openapi-mcp"
     }
   }
 }
@@ -48,8 +48,8 @@ macOS/Linux configuration:
 ```json
 {
   "mcpServers": {
-    "unisat-ai": {
-      "command": "/absolute/path/to/unisat-ai-mcp-server"
+    "unisat-ai-kit": {
+      "command": "/absolute/path/to/unisat-openapi-mcp"
     }
   }
 }
@@ -60,8 +60,8 @@ Windows configuration:
 ```json
 {
   "mcpServers": {
-    "unisat-ai": {
-      "command": "C:/absolute/path/to/unisat-ai-mcp-server.cmd"
+    "unisat-ai-kit": {
+      "command": "C:/absolute/path/to/unisat-openapi-mcp.cmd"
     }
   }
 }
@@ -83,9 +83,9 @@ Local source MCP config:
 ```json
 {
   "mcpServers": {
-    "unisat-ai": {
+    "unisat-ai-kit": {
       "command": "node",
-      "args": ["/absolute/path/to/unisat-ai/packages/mcp-server/bin/server.js"]
+      "args": ["/absolute/path/to/unisat-ai-kit/packages/mcp-server/bin/server.js"]
     }
   }
 }
@@ -113,8 +113,8 @@ UNISAT_FRACTAL_API_KEY=YOUR_FRACTAL_KEY
 You can also configure keys with the CLI package:
 
 ```bash
-npx -y @unisat/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-npx -y @unisat/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+npx -y @unisat/openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @unisat/openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
 The MCP `list_environments` tool reports whether each key is configured.
@@ -124,7 +124,7 @@ The MCP `list_environments` tool reports whether each key is configured.
 The public npm and portable packages already include swagger data. Override the swagger directory only for development or custom builds:
 
 ```bash
-OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/ai-mcp-server
+OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/openapi-mcp
 ```
 
 ## Validation

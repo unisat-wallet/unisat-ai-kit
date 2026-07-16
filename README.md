@@ -1,6 +1,6 @@
-﻿# UniSat AI
+﻿# UniSat AI Kit
 
-UniSat AI provides a stdio MCP server and a command-line tool for agent-oriented UniSat OpenAPI discovery and calls.
+UniSat AI Kit provides a stdio MCP server and a command-line tool for agent-oriented UniSat OpenAPI discovery and calls.
 
 ## Register API Keys
 
@@ -15,9 +15,9 @@ For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the 
 ```json
 {
   "mcpServers": {
-    "unisat-ai": {
+    "unisat-ai-kit": {
       "command": "npx",
-      "args": ["-y", "--registry=https://registry.npmjs.org/", "@api-agent-test/ai-mcp"],
+      "args": ["-y", "--registry=https://registry.npmjs.org/", "@unisat/openapi-mcp"],
       "env": {
         "UNISAT_BITCOIN_API_KEY": "YOUR_BITCOIN_API_KEY",
         "UNISAT_FRACTAL_API_KEY": "YOUR_FRACTAL_API_KEY"
@@ -36,42 +36,42 @@ Download the single-executable archive for your operating system. You do not nee
 After downloading the CLI, configure each OpenAPI environment separately:
 
 ```bash
-npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+npx -y @unisat/openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @unisat/openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
-These commands store keys in the current user's UniSat AI config directory.
+These commands store keys in the current user's UniSat AI Kit config directory.
 
 ### macOS ARM64
 
 ```bash
-curl -L -o unisat-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.4/unisat-cli-macos-arm64.tar.gz
-tar -xzf unisat-cli-macos-arm64.tar.gz
-./unisat-ai-cli --help
+curl -L -o unisat-openapi-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-macos-arm64.tar.gz
+tar -xzf unisat-openapi-cli-macos-arm64.tar.gz
+./unisat-openapi-cli --help
 ```
 
 ### Linux x64
 
 ```bash
-curl -L -o unisat-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.4/unisat-cli-linux-x64.tar.gz
-tar -xzf unisat-cli-linux-x64.tar.gz
-./unisat-ai-cli --help
+curl -L -o unisat-openapi-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-linux-x64.tar.gz
+tar -xzf unisat-openapi-cli-linux-x64.tar.gz
+./unisat-openapi-cli --help
 ```
 
 ### Linux ARM64
 
 ```bash
-curl -L -o unisat-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.4/unisat-cli-linux-arm64.tar.gz
-tar -xzf unisat-cli-linux-arm64.tar.gz
-./unisat-ai-cli --help
+curl -L -o unisat-openapi-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-linux-arm64.tar.gz
+tar -xzf unisat-openapi-cli-linux-arm64.tar.gz
+./unisat-openapi-cli --help
 ```
 
 ### Windows x64
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai/releases/download/v0.1.4/unisat-cli-windows-x64.zip" -OutFile "unisat-cli-windows-x64.zip"
-Expand-Archive unisat-cli-windows-x64.zip -DestinationPath .
-.\unisat-ai-cli.exe --help
+Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-windows-x64.zip" -OutFile "unisat-openapi-cli-windows-x64.zip"
+Expand-Archive unisat-openapi-cli-windows-x64.zip -DestinationPath .
+.\unisat-openapi-cli.exe --help
 ```
 
 ## Optional Global Installation
@@ -79,20 +79,20 @@ Expand-Archive unisat-cli-windows-x64.zip -DestinationPath .
 macOS / Linux:
 
 ```bash
-sudo mv ./unisat-ai-cli /usr/local/bin/unisat-ai-cli
-unisat-ai-cli --help
+sudo mv ./unisat-openapi-cli /usr/local/bin/unisat-openapi-cli
+unisat-openapi-cli --help
 ```
 
 Windows:
 
-Add the extracted folder containing `unisat-ai-cli.exe` to your system `PATH`.
+Add the extracted folder containing `unisat-openapi-cli.exe` to your system `PATH`.
 
 ## Use The CLI
 
 ```bash
-unisat-ai-cli --help
-unisat-ai-cli intro resolve --env bitcoin --query "get btc address balance" --format json
-unisat-ai-cli api call --env bitcoin --path "/v1/indexer/address/{address}/balance" --path-param address=YOUR_ADDRESS --format json
+unisat-openapi-cli --help
+unisat-openapi-cli intro resolve --env bitcoin --query "get btc address balance" --format json
+unisat-openapi-cli api call --env bitcoin --path "/v1/indexer/address/{address}/balance" --path-param address=YOUR_ADDRESS --format json
 ```
 
 Supported command groups:
@@ -158,7 +158,7 @@ npm run smoke
 npm run release:smoke
 ```
 
-The workflow `.github/workflows/npm-release.yml` publishes the configured npm packages, currently documented for the test package names `@api-agent-test/ai-cli` and `@api-agent-test/ai-mcp`. It runs on tag pushes like `v0.1.4` or manual `workflow_dispatch` and requires the `NPM_TOKEN` repository secret.
+The workflow `.github/workflows/npm-release.yml` publishes the configured npm packages, currently documented for the package names `@unisat/openapi-cli` and `@unisat/openapi-mcp`. It runs on tag pushes like `v0.1.4` or manual `workflow_dispatch` and requires the `NPM_TOKEN` repository secret.
 
 ## Repository Layout
 

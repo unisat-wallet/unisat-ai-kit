@@ -5,15 +5,15 @@ const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio
 const { registerTools } = require("../src/tools");
 
 const SERVER_INFO = {
-  name: "unisat-ai-mcp-server",
-  title: "UniSat AI MCP Server",
+  name: "unisat-openapi-mcp",
+  title: "UniSat AI Kit MCP Server",
   version: "0.1.0",
 };
 
 async function main() {
   const server = new McpServer(SERVER_INFO, {
     instructions:
-      "UniSat AI MCP server exposes UniSat OpenAPI discovery and call tools backed by local swagger data. Non-GET calls require explicit user confirmation.",
+      "UniSat AI Kit MCP server exposes UniSat OpenAPI discovery and call tools backed by local swagger data. Non-GET calls require explicit user confirmation.",
   });
 
   registerTools(server);
@@ -23,6 +23,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`UniSat AI MCP server failed: ${error.message}`);
+  console.error(`UniSat AI Kit MCP server failed: ${error.message}`);
   process.exit(1);
 });

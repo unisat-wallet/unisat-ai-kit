@@ -1,11 +1,11 @@
 {
-  "name": "@unisat/ai-cli",
+  "name": "@unisat/openapi-cli",
   "version": "0.1.0",
-  "description": "UniSat AI CLI capability layer",
+  "description": "UniSat AI Kit CLI capability layer",
   "license": "MIT",
   "main": "./index.js",
   "bin": {
-    "unisat-ai-cli": "./bin/unisat-ai.js"
+    "unisat-openapi-cli": "./bin/unisat-ai.js"
   },
   "files": [
     "README.md",
@@ -27,7 +27,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/unisat-wallet/unisat-ai.git",
+    "url": "git+https://github.com/unisat-wallet/unisat-ai-kit.git",
     "directory": "packages/cli"
   },
   "publishConfig": {

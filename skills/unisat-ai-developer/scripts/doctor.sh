@@ -9,11 +9,11 @@ export OPENAPI_SWAGGER_DIR="${OPENAPI_SWAGGER_DIR:-$ROOT_DIR/swagger}"
 
 echo "repo: $ROOT_DIR"
 echo "openapi swagger: $OPENAPI_SWAGGER_DIR"
-echo "cli launcher: $LOCAL_BIN_DIR/unisat-ai-cli"
-echo "mcp launcher: $LOCAL_BIN_DIR/unisat-ai-mcp-server"
+echo "cli launcher: $LOCAL_BIN_DIR/unisat-openapi-cli"
+echo "mcp launcher: $LOCAL_BIN_DIR/unisat-openapi-mcp"
 
-[ -x "$LOCAL_BIN_DIR/unisat-ai-cli" ] || { echo "missing cli launcher"; exit 1; }
-[ -x "$LOCAL_BIN_DIR/unisat-ai-mcp-server" ] || { echo "missing mcp launcher"; exit 1; }
+[ -x "$LOCAL_BIN_DIR/unisat-openapi-cli" ] || { echo "missing cli launcher"; exit 1; }
+[ -x "$LOCAL_BIN_DIR/unisat-openapi-mcp" ] || { echo "missing mcp launcher"; exit 1; }
 
 cd "$ROOT_DIR"
 node scripts/doctor.mjs

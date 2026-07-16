@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd -P)"
-SKILL_NAME="unisat-ai-developer"
+SKILL_NAME="unisat-ai-kit-developer"
 SKILL_DIR="$ROOT_DIR/skills/$SKILL_NAME"
 CC_SWITCH_SKILLS_DIR="$HOME/.cc-switch/skills"
 CODEX_SKILLS_DIR="$HOME/.codex/skills"
@@ -45,14 +45,14 @@ install_link "$CC_SWITCH_SKILLS_DIR/$SKILL_NAME" "$SKILL_DIR"
 install_link "$CODEX_SKILLS_DIR/$SKILL_NAME" "$CC_SWITCH_SKILLS_DIR/$SKILL_NAME"
 install_link "$CLAUDE_SKILLS_DIR/$SKILL_NAME" "$SKILL_DIR"
 
-write_wrapper "$LOCAL_BIN_DIR/unisat-ai-cli" "$ROOT_DIR/packages/cli/bin/unisat-ai.js"
-write_wrapper "$LOCAL_BIN_DIR/unisat-ai-mcp-server" "$ROOT_DIR/packages/mcp-server/bin/server.js"
+write_wrapper "$LOCAL_BIN_DIR/unisat-openapi-cli" "$ROOT_DIR/packages/cli/bin/unisat-ai.js"
+write_wrapper "$LOCAL_BIN_DIR/unisat-openapi-mcp" "$ROOT_DIR/packages/mcp-server/bin/server.js"
 
 echo
 echo "installed skill: $SKILL_NAME"
 echo "installed commands:"
-echo "- $LOCAL_BIN_DIR/unisat-ai-cli"
-echo "- $LOCAL_BIN_DIR/unisat-ai-mcp-server"
+echo "- $LOCAL_BIN_DIR/unisat-openapi-cli"
+echo "- $LOCAL_BIN_DIR/unisat-openapi-mcp"
 echo
 echo "next steps:"
 echo "1. Ensure $LOCAL_BIN_DIR is in PATH"
@@ -62,8 +62,8 @@ echo
 cat <<EOF
 {
   "mcpServers": {
-    "unisat-ai": {
-      "command": "unisat-ai-mcp-server"
+    "unisat-ai-kit": {
+      "command": "unisat-openapi-mcp"
     }
   }
 }

@@ -15,7 +15,7 @@ const GUIDE_NOTES = [
 ];
 
 function printHelp() {
-  console.log("UniSat AI CLI");
+  console.log("UniSat AI Kit CLI");
   console.log("");
   console.log("Environments:");
   console.log("  bitcoin -> https://open-api.unisat.io -> UNISAT_BITCOIN_API_KEY");

@@ -1,17 +1,17 @@
-# @unisat/ai-mcp-server
+# @unisat/openapi-mcp
 
-This package exposes the supported UniSat AI interface discovery capabilities as standard MCP tools.
+This package exposes the supported UniSat AI Kit interface discovery capabilities as standard MCP tools.
 
 Install globally after publication:
 
 ```bash
-npm install -g @unisat/ai-mcp-server
+npm install -g @unisat/openapi-mcp
 ```
 
 Or run it without a global install:
 
 ```bash
-npx -y @unisat/ai-mcp-server
+npx -y @unisat/openapi-mcp
 ```
 
 Tools:

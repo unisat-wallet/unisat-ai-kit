@@ -15,35 +15,35 @@ const targets = {
     nodePlatform: "win-x64",
     nodeExecutable: "node.exe",
     archiveExt: ".zip",
-    commandName: "unisat-ai.cmd",
+    commandName: "unisat-openapi-cli.cmd",
     launcher: "@echo off\r\n%~dp0\\node\\node.exe %~dp0\\packages\\cli\\bin\\unisat-ai.js %*\r\n",
   },
   "linux-x64": {
     nodePlatform: "linux-x64",
     nodeExecutable: "bin/node",
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai",
+    commandName: "unisat-openapi-cli",
     launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node/bin/node\" \"$DIR/packages/cli/bin/unisat-ai.js\" \"$@\"\n",
   },
   "linux-arm64": {
     nodePlatform: "linux-arm64",
     nodeExecutable: "bin/node",
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai",
+    commandName: "unisat-openapi-cli",
     launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node/bin/node\" \"$DIR/packages/cli/bin/unisat-ai.js\" \"$@\"\n",
   },
   "macos-x64": {
     nodePlatform: "darwin-x64",
     nodeExecutable: "bin/node",
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai",
+    commandName: "unisat-openapi-cli",
     launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node/bin/node\" \"$DIR/packages/cli/bin/unisat-ai.js\" \"$@\"\n",
   },
   "macos-arm64": {
     nodePlatform: "darwin-arm64",
     nodeExecutable: "bin/node",
     archiveExt: ".tar.gz",
-    commandName: "unisat-ai",
+    commandName: "unisat-openapi-cli",
     launcher: "#!/usr/bin/env sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexec \"$DIR/node/bin/node\" \"$DIR/packages/cli/bin/unisat-ai.js\" \"$@\"\n",
   },
 };
@@ -204,17 +204,17 @@ function copyPortableFiles(target, packageDir) {
   fs.writeFileSync(
     path.join(packageDir, "README.txt"),
     [
-      "UniSat AI CLI portable package",
+      "UniSat AI Kit CLI portable package",
       "",
-      target.commandName.endsWith(".cmd") ? "Run: .\\unisat-ai.cmd --help" : "Run: ./unisat-ai --help",
+      target.commandName.endsWith(".cmd") ? "Run: .\\unisat-openapi-cli.cmd --help" : "Run: ./unisat-openapi-cli --help",
       "",
       "Configure API keys:",
       target.commandName.endsWith(".cmd")
-        ? ".\\unisat-ai.cmd config bitcoin-key --api-key YOUR_BITCOIN_KEY"
-        : "./unisat-ai config bitcoin-key --api-key YOUR_BITCOIN_KEY",
+        ? ".\\unisat-openapi-cli.cmd config bitcoin-key --api-key YOUR_BITCOIN_KEY"
+        : "./unisat-openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY",
       target.commandName.endsWith(".cmd")
-        ? ".\\unisat-ai.cmd config fractal-key --api-key YOUR_FRACTAL_KEY"
-        : "./unisat-ai config fractal-key --api-key YOUR_FRACTAL_KEY",
+        ? ".\\unisat-openapi-cli.cmd config fractal-key --api-key YOUR_FRACTAL_KEY"
+        : "./unisat-openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY",
       "",
       "Register API key: https://developer.unisat.io/",
       "",
@@ -237,7 +237,7 @@ function copyNodeRuntime(runtimeDir, packageDir) {
 }
 
 async function archivePackage(packageDir, targetName, target) {
-  const outputPath = path.join(distDir, `unisat-ai-${targetName}${target.archiveExt}`);
+  const outputPath = path.join(distDir, `unisat-openapi-cli-${targetName}${target.archiveExt}`);
   fs.rmSync(outputPath, { force: true });
   if (target.archiveExt === ".zip") {
     await runZipCommand(["-qr", outputPath, path.basename(packageDir)], {
@@ -261,7 +261,7 @@ async function buildTarget(targetName) {
   }
 
   const runtimeDir = await ensureNodeRuntime(target);
-  const packageDir = path.join(distDir, `unisat-ai-${targetName}`);
+  const packageDir = path.join(distDir, `unisat-openapi-cli-${targetName}`);
   fs.rmSync(packageDir, { recursive: true, force: true });
   ensureDir(packageDir);
 

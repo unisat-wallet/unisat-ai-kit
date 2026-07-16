@@ -192,15 +192,15 @@ async function signIfNeeded(executablePath) {
 }
 
 function executableName(target) {
-  return target.startsWith("windows-") ? "unisat-cli.exe" : "unisat-cli";
+  return target.startsWith("windows-") ? "unisat-openapi-cli.exe" : "unisat-openapi-cli";
 }
 
 function archiveName(target) {
-  return target.startsWith("windows-") ? `unisat-cli-${target}.zip` : `unisat-cli-${target}.tar.gz`;
+  return target.startsWith("windows-") ? `unisat-openapi-cli-${target}.zip` : `unisat-openapi-cli-${target}.tar.gz`;
 }
 
 async function archiveOutput(target, executablePath) {
-  const packageDir = path.join(distDir, `unisat-cli-${target}`);
+  const packageDir = path.join(distDir, `unisat-openapi-cli-${target}`);
   fs.rmSync(packageDir, { recursive: true, force: true });
   ensureDir(packageDir);
   fs.copyFileSync(executablePath, path.join(packageDir, executableName(target)));
@@ -231,8 +231,8 @@ async function build(options) {
   ensureDir(buildDir);
   ensureDir(distDir);
   fs.rmSync(path.join(distDir, archiveName(options.target)), { force: true });
-  fs.rmSync(path.join(distDir, `unisat-ai-${options.target}.zip`), { force: true });
-  fs.rmSync(path.join(distDir, `unisat-ai-${options.target}.tar.gz`), { force: true });
+  fs.rmSync(path.join(distDir, `unisat-openapi-cli-${options.target}.zip`), { force: true });
+  fs.rmSync(path.join(distDir, `unisat-openapi-cli-${options.target}.tar.gz`), { force: true });
 
   const assetPath = writeSwaggerAsset();
   const mainPath = writeAppSource();

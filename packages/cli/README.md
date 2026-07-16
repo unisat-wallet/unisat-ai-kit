@@ -1,11 +1,11 @@
-﻿# @unisat/ai-cli
+﻿# @unisat/openapi-cli
 
 This package owns the stable external CLI command surface for agent-oriented UniSat API discovery and calls.
 
 Install globally after publication:
 
 ```bash
-npm install -g @unisat/ai-cli
+npm install -g @unisat/openapi-cli
 ```
 
 Supported commands:
@@ -51,14 +51,14 @@ npm run package:cli
 
 Each archive contains:
 
-- `unisat-cli.exe` on Windows, or `unisat-cli` on macOS/Linux
+- `unisat-openapi-cli.exe` on Windows, or `unisat-openapi-cli` on macOS/Linux
 - bundled CLI code
 - embedded OpenAPI swagger data
 
 Users configure keys the same way:
 
 ```bash
-unisat-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-unisat-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+unisat-openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+unisat-openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 

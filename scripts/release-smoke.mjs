@@ -237,7 +237,7 @@ async function main() {
   validateRequestPlanning();
   const cliPackageDir = path.join(rootDir, "packages", "cli");
   const mcpPackageDir = path.join(rootDir, "packages", "mcp-server");
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "unisat-ai-release-smoke-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "unisat-ai-kit-release-smoke-"));
 
   let cliTarball = "";
   let mcpTarball = "";
@@ -256,8 +256,8 @@ async function main() {
     await run(npmCommand(), ["install", cliTarball, mcpTarball], { cwd: tempDir });
 
     const binDir = path.join(tempDir, "node_modules", ".bin");
-    const cliBin = packageBin(binDir, "unisat-ai-cli");
-    const mcpBin = packageBin(binDir, "unisat-ai-mcp-server");
+    const cliBin = packageBin(binDir, "unisat-openapi-cli");
+    const mcpBin = packageBin(binDir, "unisat-openapi-mcp");
     const env = {
       ...process.env,
       OPENAPI_SWAGGER_DIR: "",

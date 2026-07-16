@@ -1,11 +1,11 @@
 {
-  "name": "@unisat/ai-mcp-server",
+  "name": "@unisat/openapi-mcp",
   "version": "0.1.0",
-  "description": "UniSat AI MCP server",
+  "description": "UniSat AI Kit MCP server",
   "license": "MIT",
   "main": "./bin/server.js",
   "bin": {
-    "unisat-ai-mcp-server": "./bin/server.js"
+    "unisat-openapi-mcp": "./bin/server.js"
   },
   "files": [
     "README.md",
@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@unisat/ai-cli": "0.1.0",
+    "@unisat/openapi-cli": "0.1.0",
     "zod": "^4.4.3"
   },
   "keywords": [
@@ -25,7 +25,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/unisat-wallet/unisat-ai.git",
+    "url": "git+https://github.com/unisat-wallet/unisat-ai-kit.git",
     "directory": "packages/mcp-server"
   },
   "publishConfig": {

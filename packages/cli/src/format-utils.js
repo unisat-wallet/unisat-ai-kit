@@ -12,7 +12,7 @@ function printOutput(payload, format) {
       if (payload.developerPortalUrl) {
         console.error(`Register API key: ${payload.developerPortalUrl}`);
       }
-      console.error("Example: unisat-ai-cli api call --env bitcoin --path \"/v1/price/btc\" --api-key YOUR_API_KEY");
+      console.error("Example: unisat-openapi-cli api call --env bitcoin --path \"/v1/price/btc\" --api-key YOUR_API_KEY");
       return;
     }
 

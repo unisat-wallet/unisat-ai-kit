@@ -11,7 +11,7 @@ const smokeEnvFile = path.join(rootDir, ".smoke.env");
 function smokeEnv() {
   return {
     ...process.env,
-    UNISAT_AI_ENV_FILE: smokeEnvFile,
+    UNISAT_AI_KIT_ENV_FILE: smokeEnvFile,
   };
 }
 

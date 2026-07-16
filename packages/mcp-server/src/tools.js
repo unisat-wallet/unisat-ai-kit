@@ -4,7 +4,7 @@ const SERVER_VERSION = "0.1.0";
 
 function loadCliExports() {
   try {
-    return require("@unisat/ai-cli");
+    return require("@unisat/openapi-cli");
   } catch (error) {
     return require("../../cli");
   }
@@ -110,14 +110,14 @@ const toolDefinitions = [
   {
     name: "get_status",
     title: "Get Server Status",
-    description: "Return UniSat AI MCP server, Node.js, CLI capability, swagger source, and tool status.",
+    description: "Return UniSat AI Kit MCP server, Node.js, CLI capability, swagger source, and tool status.",
     inputSchema: getStatusSchema,
     handler() {
       const payload = {
         command: "mcp.get_status",
         mode: "detail",
         server: {
-          name: "unisat-ai-mcp-server",
+          name: "unisat-openapi-mcp",
           version: SERVER_VERSION,
         },
         node: {
