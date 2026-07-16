@@ -1,11 +1,11 @@
-﻿# @unisat/openapi-cli
+﻿# @api-agent-test/ai-cli
 
 This package owns the stable external CLI command surface for agent-oriented UniSat API discovery and calls.
 
 Install globally after publication:
 
 ```bash
-npm install -g @unisat/openapi-cli
+npm install -g @api-agent-test/ai-cli
 ```
 
 Supported commands:

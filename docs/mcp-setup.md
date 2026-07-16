@@ -9,22 +9,22 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "npx",
-      "args": ["-y", "@unisat/openapi-mcp"]
+      "args": ["-y", "@api-agent-test/ai-mcp"]
     }
   }
 }
 ```
 
-The package includes the MCP server and depends on `@unisat/openapi-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
+The package includes the MCP server and depends on `@api-agent-test/ai-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
 
 ## Option B: global npm install
 
 Install once:
 
 ```bash
-npm install -g @unisat/openapi-mcp
+npm install -g @api-agent-test/ai-mcp
 ```
 
 Configure the agent:
@@ -32,7 +32,7 @@ Configure the agent:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "unisat-openapi-mcp"
     }
   }
@@ -48,7 +48,7 @@ macOS/Linux configuration:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "/absolute/path/to/unisat-openapi-mcp"
     }
   }
@@ -60,7 +60,7 @@ Windows configuration:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "C:/absolute/path/to/unisat-openapi-mcp.cmd"
     }
   }
@@ -83,7 +83,7 @@ Local source MCP config:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "node",
       "args": ["/absolute/path/to/unisat-ai-kit/packages/mcp-server/bin/server.js"]
     }
@@ -113,8 +113,8 @@ UNISAT_FRACTAL_API_KEY=YOUR_FRACTAL_KEY
 You can also configure keys with the CLI package:
 
 ```bash
-npx -y @unisat/openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-npx -y @unisat/openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
 The MCP `list_environments` tool reports whether each key is configured.
@@ -124,7 +124,7 @@ The MCP `list_environments` tool reports whether each key is configured.
 The public npm and portable packages already include swagger data. Override the swagger directory only for development or custom builds:
 
 ```bash
-OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/openapi-mcp
+OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @api-agent-test/ai-mcp
 ```
 
 ## Validation

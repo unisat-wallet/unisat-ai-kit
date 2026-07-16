@@ -3,7 +3,7 @@ const { version: SERVER_VERSION } = require("../package.json");
 
 function loadCliExports() {
   try {
-    return require("@unisat/openapi-cli");
+    return require("@api-agent-test/ai-cli");
   } catch (error) {
     return require("../../cli");
   }

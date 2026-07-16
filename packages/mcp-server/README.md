@@ -1,17 +1,17 @@
-# @unisat/openapi-mcp
+# @api-agent-test/ai-mcp
 
 This package exposes the supported UniSat AI Kit interface discovery capabilities as standard MCP tools.
 
 Install globally after publication:
 
 ```bash
-npm install -g @unisat/openapi-mcp
+npm install -g @api-agent-test/ai-mcp
 ```
 
 Or run it without a global install:
 
 ```bash
-npx -y @unisat/openapi-mcp
+npx -y @api-agent-test/ai-mcp
 ```
 
 Tools:
