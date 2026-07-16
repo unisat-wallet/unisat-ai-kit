@@ -3,11 +3,12 @@
 const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
 const { registerTools } = require("../src/tools");
+const { version } = require("../package.json");
 
 const SERVER_INFO = {
   name: "unisat-openapi-mcp",
   title: "UniSat AI Kit MCP Server",
-  version: "0.1.0",
+  version,
 };
 
 async function main() {

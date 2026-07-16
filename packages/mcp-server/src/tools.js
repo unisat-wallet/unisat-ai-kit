@@ -1,6 +1,5 @@
 const z = require("zod/v4");
-
-const SERVER_VERSION = "0.1.0";
+const { version: SERVER_VERSION } = require("../package.json");
 
 function loadCliExports() {
   try {
