@@ -1,6 +1,6 @@
 {
   "name": "@api-agent-test/ai-mcp",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "UniSat AI Kit MCP server",
   "license": "MIT",
   "main": "./bin/server.js",
