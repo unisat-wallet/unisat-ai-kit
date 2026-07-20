@@ -102,6 +102,8 @@ async function runMcpSmoke(command, args, options = {}) {
           assert(listResponse.result?.tools?.some((item) => item.name === toolName), `packed mcp ${toolName} missing`);
         });
         assert(callResponse.result?.structuredContent?.command === "intro.resolve", "packed mcp tools/call invalid");
+        assert(callResponse.result.structuredContent.mode === "planned", "packed mcp resolve_api should be planned");
+        assert(callResponse.result.structuredContent.selected?.path === "/v1/indexer/block/{height}/txs", "packed mcp resolve_api selected path invalid");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "packed mcp get_status invalid");
         assert(environmentsResponse.result?.structuredContent?.command === "mcp.list_environments", "packed mcp list_environments invalid");
         assert(apiCallResponse.result?.structuredContent?.mode === "not_found", "packed mcp call_api not_found invalid");
@@ -159,7 +161,14 @@ async function runMcpSmoke(command, args, options = {}) {
         method: "tools/call",
         params: {
           name: "resolve_api",
-          arguments: { query: "marketplace brc20 ticker history" },
+          arguments: {
+            intent: "read.block.transactions",
+            action: "read",
+            resource: "blockTransactions",
+            environment: "bitcoin",
+            entities: { height: 100 },
+            preferences: { readOnlyOnly: true },
+          },
         },
       });
       sendMessage(child.stdin, {
