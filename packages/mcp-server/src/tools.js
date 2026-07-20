@@ -60,10 +60,50 @@ function hasApiKey(environment) {
   return Boolean(getConfiguredValue(environment.apiKeyEnv));
 }
 
+const keyValueMapSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number(), z.boolean()]))]));
+const keyValueInputSchema = z.union([z.array(z.string()), keyValueMapSchema]);
+
+const plannerEntitiesSchema = z
+  .object({
+    address: z.string().optional(),
+    txid: z.string().optional(),
+    blockHash: z.string().optional(),
+    blockid: z.string().optional(),
+    height: z.union([z.string(), z.number()]).optional(),
+    ticker: z.string().optional(),
+    inscriptionId: z.string().optional(),
+    inscriptionid: z.string().optional(),
+    runeid: z.string().optional(),
+    alkaneid: z.string().optional(),
+    collectionId: z.string().optional(),
+    collectionid: z.string().optional(),
+    orderId: z.string().optional(),
+    orderid: z.string().optional(),
+    txHex: z.string().optional(),
+    txsHex: z.array(z.string()).optional(),
+    queryParams: keyValueMapSchema.optional(),
+    body: keyValueMapSchema.optional(),
+  })
+  .catchall(z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number(), z.boolean()]))]));
+
+const plannerPreferencesSchema = z
+  .object({
+    readOnlyOnly: z.boolean().describe("When true, the planner must not select non-GET or side-effect operations.").optional(),
+    includeOptionalParams: z.boolean().describe("When true, include optional query parameters in generated examples.").optional(),
+    includeExecutableExample: z.boolean().describe("When true, include an executable example or URL when the plan is safe and complete.").optional(),
+    maxAlternatives: z.number().int().min(0).max(10).describe("Number of alternative operations to include.").optional(),
+  })
+  .strict();
+
 const resolveApiSchema = z
   .object({
-    query: z.string().describe("Natural-language task to resolve.").optional(),
-    path: z.string().describe("Exact OpenAPI path to resolve directly.").optional(),
+    task: z.string().describe("Optional English task description for traceability. Do not use this as the only planning signal.").optional(),
+    intent: z.string().describe("Required unless path is provided. Explicit dotted intent, for example read.block.transactions or write.transaction.broadcast.").optional(),
+    action: z.enum(["read", "write", "broadcast", "swap", "create", "unknown"]).describe("Required unless path is provided. Explicit action class. Use read for read-only user requests.").optional(),
+    resource: z.string().describe("Required unless path is provided. Explicit resource name, for example blockTransactions, addressBalance, chainFees, or rawTransactionBroadcast.").optional(),
+    entities: plannerEntitiesSchema.describe("Typed entities supplied by the Agent, such as address, txid, blockHash, height, ticker, or txHex.").optional(),
+    preferences: plannerPreferencesSchema.describe("Planning preferences and safety constraints for the Agent.").optional(),
+    path: z.string().describe("Exact OpenAPI path to resolve directly when the Agent already knows the interface.").optional(),
     shell: z.enum(["powershell", "bash"]).describe("Shell style for generated example commands.").optional(),
     environment: z.enum(["bitcoin", "fractal"]).describe("OpenAPI environment.").optional(),
     top: z.number().int().min(0).max(10).describe("Number of alternatives to include.").optional(),
@@ -79,9 +119,6 @@ const showApiSchema = z
 const getStatusSchema = z.object({}).strict();
 
 const listEnvironmentsSchema = z.object({}).strict();
-
-const keyValueMapSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number(), z.boolean()]))]));
-const keyValueInputSchema = z.union([z.array(z.string()), keyValueMapSchema]);
 
 const callApiSchema = z
   .object({
@@ -165,19 +202,35 @@ const toolDefinitions = [
   },
   {
     name: "resolve_api",
-    title: "Resolve API Interface",
+    title: "Plan API Call",
     description:
-      "Resolve the best UniSat OpenAPI interface, parameters, and runnable CLI example from a natural-language task.",
+      "Plan a UniSat OpenAPI call for an AI agent. Requires explicit English structured planning fields: intent/action/resource, or an exact path. Free-form natural-language query is intentionally unsupported. Returns a validated API plan with selected operation, parameter bindings, safety status, alternatives, and next action. Use action=read and preferences.readOnlyOnly=true for read-only user requests. Use call_api only after the plan is executable or user confirmation is obtained.",
     inputSchema: resolveApiSchema,
     handler(args) {
+      if (Object.hasOwn(args, "query")) {
+        return toToolResult(
+          {
+            command: "intro.resolve",
+            mode: "unsupported_input",
+            message: "resolve_api no longer accepts query. Provide explicit intent/action/resource fields or an exact path.",
+            nextAction: "revise_task",
+          },
+          true
+        );
+      }
       const payload = introResolve({
-        query: args.query,
+        task: args.task,
+        intent: args.intent,
+        action: args.action,
+        resource: args.resource,
+        entities: args.entities,
+        preferences: args.preferences,
         apiPath: args.path,
         shell: args.shell || "powershell",
         environment: args.environment || "bitcoin",
         top: args.top ?? 5,
       });
-      return toToolResult(payload, payload.mode === "not_found" || payload.mode === "missing_input");
+      return toToolResult(payload, ["not_found", "structured_input_required", "unsupported_input", "unsafe_intent_mismatch"].includes(payload.mode));
     },
   },
   {

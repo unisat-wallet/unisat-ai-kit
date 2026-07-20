@@ -38,7 +38,7 @@ bash skills/unisat-ai-developer/scripts/install.sh
 bash skills/unisat-ai-developer/scripts/doctor.sh
 
 # Use the CLI directly
-unisat-openapi-cli intro resolve --query "address brc20 balance list" --format json
+unisat-openapi-cli intro resolve --intent read.address.brc20Summary --action read --resource addressBrc20Summary --entity address=YOUR_ADDRESS --read-only --format json
 unisat-openapi-cli intro show --path "/v1/indexer/brc20/{ticker}/info" --format text
 unisat-openapi-cli api call --path "/v1/indexer/brc20/status" --query-param start=0 --query-param limit=1 --format json
 

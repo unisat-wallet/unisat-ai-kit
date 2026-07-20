@@ -21,19 +21,38 @@ Environments:
 - `bitcoin` -> `https://open-api.unisat.io` -> `UNISAT_BITCOIN_API_KEY`
 - `fractal` -> `https://open-api-fractal.unisat.io` -> `UNISAT_FRACTAL_API_KEY`
 
-Recommended flow:
+Recommended CLI flow:
 
 ```bash
 node bin/unisat-ai.js config bitcoin-key --api-key YOUR_BITCOIN_KEY
-node bin/unisat-ai.js intro resolve --env bitcoin --query "address brc20 balance list" --format json
+node bin/unisat-ai.js intro resolve --env bitcoin --intent read.address.balance --action read --resource addressBalance --entity address=YOUR_ADDRESS --read-only --format json
 node bin/unisat-ai.js api call --env bitcoin --path "/v1/indexer/address/{address}/balance" --path-param address=YOUR_ADDRESS --format json
 ```
+
+Agent-facing planning requires structured fields through `intro resolve` or the `resolve_api` MCP tool. Free-form CLI query text is intentionally unsupported. The planner contract is:
+
+```json
+{
+  "intent": "read.block.transactions",
+  "action": "read",
+  "resource": "blockTransactions",
+  "environment": "bitcoin",
+  "entities": {
+    "height": 100
+  },
+  "preferences": {
+    "readOnlyOnly": true
+  }
+}
+```
+
+The response includes the selected operation, parameter bindings, safety status, alternatives, and next action.
 
 Fractal example:
 
 ```bash
 node bin/unisat-ai.js config fractal-key --api-key YOUR_FRACTAL_KEY
-node bin/unisat-ai.js intro resolve --env fractal --query "get fractal address balance" --format json
+node bin/unisat-ai.js intro resolve --env fractal --intent read.fractal.supply --action read --resource fractalSupply --read-only --format json
 node bin/unisat-ai.js api call --env fractal --path "/v1/public/fractal/supply" --format json
 ```
 

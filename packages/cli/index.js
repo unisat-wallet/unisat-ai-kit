@@ -1,6 +1,7 @@
 const { callApi } = require("./src/api-call");
 const { getConfiguredValue, getDotEnvPath } = require("./src/env-file");
 const { introResolve, introShow } = require("./src/intro");
+const { listOpenApiCapabilities } = require("./src/openapi-capabilities");
 const { getSwaggerContext } = require("./src/openapi-utils");
 const { listOpenApiEnvironments } = require("./src/openapi-environments");
 
@@ -11,5 +12,6 @@ module.exports = {
   getSwaggerContext,
   introResolve,
   introShow,
+  listOpenApiCapabilities,
   listOpenApiEnvironments,
 };

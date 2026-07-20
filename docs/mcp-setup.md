@@ -97,7 +97,7 @@ The MCP server exposes:
 
 - `get_status`: returns MCP version, Node.js version, CLI capability status, swagger source, and available tools.
 - `list_environments`: lists `bitcoin` and `fractal` OpenAPI environments, base URLs, API key environment names, and whether keys are configured.
-- `resolve_api`: resolves a natural-language task or exact path to a UniSat OpenAPI interface.
+- `resolve_api`: plans a UniSat OpenAPI interface from explicit English structured fields (`intent`, `action`, `resource`) or an exact path. Free-form natural-language query matching is intentionally unsupported.
 - `show_api`: shows raw OpenAPI detail for an exact path.
 - `call_api`: calls a UniSat OpenAPI interface through the CLI capability layer. `GET` calls run directly; non-GET calls first return `confirmation_required` and must be retried with `confirm: true` after the user explicitly confirms.
 

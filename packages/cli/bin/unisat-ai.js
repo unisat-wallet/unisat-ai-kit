@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { parseArgs, toInt } = require("../src/arg-utils");
+const { parseArgs, parseJsonObject, parseKeyValueEntries, parseBooleanOption, toInt } = require("../src/arg-utils");
 const { callApi } = require("../src/api-call");
 const { getConfiguredValue, upsertDotEnvValue } = require("../src/env-file");
 const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("../src/openapi-environments");
@@ -23,14 +23,14 @@ function printHelp() {
   console.log("");
   console.log("Recommended flow:");
   console.log("  0. config bitcoin-key --api-key <key>");
-  console.log("  1. intro resolve --env bitcoin --query <task> --format json");
-  console.log("  2. Copy the api call command from intro resolve, replace placeholders, then run it.");
+  console.log("  1. intro resolve --env bitcoin --intent read.address.balance --action read --resource addressBalance --entity address=YOUR_ADDRESS --read-only --format json");
+  console.log("  2. Use the returned selected path and bindings with api call after safety checks pass.");
   console.log("");
   console.log("Commands:");
   console.log("  config bitcoin-key --api-key <key> [--format text|json]");
   console.log("  config fractal-key --api-key <key> [--format text|json]");
   console.log("  intro show --path <api-path> [--format text|json]");
-  console.log("  intro resolve [--query <text> | --path <api-path>] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]");
+  console.log("  intro resolve [--intent <intent> --action <action> --resource <resource> | --path <api-path>] [--task <text>] [--entity k=v ...] [--entities '{\"k\":\"v\"}'] [--read-only] [--env bitcoin|fractal] [--top 5] [--format text|json]");
   console.log("  api call --path <api-path> [--env bitcoin|fractal] [--query-param k=v ...] [--path-param k=v ...] [--query \"a=1&b=2\"] [--path-params \"id=1\"] [--body '{\"x\":1}'] [--api-key <key>] [--format text|json]");
   console.log("");
   console.log("Notes:");
@@ -38,10 +38,10 @@ function printHelp() {
   console.log("");
   console.log("Complete examples:");
   console.log("  config bitcoin-key --api-key YOUR_BITCOIN_KEY");
-  console.log("  intro resolve --env bitcoin --query \"get btc address balance\" --format json");
+  console.log("  intro resolve --env bitcoin --intent read.address.balance --action read --resource addressBalance --entity address=YOUR_ADDRESS --read-only --format json");
   console.log("  api call --env bitcoin --path \"/v1/indexer/address/{address}/balance\" --path-param address=YOUR_ADDRESS --format json");
   console.log("  config fractal-key --api-key YOUR_FRACTAL_KEY");
-  console.log("  intro resolve --env fractal --query \"get fractal address balance\" --format json");
+  console.log("  intro resolve --env fractal --intent read.fractal.supply --action read --resource fractalSupply --read-only --format json");
 }
 
 function printCommandHelp(lines) {
@@ -70,19 +70,20 @@ function printIntroHelp() {
   printCommandHelp([
     "intro commands:",
     "  intro show --path <api-path> [--format text|json]",
-    "  intro resolve [--query <text> | --path <api-path>] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]",
+    "  intro resolve [--intent <intent> --action <action> --resource <resource> | --path <api-path>] [--task <text>] [--entity k=v ...] [--entities '{\"k\":\"v\"}'] [--read-only] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]",
   ]);
 }
 
 function printIntroResolveHelp() {
   printCommandHelp([
-    "usage: intro resolve [--query <text> | --path <api-path>] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]",
+    "usage: intro resolve [--intent <intent> --action <action> --resource <resource> | --path <api-path>] [--task <text>] [--entity k=v ...] [--entities '{\"k\":\"v\"}'] [--read-only] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]",
     "",
-    "Resolve the best interface, parameters, and runnable example in one step.",
+    "Plan the best interface, parameter bindings, safety status, and executable URL in one step.",
+    "Free-form --query is intentionally unsupported; agents must provide explicit structured planning fields.",
     "",
     "examples:",
-    "  intro resolve --env bitcoin --query \"address brc20 balance list\"",
-    "  intro resolve --env fractal --path \"/v1/public/address/{address}/balance\" --shell powershell",
+    "  intro resolve --env bitcoin --intent read.block.transactions --action read --resource blockTransactions --entity height=100 --read-only --format json",
+    "  intro resolve --env fractal --path \"/v1/public/fractal/supply\" --action read --resource fractalSupply --read-only --shell powershell",
   ]);
 }
 
@@ -207,16 +208,38 @@ async function main() {
   }
 
   if (domain === "intro" && action === "resolve") {
-    if (!options.query && !options.path) {
-      fail("intro resolve requires --query or --path");
+    if (options.query) {
+      fail("intro resolve no longer supports --query; provide --intent/--action/--resource or --path");
+    }
+    if (!options.path && !options.intent && !options.action && !options.resource) {
+      fail("intro resolve requires structured --intent/--action/--resource fields or --path");
     }
     const shell = options.shell || "powershell";
     if (shell !== "powershell" && shell !== "bash") {
       fail("intro resolve supports powershell or bash");
     }
+    let entities = {};
+    try {
+      entities = {
+        ...parseJsonObject(options.entities, {}),
+        ...parseKeyValueEntries(options.entity),
+      };
+    } catch (error) {
+      fail(`invalid intro resolve entities: ${error.message}`);
+    }
     printOutput(
       introResolve({
-        query: options.query,
+        task: options.task,
+        intent: options.intent,
+        action: options.action,
+        resource: options.resource,
+        entities,
+        preferences: {
+          readOnlyOnly: parseBooleanOption(options["read-only"]),
+          includeOptionalParams: parseBooleanOption(options["include-optional"]),
+          includeExecutableExample: !parseBooleanOption(options["no-example"]),
+          maxAlternatives: toInt(options.top, 5),
+        },
         apiPath: options.path,
         shell,
         environment: options.env || DEFAULT_OPENAPI_ENVIRONMENT,

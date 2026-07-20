@@ -16,6 +16,7 @@
     "smoke": "node scripts/smoke.mjs",
     "sync:release-assets": "node scripts/sync-release-assets.mjs",
     "clean:release-assets": "node scripts/clean-release-assets.mjs",
-    "release:smoke": "node scripts/release-smoke.mjs"
+    "release:smoke": "node scripts/release-smoke.mjs",
+    "test:resolve-api": "node scripts/resolve-api-accuracy.mjs"
   }
 }

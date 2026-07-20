@@ -270,13 +270,14 @@ async function main() {
     const showPayload = JSON.parse(cliShow.stdout);
     assert(showPayload.command === "intro.show", "packed cli intro show failed");
 
-    const cliResolve = await run(cliBin, ["intro", "resolve", "--env", "bitcoin", "--query", "marketplace brc20 ticker history", "--format", "json"], {
+    const cliResolve = await run(cliBin, ["intro", "resolve", "--env", "bitcoin", "--intent", "read.block.transactions", "--action", "read", "--resource", "blockTransactions", "--entity", "height=100", "--read-only", "--format", "json"], {
       cwd: tempDir,
       env,
     });
     const resolvePayload = JSON.parse(cliResolve.stdout);
     assert(resolvePayload.command === "intro.resolve", "packed cli intro resolve failed");
-    assert(resolvePayload.selected?.path, "packed cli resolve selected path missing");
+    assert(resolvePayload.mode === "planned", "packed cli intro resolve should be planned");
+    assert(resolvePayload.selected?.path === "/v1/indexer/block/{height}/txs", "packed cli resolve selected path invalid");
 
     await runMcpSmoke(mcpBin, [], {
       cwd: tempDir,

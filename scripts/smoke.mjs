@@ -1,11 +1,13 @@
 import fs from "fs";
 import { spawn } from "child_process";
 import path from "path";
+import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
 import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const require = createRequire(import.meta.url);
 const smokeEnvFile = path.join(rootDir, ".smoke.env");
 
 function smokeEnv() {
@@ -15,7 +17,7 @@ function smokeEnv() {
   };
 }
 
-function runCommand(args) {
+function runCommand(args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn("node", args, {
       cwd: rootDir,
@@ -35,11 +37,19 @@ function runCommand(args) {
     });
 
     child.on("close", (code) => {
+      if (options.expectFailure) {
+        if (code === 0) {
+          reject(new Error(`command unexpectedly succeeded (${args.join(" ")}): ${stdout}`));
+          return;
+        }
+        resolve({ stdout, stderr, code });
+        return;
+      }
       if (code !== 0) {
         reject(new Error(`command failed (${args.join(" ")}): ${stderr || stdout}`));
         return;
       }
-      resolve({ stdout, stderr });
+      resolve({ stdout, stderr, code });
     });
   });
 }
@@ -111,7 +121,8 @@ async function runMcpSmoke() {
         const environmentsResponse = responses.find((item) => item.id === 6);
         const callApiResponse = responses.find((item) => item.id === 7);
         const postConfirmationResponse = responses.find((item) => item.id === 8);
-        if (!initResponse || !listResponse || !resolveResponse || !showResponse || !statusResponse || !environmentsResponse || !callApiResponse || !postConfirmationResponse) {
+        const legacyResolveResponse = responses.find((item) => item.id === 9);
+        if (!initResponse || !listResponse || !resolveResponse || !showResponse || !statusResponse || !environmentsResponse || !callApiResponse || !postConfirmationResponse || !legacyResolveResponse) {
           return;
         }
         assert(initResponse.result?.protocolVersion === "2025-06-18", "initialize response invalid");
@@ -120,6 +131,8 @@ async function runMcpSmoke() {
           assert(listResponse.result.tools.some((item) => item.name === toolName), `${toolName} tool missing`);
         });
         assert(resolveResponse.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid");
+        assert(resolveResponse.result.structuredContent.mode === "planned", "structured resolve_api should return planned mode");
+        assert(resolveResponse.result.structuredContent.selected?.path === "/v1/indexer/block/{height}/txs", "structured resolve_api selected path invalid");
         assert(showResponse.result?.structuredContent?.command === "intro.show", "tools/call show_api invalid");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "tools/call get_status invalid");
         assert(statusResponse.result.structuredContent.tools.includes("call_api"), "get_status tool list invalid");
@@ -130,6 +143,8 @@ async function runMcpSmoke() {
         assert(postConfirmationResponse.result?.structuredContent?.command === "api.call", "tools/call post confirmation invalid");
         assert(postConfirmationResponse.result.structuredContent.mode === "confirmation_required", "non-GET call_api should require confirmation");
         assert(postConfirmationResponse.result.isError === true, "confirmation_required should be an MCP error result");
+        assert(legacyResolveResponse.error || legacyResolveResponse.result?.structuredContent?.mode !== "planned", "legacy resolve_api query should not produce a plan");
+        assert(!legacyResolveResponse.result?.structuredContent?.selected, "legacy resolve_api query should not select an API");
         finish();
       } catch (error) {
         finish(error);
@@ -165,7 +180,14 @@ async function runMcpSmoke() {
         method: "tools/call",
         params: {
           name: "resolve_api",
-          arguments: { query: "marketplace brc20 ticker history" },
+          arguments: {
+            intent: "read.block.transactions",
+            action: "read",
+            resource: "blockTransactions",
+            environment: "bitcoin",
+            entities: { height: 100 },
+            preferences: { readOnlyOnly: true },
+          },
         },
       });
       sendMessage(child.stdin, {
@@ -213,9 +235,23 @@ async function runMcpSmoke() {
           arguments: { environment: "bitcoin", path: "/v3/market/runes/auction/runes_types", apiKey: "mcp_smoke" },
         },
       });
+      sendMessage(child.stdin, {
+        jsonrpc: "2.0",
+        id: 9,
+        method: "tools/call",
+        params: {
+          name: "resolve_api",
+          arguments: { query: "address balance" },
+        },
+      });
     }, 100);
 
   });
+}
+
+function validateMcpToolModuleImport() {
+  const tools = require("../packages/mcp-server/src/tools.js");
+  assert(typeof tools.registerTools === "function", "mcp tools module should load and export registerTools");
 }
 
 function validateRequestPlanning() {
@@ -249,6 +285,8 @@ function validateRequestPlanning() {
 
 async function main() {
   fs.rmSync(smokeEnvFile, { force: true });
+  validateMcpToolModuleImport();
+  console.log("ok mcp tools import");
   validateRequestPlanning();
   console.log("ok request planning");
 
@@ -282,11 +320,12 @@ async function main() {
     },
     {
       name: "cli intro resolve",
-      args: ["packages/cli/bin/unisat-ai.js", "intro", "resolve", "--env", "bitcoin", "--query", "marketplace brc20 ticker history", "--format", "json"],
+      args: ["packages/cli/bin/unisat-ai.js", "intro", "resolve", "--env", "bitcoin", "--intent", "read.block.transactions", "--action", "read", "--resource", "blockTransactions", "--entity", "height=100", "--read-only", "--format", "json"],
       validate(stdout) {
         const payload = JSON.parse(stdout);
         assert(payload.command === "intro.resolve", "intro resolve payload invalid");
-        assert(payload.selected?.path, "intro resolve selected path missing");
+        assert(payload.mode === "planned", "intro resolve should return planned mode");
+        assert(payload.selected?.path === "/v1/indexer/block/{height}/txs", "intro resolve selected path invalid");
       },
     },
     {
@@ -305,6 +344,10 @@ async function main() {
     check.validate(stdout);
     console.log(`ok ${check.name}`);
   }
+
+  const legacyResolve = await runCommand(["packages/cli/bin/unisat-ai.js", "intro", "resolve", "--env", "bitcoin", "--query", "address balance", "--format", "json"], { expectFailure: true });
+  assert(legacyResolve.stderr.includes("no longer supports --query"), "legacy intro resolve --query should be rejected");
+  console.log("ok cli rejects legacy query resolve");
 
   await runMcpSmoke();
   console.log("ok mcp server");
