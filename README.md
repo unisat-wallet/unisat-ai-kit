@@ -1,6 +1,8 @@
 ﻿# UniSat AI Kit
 
-UniSat AI Kit provides a stdio MCP server and a command-line tool for agent-oriented UniSat OpenAPI discovery and calls.
+UniSat AI Kit provides a stdio MCP server and a command-line tool for direct UniSat OpenAPI HTTPS calls.
+
+The CLI intentionally does not discover, match, recommend, or explain OpenAPI interfaces. Agents should inspect `swagger/*.yaml` or use the UniSat OpenAPI Agent Skill to choose an exact path before using `api call`.
 
 ## Register API Keys
 
@@ -27,62 +29,17 @@ For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the 
 }
 ```
 
-The explicit `--registry=https://registry.npmjs.org/` option avoids failures caused by stale npm mirrors or private registry configuration. The MCP server exposes `get_status`, `list_environments`, `resolve_api`, `show_api`, and `call_api`. `resolve_api` is the required single planning entry point for agents: provide explicit English `intent`, `action`, `resource`, `environment`, `entities`, and `preferences`, or an exact `path`. Free-form natural-language query matching is intentionally unsupported. Non-GET `call_api` calls require explicit user confirmation before execution. See `docs/mcp-setup.md` for full setup details.
+The explicit `--registry=https://registry.npmjs.org/` option avoids failures caused by stale npm mirrors or private registry configuration. The MCP server exposes `get_status` and exact-path `call_api`; interface lookup is handled by the Agent Skill. See `docs/mcp-setup.md` for full setup details.
 
-### Agent-facing planning protocol
+## Agent Workflow
 
-Agents should treat UniSat AI Kit as an API planner and execution gateway, not as a user-facing multilingual search box. Recommended flow:
+Recommended agent flow:
 
-1. Translate the user's request into explicit English structured fields.
-2. Call `resolve_api` once with `intent`, `action`, and `resource`, or with an exact `path`.
-3. If the returned plan is `planned` and `safety.executable=true`, call `call_api` with the selected path and bindings.
-4. If the plan is `missing_required_entities`, ask the user for the missing entity.
-5. If the plan is `confirmation_required`, ask the user to confirm before calling a non-GET API with `confirm=true`.
-
-Example `resolve_api` input for a read-only block transaction query:
-
-```json
-{
-  "intent": "read.block.transactions",
-  "action": "read",
-  "resource": "blockTransactions",
-  "environment": "bitcoin",
-  "entities": {
-    "height": 100
-  },
-  "preferences": {
-    "readOnlyOnly": true,
-    "maxAlternatives": 5
-  }
-}
-```
-
-Expected result shape:
-
-```json
-{
-  "mode": "planned",
-  "selected": {
-    "method": "GET",
-    "path": "/v1/indexer/block/{height}/txs"
-  },
-  "bindings": {
-    "pathParams": {
-      "height": 100
-    },
-    "queryParams": {
-      "cursor": 0,
-      "size": 20
-    }
-  },
-  "safety": {
-    "sideEffect": "none",
-    "requiresConfirmation": false,
-    "executable": true
-  },
-  "nextAction": "call_api"
-}
-```
+1. Read the UniSat OpenAPI Agent Skill.
+2. Inspect the relevant `swagger/*.yaml` files and hidden-rule notes in the skill.
+3. Choose an exact OpenAPI path, method, environment, path params, query params, and body.
+4. Ask the user for missing parameters or confirmation for state-changing operations.
+5. Execute with MCP `call_api` or `unisat-openapi-cli api call --path <exact-openapi-path>`.
 
 ## CLI Quick Start
 
@@ -146,7 +103,6 @@ Add the extracted folder containing `unisat-openapi-cli.exe` to your system `PAT
 
 ```bash
 unisat-openapi-cli --help
-unisat-openapi-cli intro resolve --env bitcoin --intent read.address.balance --action read --resource addressBalance --entity address=YOUR_ADDRESS --read-only --format json
 unisat-openapi-cli api call --env bitcoin --path "/v1/indexer/address/{address}/balance" --path-param address=YOUR_ADDRESS --format json
 ```
 
@@ -154,8 +110,6 @@ Supported command groups:
 
 - `config bitcoin-key`
 - `config fractal-key`
-- `intro resolve`
-- `intro show`
 - `api call`
 
 ## Development
@@ -218,14 +172,9 @@ The workflow `.github/workflows/npm-release.yml` publishes the configured npm pa
 ## Repository Layout
 
 ```text
-packages/
-  cli/
-  mcp-server/
-  shared-types/
-scripts/
-swagger/
+packages/cli/          CLI exact-path OpenAPI caller
+packages/mcp-server/   MCP server
+swagger/               UniSat OpenAPI YAML files
+scripts/               packaging and smoke-test scripts
+docs/                  setup and release documentation
 ```
-
-- `packages/cli`: CLI command implementation.
-- `packages/mcp-server`: MCP tools backed by the CLI capability layer.
-- `swagger/`: local OpenAPI source and the data embedded into releases.

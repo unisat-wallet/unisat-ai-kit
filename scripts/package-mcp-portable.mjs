@@ -172,7 +172,7 @@ function writeReadme(target, packageDir) {
       "The package includes production npm dependencies and bundled UniSat OpenAPI swagger data.",
       "Node.js must be available on PATH for this portable package.",
       "",
-      "Available MCP tools: get_status, list_environments, resolve_api, show_api, call_api.",
+      "Available MCP tools: get_status and exact-path call_api. Interface lookup is handled by the UniSat OpenAPI Agent Skill.",
       "Register API key: https://developer.unisat.io/",
       "",
     ].join("\n"),

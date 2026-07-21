@@ -1,6 +1,8 @@
 # MCP Setup
 
-UniSat AI Kit provides a stdio MCP server for UniSat OpenAPI discovery and calls. Public users should configure an installed command, not a local source path.
+UniSat AI Kit provides a stdio MCP server. Public users should configure an installed command, not a local source path.
+
+The MCP server exposes `get_status` and exact-path `call_api`. Interface discovery and interface matching are handled by the UniSat OpenAPI Agent Skill.
 
 ## Option A: npx configuration
 
@@ -17,7 +19,7 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 }
 ```
 
-The package includes the MCP server and depends on `@api-agent-test/ai-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
+The package includes the MCP server and depends on `@api-agent-test/ai-cli`, whose npm package bundles the OpenAPI swagger data used for status reporting and CLI calls.
 
 ## Option B: global npm install
 
@@ -95,11 +97,7 @@ Local source MCP config:
 
 The MCP server exposes:
 
-- `get_status`: returns MCP version, Node.js version, CLI capability status, swagger source, and available tools.
-- `list_environments`: lists `bitcoin` and `fractal` OpenAPI environments, base URLs, API key environment names, and whether keys are configured.
-- `resolve_api`: plans a UniSat OpenAPI interface from explicit English structured fields (`intent`, `action`, `resource`) or an exact path. Free-form natural-language query matching is intentionally unsupported.
-- `show_api`: shows raw OpenAPI detail for an exact path.
-- `call_api`: calls a UniSat OpenAPI interface through the CLI capability layer. `GET` calls run directly; non-GET calls first return `confirmation_required` and must be retried with `confirm: true` after the user explicitly confirms.
+- `get_status`: returns MCP version, Node.js version, CLI caller capability status, swagger source, and available tools.
 
 ## API keys
 
@@ -117,7 +115,7 @@ npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
 npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
-The MCP `list_environments` tool reports whether each key is configured.
+The MCP server does not expose an environment listing or API call tool. Use `get_status` for package diagnostics, and use `unisat-openapi-cli api call` for exact-path calls.
 
 ## Optional environment overrides
 
@@ -136,4 +134,4 @@ npm run smoke
 npm run release:smoke
 ```
 
-The smoke checks cover MCP `initialize`, `tools/list`, and `tools/call` for `resolve_api`, `show_api`, `get_status`, `list_environments`, and a no-network `call_api` not-found case.
+The smoke checks cover MCP `initialize`, `tools/list`, and `tools/call` for `get_status` only.

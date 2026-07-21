@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "unisat-ai-local": {
+      "command": "node",
+      "args": [
+        "D:/Data/js/unisat-ai/packages/mcp-server/bin/server.js"
+      ],
+      "env": {
+        "OPENAPI_SWAGGER_DIR": "D:/Data/js/unisat-ai/swagger"
+      }
+    }
+  }
+}

@@ -90,23 +90,18 @@ async function runMcpSmoke(command, args, options = {}) {
       try {
         const initResponse = responses.find((item) => item.id === 1);
         const listResponse = responses.find((item) => item.id === 2);
-        const callResponse = responses.find((item) => item.id === 3);
-        const statusResponse = responses.find((item) => item.id === 4);
-        const environmentsResponse = responses.find((item) => item.id === 5);
-        const apiCallResponse = responses.find((item) => item.id === 6);
-        if (!initResponse || !listResponse || !callResponse || !statusResponse || !environmentsResponse || !apiCallResponse) {
+        const statusResponse = responses.find((item) => item.id === 3);
+        const callResponse = responses.find((item) => item.id === 4);
+        if (!initResponse || !listResponse || !statusResponse || !callResponse) {
           return;
         }
         assert(initResponse.result?.protocolVersion, "packed mcp initialize response invalid");
-        ["get_status", "list_environments", "resolve_api", "show_api", "call_api"].forEach((toolName) => {
-          assert(listResponse.result?.tools?.some((item) => item.name === toolName), `packed mcp ${toolName} missing`);
-        });
-        assert(callResponse.result?.structuredContent?.command === "intro.resolve", "packed mcp tools/call invalid");
-        assert(callResponse.result.structuredContent.mode === "planned", "packed mcp resolve_api should be planned");
-        assert(callResponse.result.structuredContent.selected?.path === "/v1/indexer/block/{height}/txs", "packed mcp resolve_api selected path invalid");
+        assert(listResponse.result?.tools?.length === 2, "packed mcp should expose get_status and call_api");
+        assert(listResponse.result.tools.some((tool) => tool.name === "get_status"), "packed mcp get_status missing");
+        assert(listResponse.result.tools.some((tool) => tool.name === "call_api"), "packed mcp call_api missing");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "packed mcp get_status invalid");
-        assert(environmentsResponse.result?.structuredContent?.command === "mcp.list_environments", "packed mcp list_environments invalid");
-        assert(apiCallResponse.result?.structuredContent?.mode === "not_found", "packed mcp call_api not_found invalid");
+        assert(callResponse.result?.structuredContent?.command === "api.call", "packed mcp call_api invalid");
+        assert(callResponse.result.structuredContent.mode === "not_found", "packed mcp call_api should return not_found");
         finish();
       } catch (error) {
         finish(error);
@@ -160,15 +155,8 @@ async function runMcpSmoke(command, args, options = {}) {
         id: 3,
         method: "tools/call",
         params: {
-          name: "resolve_api",
-          arguments: {
-            intent: "read.block.transactions",
-            action: "read",
-            resource: "blockTransactions",
-            environment: "bitcoin",
-            entities: { height: 100 },
-            preferences: { readOnlyOnly: true },
-          },
+          name: "get_status",
+          arguments: {},
         },
       });
       sendMessage(child.stdin, {
@@ -176,26 +164,11 @@ async function runMcpSmoke(command, args, options = {}) {
         id: 4,
         method: "tools/call",
         params: {
-          name: "get_status",
-          arguments: {},
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 5,
-        method: "tools/call",
-        params: {
-          name: "list_environments",
-          arguments: {},
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 6,
-        method: "tools/call",
-        params: {
           name: "call_api",
-          arguments: { environment: "bitcoin", path: "/not-found", apiKey: "release_smoke" },
+          arguments: {
+            path: "/not-found",
+            environment: "bitcoin",
+          },
         },
       });
     }, 100);
@@ -270,23 +243,16 @@ async function main() {
     const env = {
       ...process.env,
       OPENAPI_SWAGGER_DIR: "",
+      UNISAT_BITCOIN_API_KEY: "release_smoke",
     };
 
-    const cliShow = await run(cliBin, ["intro", "show", "--path", "/v1/indexer/brc20/{ticker}/info", "--format", "json"], {
+    const cliCall = await run(cliBin, ["api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"], {
       cwd: tempDir,
       env,
     });
-    const showPayload = JSON.parse(cliShow.stdout);
-    assert(showPayload.command === "intro.show", "packed cli intro show failed");
-
-    const cliResolve = await run(cliBin, ["intro", "resolve", "--env", "bitcoin", "--intent", "read.block.transactions", "--action", "read", "--resource", "blockTransactions", "--entity", "height=100", "--read-only", "--format", "json"], {
-      cwd: tempDir,
-      env,
-    });
-    const resolvePayload = JSON.parse(cliResolve.stdout);
-    assert(resolvePayload.command === "intro.resolve", "packed cli intro resolve failed");
-    assert(resolvePayload.mode === "planned", "packed cli intro resolve should be planned");
-    assert(resolvePayload.selected?.path === "/v1/indexer/block/{height}/txs", "packed cli resolve selected path invalid");
+    const callPayload = JSON.parse(cliCall.stdout);
+    assert(callPayload.command === "api.call", "packed cli api call failed");
+    assert(callPayload.mode === "not_found", "packed cli api call should return not_found without network");
 
     await runMcpSmoke(mcpBin, [], {
       cwd: tempDir,

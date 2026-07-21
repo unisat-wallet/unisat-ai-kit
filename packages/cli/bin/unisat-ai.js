@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 
-const { parseArgs, parseJsonObject, parseKeyValueEntries, parseBooleanOption, toInt } = require("../src/arg-utils");
+const { parseArgs } = require("../src/arg-utils");
 const { callApi } = require("../src/api-call");
 const { getConfiguredValue, upsertDotEnvValue } = require("../src/env-file");
 const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("../src/openapi-environments");
-const { introResolve, introShow } = require("../src/intro");
 const { printOutput } = require("../src/format-utils");
 
 const GUIDE_NOTES = [
   "Use --format json when another agent or script needs stable machine-readable output.",
+  "api call requires an exact OpenAPI path. The CLI does not discover, match, or recommend interfaces.",
   "api call reads keys in this order: --api-key, process env, user config .env.",
   "config bitcoin-key / config fractal-key writes keys to a user config .env for Windows, Linux, and macOS.",
-  "Use intro show only when you already know the exact API path and need raw interface detail.",
 ];
 
 function printHelp() {
@@ -22,15 +21,13 @@ function printHelp() {
   console.log("  fractal -> https://open-api-fractal.unisat.io -> UNISAT_FRACTAL_API_KEY");
   console.log("");
   console.log("Recommended flow:");
-  console.log("  0. config bitcoin-key --api-key <key>");
-  console.log("  1. intro resolve --env bitcoin --intent read.address.balance --action read --resource addressBalance --entity address=YOUR_ADDRESS --read-only --format json");
-  console.log("  2. Use the returned selected path and bindings with api call after safety checks pass.");
+  console.log("  0. Find the exact OpenAPI path in swagger/*.yaml or the UniSat OpenAPI Agent Skill.");
+  console.log("  1. config bitcoin-key --api-key <key>");
+  console.log("  2. api call --env bitcoin --path <api-path> [params...]");
   console.log("");
   console.log("Commands:");
   console.log("  config bitcoin-key --api-key <key> [--format text|json]");
   console.log("  config fractal-key --api-key <key> [--format text|json]");
-  console.log("  intro show --path <api-path> [--format text|json]");
-  console.log("  intro resolve [--intent <intent> --action <action> --resource <resource> | --path <api-path>] [--task <text>] [--entity k=v ...] [--entities '{\"k\":\"v\"}'] [--read-only] [--env bitcoin|fractal] [--top 5] [--format text|json]");
   console.log("  api call --path <api-path> [--env bitcoin|fractal] [--query-param k=v ...] [--path-param k=v ...] [--query \"a=1&b=2\"] [--path-params \"id=1\"] [--body '{\"x\":1}'] [--api-key <key>] [--format text|json]");
   console.log("");
   console.log("Notes:");
@@ -38,10 +35,10 @@ function printHelp() {
   console.log("");
   console.log("Complete examples:");
   console.log("  config bitcoin-key --api-key YOUR_BITCOIN_KEY");
-  console.log("  intro resolve --env bitcoin --intent read.address.balance --action read --resource addressBalance --entity address=YOUR_ADDRESS --read-only --format json");
+  console.log("  api call --env bitcoin --path \"/v1/price/btc\" --format json");
   console.log("  api call --env bitcoin --path \"/v1/indexer/address/{address}/balance\" --path-param address=YOUR_ADDRESS --format json");
   console.log("  config fractal-key --api-key YOUR_FRACTAL_KEY");
-  console.log("  intro resolve --env fractal --intent read.fractal.supply --action read --resource fractalSupply --read-only --format json");
+  console.log("  api call --env fractal --path \"/v1/public/fractal/supply\" --format json");
 }
 
 function printCommandHelp(lines) {
@@ -66,40 +63,11 @@ function printConfigHelp() {
   ]);
 }
 
-function printIntroHelp() {
-  printCommandHelp([
-    "intro commands:",
-    "  intro show --path <api-path> [--format text|json]",
-    "  intro resolve [--intent <intent> --action <action> --resource <resource> | --path <api-path>] [--task <text>] [--entity k=v ...] [--entities '{\"k\":\"v\"}'] [--read-only] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]",
-  ]);
-}
-
-function printIntroResolveHelp() {
-  printCommandHelp([
-    "usage: intro resolve [--intent <intent> --action <action> --resource <resource> | --path <api-path>] [--task <text>] [--entity k=v ...] [--entities '{\"k\":\"v\"}'] [--read-only] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]",
-    "",
-    "Plan the best interface, parameter bindings, safety status, and executable URL in one step.",
-    "Free-form --query is intentionally unsupported; agents must provide explicit structured planning fields.",
-    "",
-    "examples:",
-    "  intro resolve --env bitcoin --intent read.block.transactions --action read --resource blockTransactions --entity height=100 --read-only --format json",
-    "  intro resolve --env fractal --path \"/v1/public/fractal/supply\" --action read --resource fractalSupply --read-only --shell powershell",
-  ]);
-}
-
-function printIntroShowHelp() {
-  printCommandHelp([
-    "usage: intro show --path <api-path> [--format text|json]",
-    "",
-    "Show raw OpenAPI detail for a known interface path.",
-  ]);
-}
-
 function printApiCallHelp() {
   printCommandHelp([
     "usage: api call --path <api-path> [--env bitcoin|fractal] [--query-param k=v ...] [--path-param k=v ...] [--query \"a=1&b=2\"] [--path-params \"id=1\"] [--body '{\"x\":1}'] [--api-key <key>] [--format text|json]",
     "",
-    "Call a UniSat OpenAPI interface directly.",
+    "Call a UniSat OpenAPI interface directly. The path must already be known; this CLI does not match natural language to interfaces.",
     "Reads API key from --api-key first, then process env, then user config .env.",
     "",
     "examples:",
@@ -143,18 +111,6 @@ async function main() {
   }
 
   if (options.help) {
-    if (domain === "intro" && !action) {
-      printIntroHelp();
-      return;
-    }
-    if (domain === "intro" && action === "show") {
-      printIntroShowHelp();
-      return;
-    }
-    if (domain === "intro" && action === "resolve") {
-      printIntroResolveHelp();
-      return;
-    }
     if (domain === "config") {
       printConfigHelp();
       return;
@@ -197,57 +153,6 @@ async function main() {
       return;
     }
     process.exit(1);
-  }
-
-  if (domain === "intro" && action === "show") {
-    if (!options.path) {
-      fail("intro show requires --path");
-    }
-    printOutput(introShow(options.path), format);
-    return;
-  }
-
-  if (domain === "intro" && action === "resolve") {
-    if (options.query) {
-      fail("intro resolve no longer supports --query; provide --intent/--action/--resource or --path");
-    }
-    if (!options.path && !options.intent && !options.action && !options.resource) {
-      fail("intro resolve requires structured --intent/--action/--resource fields or --path");
-    }
-    const shell = options.shell || "powershell";
-    if (shell !== "powershell" && shell !== "bash") {
-      fail("intro resolve supports powershell or bash");
-    }
-    let entities = {};
-    try {
-      entities = {
-        ...parseJsonObject(options.entities, {}),
-        ...parseKeyValueEntries(options.entity),
-      };
-    } catch (error) {
-      fail(`invalid intro resolve entities: ${error.message}`);
-    }
-    printOutput(
-      introResolve({
-        task: options.task,
-        intent: options.intent,
-        action: options.action,
-        resource: options.resource,
-        entities,
-        preferences: {
-          readOnlyOnly: parseBooleanOption(options["read-only"]),
-          includeOptionalParams: parseBooleanOption(options["include-optional"]),
-          includeExecutableExample: !parseBooleanOption(options["no-example"]),
-          maxAlternatives: toInt(options.top, 5),
-        },
-        apiPath: options.path,
-        shell,
-        environment: options.env || DEFAULT_OPENAPI_ENVIRONMENT,
-        top: toInt(options.top, 5),
-      }),
-      format
-    );
-    return;
   }
 
   if (domain === "config" && (action === "bitcoin-key" || action === "fractal-key")) {

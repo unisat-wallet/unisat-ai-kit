@@ -1,6 +1,6 @@
 ---
 name: unisat-ai-kit-developer
-description: Distribution skill for developers using the UniSat AI Kit CLI and MCP server. Use it when a developer wants installation or usage help for UniSat OpenAPI discovery or MCP integration.
+description: Distribution skill for developers using the UniSat AI Kit CLI and MCP server. Use it when a developer wants installation or usage help for exact-path UniSat OpenAPI calls or MCP integration.
 ---
 
 # UniSat AI Kit Developer
@@ -8,9 +8,9 @@ description: Distribution skill for developers using the UniSat AI Kit CLI and M
 ## Use Cases
 
 - Install the UniSat AI Kit CLI and MCP server
-- Resolve UniSat OpenAPI interfaces from natural language
-- Show OpenAPI path details, parameters, and runnable examples
-- Connect UniSat AI Kit to Cursor, Codex, Claude, or another MCP runtime
+- Configure API keys for Bitcoin and Fractal OpenAPI environments
+- Call exact UniSat OpenAPI paths through the CLI
+- Connect the MCP server to Cursor, Codex, Claude, or another MCP runtime
 
 ## Install Priority
 
@@ -37,9 +37,8 @@ bash skills/unisat-ai-developer/scripts/install.sh
 # Doctor
 bash skills/unisat-ai-developer/scripts/doctor.sh
 
-# Use the CLI directly
-unisat-openapi-cli intro resolve --intent read.address.brc20Summary --action read --resource addressBrc20Summary --entity address=YOUR_ADDRESS --read-only --format json
-unisat-openapi-cli intro show --path "/v1/indexer/brc20/{ticker}/info" --format text
+# Use the CLI directly with an exact OpenAPI path
+unisat-openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
 unisat-openapi-cli api call --path "/v1/indexer/brc20/status" --query-param start=0 --query-param limit=1 --format json
 
 # Start the MCP server
@@ -49,7 +48,9 @@ unisat-openapi-mcp
 ## Working Rules
 
 - Prefer the installed `unisat-openapi-cli` and `unisat-openapi-mcp` instead of re-implementing logic inside the skill.
-- Current MCP tools are backed by repository-local OpenAPI swagger data.
+- The CLI only executes exact OpenAPI paths. It does not resolve natural language, recommend interfaces, or show interface details.
+- The MCP server exposes `get_status` and exact-path `call_api`.
+- Current CLI calls are backed by repository-local or bundled OpenAPI swagger data.
 - When the user asks how to configure MCP, run the install script first or print the config snippet it generates.
 - When the user reports capability issues, run `doctor.sh` first.
 

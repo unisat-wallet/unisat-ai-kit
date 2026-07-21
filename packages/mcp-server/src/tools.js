@@ -14,11 +14,8 @@ const {
   callApi,
   getConfiguredValue,
   getDotEnvPath,
+  getOpenApiDetail,
   getSwaggerContext,
-  introResolve,
-  introShow,
-  listAgentRules,
-  listOpenApiEnvironments,
 } = cliExports;
 
 function toToolResult(payload, isError = false) {
@@ -54,107 +51,34 @@ function getSwaggerStatus() {
   };
 }
 
-function hasApiKey(environment) {
-  if (typeof getConfiguredValue !== "function") {
-    return false;
-  }
-  return Boolean(getConfiguredValue(environment.apiKeyEnv));
-}
-
 const keyValueMapSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number(), z.boolean()]))]));
 const keyValueInputSchema = z.union([z.array(z.string()), keyValueMapSchema]);
-
-const plannerEntitiesSchema = z
-  .object({
-    address: z.string().optional(),
-    txid: z.string().optional(),
-    blockHash: z.string().optional(),
-    blockid: z.string().optional(),
-    height: z.union([z.string(), z.number()]).optional(),
-    ticker: z.string().optional(),
-    inscriptionId: z.string().optional(),
-    inscriptionid: z.string().optional(),
-    runeid: z.string().optional(),
-    alkaneid: z.string().optional(),
-    collectionId: z.string().optional(),
-    collectionid: z.string().optional(),
-    orderId: z.string().optional(),
-    orderid: z.string().optional(),
-    txHex: z.string().optional(),
-    txsHex: z.array(z.string()).optional(),
-    queryParams: keyValueMapSchema.optional(),
-    body: keyValueMapSchema.optional(),
-  })
-  .catchall(z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number(), z.boolean()]))]));
-
-const plannerPreferencesSchema = z
-  .object({
-    readOnlyOnly: z.boolean().describe("When true, the planner must not select non-GET or side-effect operations.").optional(),
-    includeOptionalParams: z.boolean().describe("When true, include optional query parameters in generated examples.").optional(),
-    includeExecutableExample: z.boolean().describe("When true, include an executable example or URL when the plan is safe and complete.").optional(),
-    maxAlternatives: z.number().int().min(0).max(10).describe("Number of alternative operations to include.").optional(),
-  })
-  .strict();
-
-const resolveApiSchema = z
-  .object({
-    task: z.string().describe("Optional English task description for traceability. Do not use this as the only planning signal.").optional(),
-    intent: z.string().describe("Required unless path is provided. Explicit dotted intent, for example read.block.transactions or write.transaction.broadcast.").optional(),
-    action: z.enum(["read", "write", "broadcast", "swap", "create", "unknown"]).describe("Required unless path is provided. Explicit action class. Use read for read-only user requests.").optional(),
-    resource: z.string().describe("Required unless path is provided. Explicit resource name, for example blockTransactions, addressBalance, chainFees, or rawTransactionBroadcast.").optional(),
-    entities: plannerEntitiesSchema.describe("Typed entities supplied by the Agent, such as address, txid, blockHash, height, ticker, or txHex.").optional(),
-    preferences: plannerPreferencesSchema.describe("Planning preferences and safety constraints for the Agent.").optional(),
-    path: z.string().describe("Exact OpenAPI path to resolve directly when the Agent already knows the interface.").optional(),
-    shell: z.enum(["powershell", "bash"]).describe("Shell style for generated example commands.").optional(),
-    environment: z.enum(["bitcoin", "fractal"]).describe("OpenAPI environment.").optional(),
-    top: z.number().int().min(0).max(10).describe("Number of alternatives to include.").optional(),
-  })
-  .strict();
-
-const showApiSchema = z
-  .object({
-    path: z.string().describe("Exact OpenAPI path, for example /v1/indexer/brc20/status."),
-  })
-  .strict();
-
 const getStatusSchema = z.object({}).strict();
-
-const listEnvironmentsSchema = z.object({}).strict();
-
-const listApiRulesSchema = z
-  .object({
-    domain: z.string().describe("Optional domain filter, for example brc20-swap or brc20-prog.").optional(),
-    path: z.string().describe("Optional exact OpenAPI path filter.").optional(),
-  })
-  .strict();
-
 const callApiSchema = z
   .object({
-    path: z.string().describe("Exact UniSat OpenAPI path to call."),
-    environment: z.enum(["bitcoin", "fractal"]).describe("OpenAPI environment.").optional(),
-    apiKey: z.string().describe("Optional API key. Prefer environment config for normal use.").optional(),
-    apiKeySource: z.string().describe("Optional label for where apiKey came from.").optional(),
-    query: z.string().describe("Query parameters as URL query string, for example address=...&cursor=0.").optional(),
-    queryParams: keyValueInputSchema
-      .describe("Query parameters as key=value entries or a JSON object. Prefer this field for MCP calls, for example [\"address=...\", \"cursor=0\"] or {\"address\": \"...\"}.")
-      .optional(),
-    pathParams: z.string().describe("Path parameters as URL query string, for example address=...&ticker=ordi.").optional(),
-    pathParamEntries: keyValueInputSchema
-      .describe("Path parameters as key=value entries or a JSON object. Prefer this field for MCP calls, for example [\"address=...\"] or {\"address\": \"...\"}.")
-      .optional(),
-    body: z.string().describe("JSON request body string for POST/PUT style APIs.").optional(),
-    confirm: z
-      .boolean()
-      .describe("Required as true for non-GET API calls after the user explicitly confirms the operation.")
-      .optional(),
+    path: z.string().describe("Exact OpenAPI path."),
+    environment: z.enum(["bitcoin", "fractal"]).optional(),
+    apiKey: z.string().optional(),
+    apiKeySource: z.string().optional(),
+    query: z.string().optional(),
+    queryParams: keyValueInputSchema.optional(),
+    pathParams: z.string().optional(),
+    pathParamEntries: keyValueInputSchema.optional(),
+    body: z.string().optional(),
+    confirm: z.boolean().optional(),
   })
   .strict();
+
+function configuredApiKey(environment) {
+  if (typeof getConfiguredValue !== "function") return "";
+  return getConfiguredValue(environment === "fractal" ? "UNISAT_FRACTAL_API_KEY" : "UNISAT_BITCOIN_API_KEY");
+}
 
 const toolDefinitions = [
   {
     name: "get_status",
     title: "Get Server Status",
-    description: "Return UniSat AI Kit MCP server, Node.js, CLI capability, swagger source, and tool status.",
+    description: "Return UniSat AI Kit MCP server status.",
     inputSchema: getStatusSchema,
     handler() {
       const payload = {
@@ -170,13 +94,7 @@ const toolDefinitions = [
           arch: process.arch,
         },
         cli: {
-          loaded: Boolean(introResolve && introShow && callApi),
-          capabilities: {
-            introResolve: typeof introResolve === "function",
-            introShow: typeof introShow === "function",
-            callApi: typeof callApi === "function",
-            listOpenApiEnvironments: typeof listOpenApiEnvironments === "function",
-          },
+          loaded: typeof callApi === "function",
         },
         swagger: getSwaggerStatus(),
         config: {
@@ -188,96 +106,13 @@ const toolDefinitions = [
     },
   },
   {
-    name: "list_environments",
-    title: "List OpenAPI Environments",
-    description: "List supported UniSat OpenAPI environments, base URLs, API key environment names, and key configuration status.",
-    inputSchema: listEnvironmentsSchema,
-    handler() {
-      const environments = typeof listOpenApiEnvironments === "function" ? listOpenApiEnvironments() : [];
-      const payload = {
-        command: "mcp.list_environments",
-        mode: "detail",
-        environments: environments.map((environment) => ({
-          name: environment.name,
-          label: environment.label,
-          baseUrl: environment.baseUrl,
-          apiKeyEnv: environment.apiKeyEnv,
-          apiKeyConfigured: hasApiKey(environment),
-        })),
-      };
-      return toToolResult(payload, environments.length === 0);
-    },
-  },
-  {
-    name: "list_api_rules",
-    title: "List Agent API Rules",
-    description: "List Agent-facing UniSat API rules that supplement OpenAPI, such as aliases, environment constraints, entity constraints, and parameter aliases.",
-    inputSchema: listApiRulesSchema,
-    handler(args) {
-      const rules = typeof listAgentRules === "function" ? listAgentRules({ domain: args.domain, path: args.path }) : {};
-      const payload = {
-        command: "mcp.list_api_rules",
-        mode: "detail",
-        filter: {
-          domain: args.domain,
-          path: args.path,
-        },
-        rules,
-      };
-      return toToolResult(payload, typeof listAgentRules !== "function");
-    },
-  },
-  {
-    name: "resolve_api",
-    title: "Plan API Call",
-    description:
-      "Plan a UniSat OpenAPI call for an AI agent. Requires explicit English structured planning fields: intent/action/resource, or an exact path. Free-form natural-language query is intentionally unsupported. Returns a validated API plan with selected operation, parameter bindings, safety status, alternatives, and next action. Use action=read and preferences.readOnlyOnly=true for read-only user requests. Use call_api only after the plan is executable or user confirmation is obtained.",
-    inputSchema: resolveApiSchema,
-    handler(args) {
-      if (Object.hasOwn(args, "query")) {
-        return toToolResult(
-          {
-            command: "intro.resolve",
-            mode: "unsupported_input",
-            message: "resolve_api no longer accepts query. Provide explicit intent/action/resource fields or an exact path.",
-            nextAction: "revise_task",
-          },
-          true
-        );
-      }
-      const payload = introResolve({
-        task: args.task,
-        intent: args.intent,
-        action: args.action,
-        resource: args.resource,
-        entities: args.entities,
-        preferences: args.preferences,
-        apiPath: args.path,
-        shell: args.shell || "powershell",
-        environment: args.environment || "bitcoin",
-        top: args.top ?? 5,
-      });
-      return toToolResult(payload, ["not_found", "structured_input_required", "unsupported_input", "unsafe_intent_mismatch"].includes(payload.mode));
-    },
-  },
-  {
-    name: "show_api",
-    title: "Show API Interface",
-    description: "Show raw OpenAPI detail for a known UniSat interface path.",
-    inputSchema: showApiSchema,
-    handler(args) {
-      const payload = introShow(args.path);
-      return toToolResult(payload, payload.mode === "not_found");
-    },
-  },
-  {
     name: "call_api",
     title: "Call OpenAPI Interface",
-    description: "Call a UniSat OpenAPI interface through the CLI capability layer. Non-GET calls require explicit user confirmation.",
+    description: "Call an exact UniSat OpenAPI path.",
     inputSchema: callApiSchema,
     async handler(args) {
-      const detail = typeof introShow === "function" ? introShow(args.path) : null;
-      if (!detail || detail.mode === "not_found") {
+      const detail = typeof getOpenApiDetail === "function" ? getOpenApiDetail(args.path) : null;
+      if (!detail) {
         return toToolResult(
           {
             command: "api.call",
@@ -287,6 +122,7 @@ const toolDefinitions = [
           true
         );
       }
+
       const method = String(detail.method || "").toUpperCase();
       if (method !== "GET" && args.confirm !== true) {
         return toToolResult(
@@ -296,22 +132,15 @@ const toolDefinitions = [
             path: args.path,
             method: detail.method,
             summary: detail.summary,
-            message: "This API call may have side effects. Ask the user to confirm before retrying with confirm=true.",
-            confirmation: {
-              required: true,
-              retryWith: {
-                confirm: true,
-              },
-            },
           },
           true
         );
       }
+
       const environment = args.environment || "bitcoin";
-      const apiKey = args.apiKey || (typeof getConfiguredValue === "function" ? getConfiguredValue(environment === "fractal" ? "UNISAT_FRACTAL_API_KEY" : "UNISAT_BITCOIN_API_KEY") : "");
       const payload = await callApi({
         apiPath: args.path,
-        apiKey,
+        apiKey: args.apiKey || configuredApiKey(environment),
         apiKeySource: args.apiKey ? args.apiKeySource || "mcp_argument" : "configured_environment",
         environment,
         query: args.query,
