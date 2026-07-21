@@ -237,8 +237,38 @@ const structuredPlannerCases = [
     expectedMode: "planned",
   },
   {
+    id: "planner-brc20-classic-ordi-info",
+    input: {
+      task: "查询 brc20 的 ordi 信息",
+      intent: "read.brc20.tickerInfo",
+      action: "read",
+      resource: "brc20TickerInfo",
+      environment: "bitcoin",
+      entities: { ticker: "ordi" },
+      preferences: { readOnlyOnly: true },
+    },
+    expectedPath: "/v1/indexer/brc20/{ticker}/info",
+    expectedMethod: "GET",
+    expectedMode: "planned",
+  },
+  {
+    id: "planner-brc20-prog-six-char-info",
+    input: {
+      intent: "read.brc20Prog.tickerInfo",
+      action: "read",
+      resource: "brc20ProgTickerInfo",
+      environment: "bitcoin",
+      entities: { ticker: "abcdef" },
+      preferences: { readOnlyOnly: true },
+    },
+    expectedPath: "/v1/indexer/brc20-prog/{ticker}/info",
+    expectedMethod: "GET",
+    expectedMode: "planned",
+  },
+  {
     id: "planner-brc20-swap-history-fractal",
     input: {
+      task: "查 inswap swap history",
       intent: "read.brc20Swap.swapHistory",
       action: "read",
       resource: "brc20SwapHistory",
@@ -249,6 +279,21 @@ const structuredPlannerCases = [
     expectedPath: "/v1/brc20-swap/swap_history",
     expectedMethod: "GET",
     expectedMode: "planned",
+  },
+  {
+    id: "planner-inscription-info-by-number",
+    input: {
+      intent: "read.inscription.info",
+      action: "read",
+      resource: "inscriptionInfo",
+      environment: "bitcoin",
+      entities: { inscriptionNumber: 12345 },
+      preferences: { readOnlyOnly: true },
+    },
+    expectedPath: "/v1/indexer/inscription/info/{inscriptionId}",
+    expectedMethod: "GET",
+    expectedMode: "planned",
+    expectedPathParams: { inscriptionId: 12345 },
   },
   {
     id: "planner-best-height",
@@ -672,6 +717,7 @@ function evaluateStructuredPlannerCases(existingPaths) {
     const rank = actualPath === testCase.expectedPath ? 1 : rankOfPath(payload, testCase.expectedPath);
     const modeMatch = payload?.mode === testCase.expectedMode;
     const bodyMatch = testCase.expectedBody ? objectIncludes(payload?.bindings?.body, testCase.expectedBody) : true;
+    const pathParamsMatch = testCase.expectedPathParams ? objectIncludes(payload?.bindings?.pathParams, testCase.expectedPathParams) : true;
     const methodMatch = actualPath === testCase.expectedPath && payload?.selected?.method === testCase.expectedMethod;
     const result = {
       id: testCase.id,
@@ -683,13 +729,14 @@ function evaluateStructuredPlannerCases(existingPaths) {
       rank,
       methodMatch,
       bodyMatch,
-      operationIdMatch: actualPath === testCase.expectedPath && payload?.selected?.operationId === expectedDetail.operationId && modeMatch && bodyMatch,
+      pathParamsMatch,
+      operationIdMatch: actualPath === testCase.expectedPath && payload?.selected?.operationId === expectedDetail.operationId && modeMatch && bodyMatch && pathParamsMatch,
       mode: payload?.mode,
       confidence: payload?.match?.confidence,
       score: payload?.match?.score,
     };
     addCaseResult(stats, result);
-    if ((!modeMatch || !bodyMatch) && !stats.failures.includes(result)) {
+    if ((!modeMatch || !bodyMatch || !pathParamsMatch) && !stats.failures.includes(result)) {
       stats.failures.push(result);
     }
   });

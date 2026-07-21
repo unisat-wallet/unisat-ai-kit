@@ -26,10 +26,12 @@ paths:
       tags:
         - Inscriptions
       operationId: getInscriptionInfo
-      summary: Get inscription info by inscriptionId
+      summary: Get inscription info by inscription id or inscription number
+      description: Get inscription metadata by inscription id. This path parameter also accepts an inscription number value.
       parameters:
         - name: inscriptionId
           in: path
+          description: Inscription id, or an inscription number accepted by this endpoint.
           required: true
           schema:
             type: string
@@ -58,10 +60,12 @@ paths:
       tags:
         - Inscriptions
       operationId: getInscriptionContent
-      summary: Get inscription content info by inscriptionId
+      summary: Get inscription content by inscription id
+      description: Get raw inscription content by inscription id. Use the info endpoint when querying by inscription number unless number support is explicitly confirmed for content.
       parameters:
         - name: inscriptionId
           in: path
+          description: Inscription id.
           required: true
           schema:
             type: string
@@ -139,7 +143,8 @@ paths:
       tags:
         - Inscriptions
       operationId: getInscriptionDataByAddress
-      summary: Get inscription UTXO list by address
+      summary: Get inscription data list by address
+      description: Get inscription records owned by an address. This returns inscription data records, not only UTXO records; use /v1/indexer/address/{address}/inscription-utxo-data for spendable inscription UTXO data.
       parameters:
         - name: address
           description: Address
@@ -271,7 +276,7 @@ paths:
       tags:
         - Inscriptions
       operationId: getAbandonNftUtxoDataByAddress
-      summary: Get abandon nft UTXO list by address
+      summary: Get abandoned inscription UTXO list by address
       description: |
         Returns the list of UTXOs for "abandoned inscriptions" for the given address. 
 

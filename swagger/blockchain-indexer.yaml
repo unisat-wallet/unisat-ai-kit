@@ -478,8 +478,8 @@ paths:
       tags:
         - Transactions
       operationId: getUtxoByTxIdAndIndex
-      summary: Get the UTXO by txid and index
-      description: Get the UTXO by txid and index.
+      summary: Get a UTXO by txid and output index
+      description: Get a specific transaction output (UTXO) by txid and output index (vout).
       parameters:
         - name: txid
           description: Tx id
@@ -488,7 +488,7 @@ paths:
           schema:
             type: string
         - name: index
-          description: Tx id
+          description: Transaction output index (vout) of the UTXO.
           in: path
           required: true
           schema:
@@ -552,7 +552,7 @@ paths:
         - Transactions
       operationId: localPushTx
       summary: Push rawtx to bitcoin node.
-      description: Push rawtx to bitcoin node.
+      description: Broadcast a signed raw transaction to the node. This POST operation has side effects and must only be executed after explicit user confirmation.
       requestBody:
         content:
           application/json:
@@ -586,7 +586,7 @@ paths:
         - Transactions
       operationId: localPushTxs
       summary: Push rawtxs to bitcoin node.
-      description: Push rawtxs to bitcoin node.
+      description: Broadcast multiple signed raw transactions to the node. This POST operation has side effects and must only be executed after explicit user confirmation.
       requestBody:
         content:
           application/json:

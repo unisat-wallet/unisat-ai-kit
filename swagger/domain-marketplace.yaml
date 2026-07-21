@@ -3,7 +3,7 @@ info:
   title: Ordinals Domain MarketPlace API
   version: 1.0.4
   description: >-
-    This API provides endpoints for ordinals domain marketplace services.
+    This API provides endpoints for Ordinals domain marketplace services, including domain type statistics, domain listing search, inscription details, activity history, and marketplace order workflows.
   contact:
     email: contact@unisat.io
   license:
@@ -20,8 +20,8 @@ paths:
   /v3/market/domain/auction/domain_types:
     post:
       operationId: getDomainTypes
-      summary: Get statistical data.
-      description: Get statistical data, price, market capitalization, etc. for domain.
+      summary: Get Ordinals domain marketplace type statistics.
+      description: Get domain marketplace statistics such as volume, price, and market data grouped by domain type.
       tags:
         - MarketPlace-Domain
       responses:
@@ -63,7 +63,7 @@ paths:
   /v3/market/domain/auction/domain_statistic:
     post:
       operationId: getDomainStatistic
-      summary: Return a summary of domain.
+      summary: Return marketplace statistics for a specified Ordinals domain type.
       tags:
         - MarketPlace-Domain
       requestBody:

@@ -3,9 +3,11 @@ info:
   title: BRC-20 API
   version: 1.0.4
   description: >-
-    BRC-20 API is a RESTful API for BRC-20 token data indexing and querying.
-    It provides endpoints to retrieve information about BRC-20 tokens, including
-    their status, holders, history, and more.
+    BRC-20 API is a RESTful API for classic BRC-20 token data indexing and querying.
+    It provides endpoints to retrieve information about classic BRC-20 tokens, including
+    their status, holders, history, and more. Use these endpoints for classic BRC-20
+    tickers such as ordi. Do not use these endpoints for BRC20-Prog 6-character tickers;
+    use /v1/indexer/brc20-prog/* endpoints for BRC20-Prog data.
   contact:
     email: contact@unisat.io
   license:
@@ -21,7 +23,7 @@ servers:
   - url: https://open-api-fractal-testnet.unisat.io
 tags:
   - name: BRC-20
-    description: BRC-20 (https://domo-2.gitbook.io/brc-20-experiment)
+    description: Classic BRC-20 token interfaces (https://domo-2.gitbook.io/brc-20-experiment). Use these endpoints for classic tickers such as ordi; use BRC20-Prog endpoints for 6-character BRC20-Prog tickers.
 paths:
   /v1/indexer/brc20/bestheight:
     get:
@@ -71,8 +73,8 @@ paths:
       tags:
         - BRC-20
       operationId: getBrc20TickerList
-      summary: Get the tiker list of BRC20 token.
-      description: Get the tiker list of BRC20 token.
+      summary: Get the ticker list of classic BRC-20 tokens.
+      description: Get the ticker list of classic BRC-20 tokens, such as ordi. BRC20-Prog 6-character tickers are listed by /v1/indexer/brc20-prog/list.
       parameters:
         - name: start
           description: Start offset
@@ -195,11 +197,11 @@ paths:
       tags:
         - BRC-20
       operationId: getBrc20InfoByTicker
-      summary: Get the infomation of BRC20 by ticker
-      description: Get the infomation of BRC20 by ticker.
+      summary: Get classic BRC-20 information by ticker
+      description: Get information for a classic BRC-20 ticker, such as ordi. Do not use this endpoint for BRC20-Prog 6-character tickers; use /v1/indexer/brc20-prog/{ticker}/info instead.
       parameters:
         - name: ticker
-          description: Token ticker
+          description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
           in: path
           required: true
           schema:
@@ -230,11 +232,11 @@ paths:
       tags:
         - BRC-20
       operationId: getBrc20HoldersByTicker
-      summary: Get the holders of BRC20 by ticker.
-      description: Get the holders of BRC20 by ticker.
+      summary: Get classic BRC-20 holders by ticker.
+      description: Get holder balances for a classic BRC-20 ticker. For BRC20-Prog holders, use /v1/indexer/brc20-prog/{ticker}/holders.
       parameters:
         - name: ticker
-          description: Token ticker
+          description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
           in: path
           required: true
           schema:
@@ -300,7 +302,7 @@ paths:
       description: Get the full history of BRC20.
       parameters:
         - name: ticker
-          description: Token ticker
+          description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
           in: path
           required: true
           schema:
@@ -371,11 +373,11 @@ paths:
       tags:
         - BRC-20
       operationId: getBrc20HistoryByTickerAndTxid
-      summary: Get the full history of BRC20 by address.
-      description: Get the full history of BRC20 by address.
+      summary: Get classic BRC-20 history by ticker and txid.
+      description: Get classic BRC-20 history records for the specified ticker and transaction id.
       parameters:
         - name: ticker
-          description: Token ticker
+          description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
           in: path
           required: true
           schema:
@@ -446,8 +448,8 @@ paths:
       tags:
         - BRC-20
       operationId: getBrc20HistoryByHeight
-      summary: Get the tiker list of BRC20 token by height.
-      description: Get the tiker list of BRC20 token.
+      summary: Get classic BRC-20 history records by block height.
+      description: Get classic BRC-20 history records indexed at the specified block height.
       parameters:
         - name: height
           description: Block Height
@@ -508,8 +510,9 @@ paths:
       operationId: getBrc20SummaryByAddress
       summary: Get the BRC20 token summary by address.
       description: >-
-        Obtain BRC20 token summary by address, including available balance,
-        transferable balance
+        Obtain classic BRC-20 token summary by address, including available balance,
+        transferable balance. This endpoint returns classic BRC-20 balances; use
+        /v1/indexer/address/{address}/brc20-prog/summary for BRC20-Prog balances.
       parameters:
         - name: address
           description: Address
@@ -603,8 +606,9 @@ paths:
       operationId: getBrc20SummaryByAddressAndHeight
       summary: Get the BRC20 token summary by address and height.
       description: >-
-        Obtain BRC20 token summary by address, including available balance,
-        transferable balance
+        Obtain classic BRC-20 token summary by address, including available balance,
+        transferable balance. This endpoint returns classic BRC-20 balances; use
+        /v1/indexer/address/{address}/brc20-prog/summary for BRC20-Prog balances.
       parameters:
         - name: address
           description: Address
@@ -690,7 +694,7 @@ paths:
           schema:
             type: string
         - name: ticker
-          description: Token ticker
+          description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
           in: path
           required: true
           schema:
@@ -811,7 +815,7 @@ paths:
           schema:
             type: string
         - name: ticker
-          description: Token ticker
+          description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
           in: path
           required: true
           schema:
@@ -886,7 +890,7 @@ paths:
           schema:
             type: string
         - name: ticker
-          description: Token ticker
+          description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
           in: path
           required: true
           schema:

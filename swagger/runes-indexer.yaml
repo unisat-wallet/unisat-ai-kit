@@ -3,8 +3,9 @@ info:
   title: Runes Indexer API
   version: 1.0.0
   description: >-
-    This is UniSat Wallet Open API. If you wish to use the OpenAPI, please feel
-    free to send us an email, and we will provide you with an API KEY.
+    Runes Indexer API is a RESTful API for indexing and querying Bitcoin Runes data.
+    It provides endpoints for Runes status, Rune list/search, Rune metadata, holders,
+    address balances, and transferable Rune UTXOs.
   contact:
     email: contact@unisat.io
   license:
@@ -51,16 +52,16 @@ paths:
       tags:
         - Runes
       operationId: getRunesList
-      summary: Get runes list
-      description: ""
+      summary: Get Rune list
+      description: "List or search Rune entries. Use the rune query parameter for a spaced Rune name such as DOG•GO•TO•THE•MOON; use /v1/indexer/runes/{runeid}/info when querying by Rune id."
       parameters:
         - name: rune
           in: query
-          description: "search by rune spacedRune"
+          description: "Search by spaced Rune name, for example DOG•GO•TO•THE•MOON."
           required: false
           schema:
             type: string
-            example: 0
+            example: "DOG•GO•TO•THE•MOON"
         - name: sort
           in: query
           description: "by (holders/transactions/timestamp)"
@@ -121,12 +122,12 @@ paths:
       tags:
         - Runes
       operationId: getRuneInfo
-      summary: Get rune info by runeid
-      description: ""
+      summary: Get Rune metadata by Rune id
+      description: "Get detailed metadata for a Rune by Rune id, for example 840000:3. Use the info-list endpoint when querying by spaced Rune name."
       parameters:
         - name: runeid
           in: path
-          description: ""
+          description: "Rune id in block:tx format, for example 840000:3."
           required: true
           schema:
             type: string
@@ -152,12 +153,12 @@ paths:
       tags:
         - Runes
       operationId: getRuneHolders
-      summary: Get runes holders by runeid
-      description: ""
+      summary: Get Rune holders by Rune id
+      description: "Get holder addresses and balances for the specified Rune id."
       parameters:
         - name: runeid
           in: path
-          description: ""
+          description: "Rune id in block:tx format, for example 840000:3."
           required: true
           schema:
             type: string
@@ -208,12 +209,12 @@ paths:
       tags:
         - Runes
       operationId: getRunesBalanceList
-      summary: Get runes balance list by address
-      description: ""
+      summary: Get Rune balance list by address
+      description: "Get all Rune balances held by a Bitcoin address."
       parameters:
         - name: address
           in: path
-          description: ""
+          description: "Bitcoin address."
           required: true
           schema:
             type: string
@@ -261,18 +262,18 @@ paths:
       tags:
         - Runes
       operationId: getRunesBalance
-      summary: Get runes balance by address and runeid
-      description: ""
+      summary: Get a Rune balance by address and Rune id
+      description: "Get the balance of a specific Rune for a Bitcoin address."
       parameters:
         - name: address
           in: path
-          description: ""
+          description: "Bitcoin address."
           required: true
           schema:
             type: string
         - name: runeid
           in: path
-          description: ""
+          description: "Rune id in block:tx format, for example 840000:3."
           required: true
           schema:
             type: string
@@ -348,7 +349,7 @@ paths:
             type: string
         - name: runeid
           in: path
-          description: ""
+          description: "Rune id in block:tx format, for example 840000:3."
           required: true
           schema:
             type: string

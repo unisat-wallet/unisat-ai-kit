@@ -3,7 +3,7 @@ info:
   title: Runes MarketPlace API
   version: 1.0.4
   description: >-
-    This API provides endpoints for runes marketplace services
+    This API provides endpoints for Runes marketplace services, including Rune market statistics, listing search, price information, activity history, and marketplace order workflows.
   contact:
     email: contact@unisat.io
   license:
@@ -22,8 +22,8 @@ paths:
   /v3/market/runes/auction/runes_types:
     post:
       operationId: getRunesTypes
-      summary: Get statistical data.
-      description: Get statistical data, price, market capitalization, etc. for runes.
+      summary: Get Runes marketplace statistics.
+      description: Get Runes marketplace statistics such as price, market capitalization, volume, holders, and transaction counts.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -169,7 +169,7 @@ paths:
   /v3/market/runes/auction/list:
     post:
       operationId: getRunesAuctionList
-      summary: Retrieve the list information of the market.
+      summary: Retrieve Runes marketplace listing information.
       tags:
         - MarketPlace-Runes
       requestBody:

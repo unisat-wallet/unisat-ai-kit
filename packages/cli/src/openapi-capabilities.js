@@ -8,6 +8,7 @@ const {
   getSwaggerContext,
 } = require("./openapi-utils");
 const { CAPABILITY_OVERRIDES } = require("./openapi-capability-overrides");
+const { getRulesForCapability, listAgentRules } = require("./openapi-agent-rules");
 
 let capabilityCache = null;
 
@@ -18,6 +19,7 @@ function normalizeToken(value) {
 function inferDomainFromPath(apiPath, file, tags = []) {
   const text = `${apiPath} ${file} ${tags.join(" ")}`.toLowerCase();
   if (text.includes("brc20-swap")) return "brc20-swap";
+  if (text.includes("brc20-prog")) return "brc20-prog";
   if (text.includes("brc20")) return "brc20";
   if (text.includes("runes")) return "runes";
   if (text.includes("alkanes")) return "alkanes";
@@ -99,8 +101,7 @@ function buildCapability(operation) {
   const action = override.action || inferAction(method, operation.path);
   const resource = override.resource || inferResource(operation.path, operation.summary, domain);
   const sideEffect = override.sideEffect || inferSideEffect(action, method);
-
-  return {
+  const baseCapability = {
     operationId: detail.operationId,
     method,
     path: operation.path,
@@ -124,12 +125,20 @@ function buildCapability(operation) {
       optionalEntities: override.optionalEntities || [],
       defaultQueryParams: override.defaultQueryParams || {},
       parameterEntityMap: override.parameterEntityMap || {},
+      entityConstraints: override.entityConstraints || {},
     },
     agentUsage: {
       useWhen: override.useWhen || [],
       doNotUseWhen: override.doNotUseWhen || [],
     },
   };
+  const agentRules = getRulesForCapability(baseCapability);
+  const environmentRule = agentRules.domainRules.find((rule) => Array.isArray(rule.allowedEnvironments));
+  if (!override.environments && environmentRule) {
+    baseCapability.capability.environments = environmentRule.allowedEnvironments;
+  }
+  baseCapability.agentRules = agentRules;
+  return baseCapability;
 }
 
 function listOpenApiCapabilities() {
@@ -158,5 +167,6 @@ function getOpenApiCapability(apiPath) {
 
 module.exports = {
   getOpenApiCapability,
+  listAgentRules,
   listOpenApiCapabilities,
 };

@@ -71,9 +71,9 @@ paths:
       tags:
         - Fractal
       operationId: getFractalTotalAddress
-      summary: Get total address
+      summary: Get total Fractal address count
       description: >-
-        Retrieves the total number of addresses in the Fractal network.
+        Retrieves the total number of addresses in the Fractal network. This endpoint is Fractal-only and does not return Bitcoin mainnet address statistics.
       responses:
         "200":
           description: Successful operation
@@ -96,9 +96,9 @@ paths:
       tags:
         - Fractal
       operationId: getFractalRichList
-      summary: Get address rich list
+      summary: Get Fractal FB address rich list
       description: >-
-        Retrieves a list of addresses sorted by their balance in descending order.
+        Retrieves a Fractal-only list of addresses sorted by FB balance in descending order. This endpoint should not be used for Bitcoin mainnet address balance queries.
       parameters:
         - name: cursor
           description: Start offset

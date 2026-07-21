@@ -3,7 +3,7 @@ info:
   title: Ordinals Collection MarketPlace API
   version: 1.0.4
   description: >-
-    This API provides endpoints for ordinals collection marketplace services
+    This API provides endpoints for Ordinals collection marketplace services, including collection statistics, listing search, address collection summaries, inscription listing details, order preparation, and order submission.
   contact:
     email: contact@unisat.io
   license:
@@ -20,7 +20,7 @@ paths:
   /v3/market/collection/auction/collection_statistic:
     post:
       operationId: getCollectionStatistic
-      summary: Return a summary of collection.
+      summary: Return marketplace statistics for a specific Ordinals collection.
       tags:
         - MarketPlace-Collection
       requestBody:
@@ -96,7 +96,7 @@ paths:
   /v3/market/collection/auction/collection_statistic_list:
     post:
       operationId: getCollectionStatisticList
-      summary: Return a summary of collection.
+      summary: Return marketplace statistics list for Ordinals collections.
       tags:
         - MarketPlace-Collection
       requestBody:

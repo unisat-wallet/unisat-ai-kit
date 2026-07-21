@@ -3,9 +3,10 @@ info:
   title: BRC20 Swap API
   version: 1.0.4
   description: >-
-    BRC20 Swap API provides a set of interfaces for BRC20 Swap and InSwap services.
+    BRC20 Swap API provides a set of Fractal-only interfaces for BRC20 Swap and InSwap services.
+    BRC20 Swap and InSwap are equivalent product names; user requests that mention InSwap should be routed to these /v1/brc20-swap/* endpoints.
     It allows users to interact with the BRC20 Swap ecosystem, including balance checks,
-    pool information, liquidity management, and token transfers.
+    pool information, liquidity management, quote/preparation steps, liquidity operations, swap operations, and token transfers.
   contact:
     email: contact@unisat.io
   license:
@@ -15,7 +16,7 @@ servers:
   - url: https://open-api-fractal.unisat.io
 tags:
   - name: brc20-swap
-    description: BRC20 Swap and InSwap Service
+    description: Fractal-only BRC20 Swap / InSwap service. InSwap is an alias of BRC20 Swap.
 paths:
   /v1/brc20-swap/config:
     get:
@@ -24,7 +25,7 @@ paths:
       operationId: getBrc20SwapConfig
       summary: Swap's global configuration information.
       description: >-
-        This interface provides the global configuration information for the BRC20 Swap service.
+        This Fractal-only interface provides the global configuration information for the BRC20 Swap / InSwap service.
         It includes details such as the module ID, service gas tick, and pending deposit confirmation numbers.
       responses:
         "200":
@@ -546,8 +547,8 @@ paths:
       operationId: getBrc20SwapPreAddLiq
       summary: Prepare add liquidity operation
       description: >-
-        This interface pre-loads the /add_liq operation, providing the signature content,
-        gas, and byte information required for adding liquidity in the BRC20 Swap service.
+        This Fractal-only read endpoint prepares the /add_liq operation by providing signature content,
+        gas, and byte information required for adding liquidity in the BRC20 Swap / InSwap service. It is the preparation step before the state-changing POST /add_liq call.
 
       parameters:
         - schema:
@@ -691,8 +692,8 @@ paths:
       operationId: postBrc20SwapAddLiq
       summary: Add the liquidity operation
       description: >-
-        This interface adds liquidity to a pool in the BRC20 Swap service. It requires the address,
-        tick0, tick1, amounts, LP, slippage, timestamp, fee tick, and user signatures to complete the operation.
+        This Fractal-only POST endpoint submits an add-liquidity operation to a BRC20 Swap / InSwap pool. It requires the address,
+        tick0, tick1, amounts, LP, slippage, timestamp, fee tick, and user signatures from the preparation step. This operation changes state and must only be executed after explicit user confirmation.
       requestBody:
         content:
           application/json:
@@ -1301,8 +1302,8 @@ paths:
       operationId: getBrc20SwapPreSwap
       summary: Prepare swap operation
       description: >-
-        This interface pre-loads the /swap operation, providing the signature content,
-        gas, and byte information required for swapping ticks in the BRC20 Swap service.
+        This Fractal-only read endpoint prepares the /swap operation by providing signature content,
+        gas, and byte information required for swapping ticks in the BRC20 Swap / InSwap service. It is the preparation step after quoting and before the state-changing POST /swap call.
       parameters:
         - schema:
             type: string
@@ -1592,9 +1593,9 @@ paths:
       operationId: postBrc20SwapSwap
       summary: The swap operation.
       description: >-
-        This interface swaps ticks in the BRC20 Swap service. It requires the address, input tick,
+        This Fractal-only POST endpoint submits a swap operation in the BRC20 Swap / InSwap service. It requires the address, input tick,
         output tick, input amount, output amount, slippage, exact type, timestamp, fee tick,
-        and user signatures to complete the operation.
+        and user signatures from the preparation step. This operation changes state and must only be executed after explicit user confirmation.
       requestBody:
         content:
           application/json:
@@ -3153,7 +3154,9 @@ paths:
       tags:
         - brc20-swap
       operationId: getBrc20SwapQuoteSwap
-      summary: Returns the estimated number of swaps based on the input and exact type.
+      summary: Quote a Fractal BRC20 Swap / InSwap token swap.
+      description: >-
+        Fractal-only read endpoint that estimates swap output or required input for BRC20 Swap / InSwap. This endpoint only returns a quote and does not create a transaction; use /pre_swap to prepare the swap operation and POST /swap to submit it after user confirmation.
       parameters:
         - schema:
             type: string
@@ -3222,7 +3225,9 @@ paths:
       tags:
         - brc20-swap
       operationId: getBrc20SwapQuoteAddLiq
-      summary: Based on the pair to get the actual addition ratio, LP number and other information.
+      summary: Quote adding liquidity to a Fractal BRC20 Swap / InSwap pool.
+      description: >-
+        Fractal-only read endpoint that estimates the real token amounts, LP amount, and pool share for adding liquidity. This endpoint only returns a quote and does not create a transaction; use /pre_add_liq to prepare and POST /add_liq to submit after user confirmation.
       parameters:
         - schema:
             type: string
@@ -3300,7 +3305,9 @@ paths:
       tags:
         - brc20-swap
       operationId: getBrc20SwapQuoteRemoveLiq
-      summary: Estimate the number of ticks you can get by typing LP.
+      summary: Quote removing liquidity from a Fractal BRC20 Swap / InSwap pool.
+      description: >-
+        Fractal-only read endpoint that estimates the token amounts returned for an LP amount. This endpoint only returns a quote and does not create a transaction; use /pre_remove_liq to prepare and POST /remove_liq to submit after user confirmation.
       parameters:
         - schema:
             type: string

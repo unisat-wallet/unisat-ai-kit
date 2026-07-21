@@ -48,8 +48,8 @@ paths:
       tags:
         - Alkanes
       operationId: getAlkanesInfoList
-      summary: Get alkanes list
-      description: ""
+      summary: Get Alkanes asset list
+      description: "List or search Alkanes assets across token, collection, NFT, and contract types."
       parameters:
         - name: type
           in: query
@@ -121,12 +121,12 @@ paths:
       tags:
         - Alkanes
       operationId: getAlkanesInfo
-      summary: Get alkane info by alkaneid
-      description: ""
+      summary: Get Alkane asset information by alkaneid
+      description: "Get detailed metadata for a specific Alkane asset by alkaneid, for example 2:1."
       parameters:
         - name: alkaneid
           in: path
-          description: ""
+          description: "Alkane id in block:tx format, for example 2:1."
           required: true
           schema:
             type: string
@@ -152,8 +152,8 @@ paths:
       tags:
         - Alkanes
       operationId: getAlkanesTokenList
-      summary: Get alkanes token list
-      description: ""
+      summary: Get Alkanes token list
+      description: "List or search fungible Alkanes token assets by alkaneid or name."
       parameters:
         - name: alkaneid
           in: query
@@ -231,12 +231,12 @@ paths:
       tags:
         - Alkanes
       operationId: getAlkanesHolders
-      summary: Get alkanes holders by alkaneid
-      description: ""
+      summary: Get Alkanes holders by alkaneid
+      description: "Get holder addresses and balances for a specific Alkane token or asset by alkaneid."
       parameters:
         - name: alkaneid
           in: path
-          description: ""
+          description: "Alkane id in block:tx format, for example 2:1."
           required: true
           schema:
             type: string

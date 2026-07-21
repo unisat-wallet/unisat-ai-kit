@@ -17,6 +17,7 @@ const {
   getSwaggerContext,
   introResolve,
   introShow,
+  listAgentRules,
   listOpenApiEnvironments,
 } = cliExports;
 
@@ -120,6 +121,13 @@ const getStatusSchema = z.object({}).strict();
 
 const listEnvironmentsSchema = z.object({}).strict();
 
+const listApiRulesSchema = z
+  .object({
+    domain: z.string().describe("Optional domain filter, for example brc20-swap or brc20-prog.").optional(),
+    path: z.string().describe("Optional exact OpenAPI path filter.").optional(),
+  })
+  .strict();
+
 const callApiSchema = z
   .object({
     path: z.string().describe("Exact UniSat OpenAPI path to call."),
@@ -198,6 +206,25 @@ const toolDefinitions = [
         })),
       };
       return toToolResult(payload, environments.length === 0);
+    },
+  },
+  {
+    name: "list_api_rules",
+    title: "List Agent API Rules",
+    description: "List Agent-facing UniSat API rules that supplement OpenAPI, such as aliases, environment constraints, entity constraints, and parameter aliases.",
+    inputSchema: listApiRulesSchema,
+    handler(args) {
+      const rules = typeof listAgentRules === "function" ? listAgentRules({ domain: args.domain, path: args.path }) : {};
+      const payload = {
+        command: "mcp.list_api_rules",
+        mode: "detail",
+        filter: {
+          domain: args.domain,
+          path: args.path,
+        },
+        rules,
+      };
+      return toToolResult(payload, typeof listAgentRules !== "function");
     },
   },
   {

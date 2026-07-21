@@ -1,5 +1,6 @@
 const { buildRequestPlan } = require("./openapi-request");
 const { DEFAULT_OPENAPI_ENVIRONMENT } = require("./openapi-environments");
+const { findDomainAliases } = require("./openapi-agent-rules");
 const { getOpenApiCapability, listOpenApiCapabilities } = require("./openapi-capabilities");
 
 const DEFAULT_PAGE_PARAM_VALUES = {
@@ -51,7 +52,7 @@ function buildTaskFrame(input = {}) {
   };
 }
 
-function getEntityValue(taskFrame, entityName) {
+function getEntityValue(taskFrame, entityName, extraAliases = []) {
   const entities = taskFrame.entities || {};
   const aliases = {
     blockHash: ["blockHash", "blockid", "blockId"],
@@ -61,7 +62,7 @@ function getEntityValue(taskFrame, entityName) {
     txHex: ["txHex", "rawTx", "rawtx"],
     txsHex: ["txsHex", "rawTxs", "rawtxs"],
   };
-  const keys = aliases[entityName] || [entityName];
+  const keys = Array.from(new Set([...(aliases[entityName] || [entityName]), ...extraAliases]));
   const key = keys.find((item) => Object.hasOwn(entities, item));
   return key ? entities[key] : undefined;
 }
@@ -71,8 +72,74 @@ function entityProvided(taskFrame, entityName) {
   return value !== undefined && value !== null && value !== "";
 }
 
+function capabilityEntityAliases(capability, entityName) {
+  return (capability.agentRules?.parameterRules || [])
+    .filter((rule) => (rule.acceptsEntities || []).includes(entityName) || rule.parameter === entityName)
+    .flatMap((rule) => rule.acceptsEntities || []);
+}
+
+function capabilityEntityProvided(capability, taskFrame, entityName) {
+  const value = getEntityValue(taskFrame, entityName, capabilityEntityAliases(capability, entityName));
+  return value !== undefined && value !== null && value !== "";
+}
+
+function matchesLengthConstraint(value, constraint = {}) {
+  const text = String(value || "").trim();
+  if (constraint.minLength !== undefined && text.length < constraint.minLength) return false;
+  if (constraint.maxLength !== undefined && text.length > constraint.maxLength) return false;
+  return true;
+}
+
+function ruleMessage(rule, message) {
+  return {
+    id: rule.id,
+    type: rule.type,
+    message,
+    description: rule.description,
+  };
+}
+
+function scoreAgentRules(capability, taskFrame, add) {
+  const applied = [];
+  const warnings = [];
+  const downranked = [];
+  const rules = capability.agentRules || {};
+  const cap = capability.capability;
+
+  (rules.domainRules || []).forEach((rule) => {
+    if (!Array.isArray(rule.allowedEnvironments)) return;
+    if (rule.allowedEnvironments.includes(taskFrame.environment)) {
+      add(35, `agent rule ${rule.id}: supports constrained environment ${taskFrame.environment}`);
+      applied.push(ruleMessage(rule, `Environment ${taskFrame.environment} satisfies ${rule.description}`));
+      return;
+    }
+    add(-260, `agent rule ${rule.id}: environment ${taskFrame.environment} is not allowed`);
+    downranked.push(ruleMessage(rule, `Environment ${taskFrame.environment} is not allowed for ${cap.domain}; allowed: ${rule.allowedEnvironments.join(", ")}.`));
+  });
+
+  (rules.entityRules || []).forEach((rule) => {
+    const value = getEntityValue(taskFrame, rule.entity);
+    if (value === undefined || value === null || value === "") return;
+    if (matchesLengthConstraint(value, rule.constraints)) {
+      add(45, `agent rule ${rule.id}: ${rule.entity} matches constraints`);
+      applied.push(ruleMessage(rule, `${rule.entity}=${value} matches ${rule.description}`));
+      return;
+    }
+    const penalty = rule.effect === "exclude_on_mismatch" ? -260 : -80;
+    add(penalty, `agent rule ${rule.id}: ${rule.entity} violates constraints`);
+    downranked.push(ruleMessage(rule, `${rule.entity}=${value} violates ${rule.description}`));
+  });
+
+  findDomainAliases(taskFrame.task, cap.domain).forEach((rule) => {
+    add(40, `agent rule ${rule.id}: matched domain alias`);
+    applied.push(ruleMessage(rule, `Task text uses an alias for ${cap.domain}.`));
+  });
+
+  return { applied, warnings, downranked };
+}
+
 function scoreCapability(capability, taskFrame) {
-  const result = { score: 0, reasons: [] };
+  const result = { score: 0, reasons: [], agentRules: { applied: [], warnings: [], downranked: [] } };
   const cap = capability.capability;
 
   function add(points, reason) {
@@ -111,7 +178,7 @@ function scoreCapability(capability, taskFrame) {
 
   const requiredEntities = cap.requiredEntities || [];
   requiredEntities.forEach((entity) => {
-    if (entityProvided(taskFrame, entity)) {
+    if (capabilityEntityProvided(capability, taskFrame, entity)) {
       add(22, `provided required entity ${entity}`);
     } else {
       add(-18, `missing required entity ${entity}`);
@@ -126,6 +193,7 @@ function scoreCapability(capability, taskFrame) {
     }
   });
 
+  result.agentRules = scoreAgentRules(capability, taskFrame, add);
   return result;
 }
 
@@ -138,10 +206,19 @@ function findCandidates(taskFrame, explicitPath) {
         ...capability,
         score: scored.score,
         whyMatched: Array.from(new Set(scored.reasons)),
+        appliedAgentRules: scored.agentRules.applied,
+        agentRuleWarnings: scored.agentRules.warnings,
+        downrankedByAgentRules: scored.agentRules.downranked,
       };
     })
     .filter((candidate) => explicitPath || candidate.score > 0)
     .sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
+}
+
+function parameterRuleAliases(parameter, capability) {
+  return (capability.agentRules?.parameterRules || [])
+    .filter((rule) => rule.parameter === parameter.name)
+    .flatMap((rule) => rule.acceptsEntities || []);
 }
 
 function parameterEntityName(parameter, capability) {
@@ -167,7 +244,7 @@ function buildQueryParamOverrides(capability, taskFrame) {
     .filter((parameter) => parameter.in === "query")
     .forEach((parameter) => {
       const entityName = parameterEntityName(parameter, capability);
-      const value = getEntityValue(taskFrame, entityName);
+      const value = getEntityValue(taskFrame, entityName, parameterRuleAliases(parameter, capability));
       if (value !== undefined) overrides[parameter.name] = value;
       if (parameter.required && overrides[parameter.name] === undefined && DEFAULT_PAGE_PARAM_VALUES[parameter.name] !== undefined) {
         overrides[parameter.name] = DEFAULT_PAGE_PARAM_VALUES[parameter.name];
@@ -206,12 +283,20 @@ function buildBodyBinding(capability, taskFrame) {
 function bindParams(capability, taskFrame) {
   const missing = [];
   const pathParams = {};
+  const bindingAgentRules = [];
 
   capability.parameters
     .filter((parameter) => parameter.in === "path")
     .forEach((parameter) => {
       const entityName = parameterEntityName(parameter, capability);
-      const value = getEntityValue(taskFrame, entityName);
+      const aliases = parameterRuleAliases(parameter, capability);
+      const directValue = getEntityValue(taskFrame, entityName);
+      const value = getEntityValue(taskFrame, entityName, aliases);
+      if ((directValue === undefined || directValue === null || directValue === "") && value !== undefined && value !== null && value !== "") {
+        (capability.agentRules?.parameterRules || [])
+          .filter((rule) => rule.parameter === parameter.name)
+          .forEach((rule) => bindingAgentRules.push(ruleMessage(rule, `Bound alternate entity to path parameter ${parameter.name}.`)));
+      }
       if (value === undefined || value === null || value === "") {
         missing.push({ kind: entityName, requiredBy: `pathParams.${parameter.name}` });
         return;
@@ -220,14 +305,14 @@ function bindParams(capability, taskFrame) {
     });
 
   (capability.capability.requiredEntities || []).forEach((entity) => {
-    if (!entityProvided(taskFrame, entity) && !missing.some((item) => item.kind === entity)) {
+    if (!capabilityEntityProvided(capability, taskFrame, entity) && !missing.some((item) => item.kind === entity)) {
       missing.push({ kind: entity, requiredBy: "entities" });
     }
   });
 
   const queryParams = buildQueryParamOverrides(capability, taskFrame);
   const body = buildBodyBinding(capability, taskFrame);
-  return { pathParams, queryParams, body, missing };
+  return { pathParams, queryParams, body, missing, agentRules: bindingAgentRules };
 }
 
 function planModeFor(capability, binding, taskFrame) {
@@ -312,6 +397,12 @@ function buildPlanResult(capability, binding, taskFrame, alternatives) {
       confidence: capability.score >= 100 ? "high" : capability.score >= 40 ? "medium" : "low",
       whyMatched: capability.whyMatched,
     },
+    agentRules: {
+      attached: capability.agentRules,
+      applied: [...(capability.appliedAgentRules || []), ...(binding.agentRules || [])],
+      warnings: capability.agentRuleWarnings || [],
+      downranked: capability.downrankedByAgentRules || [],
+    },
     parameters: {
       pathParams: capability.parameters.filter((item) => item.in === "path"),
       queryParams: capability.parameters.filter((item) => item.in === "query"),
@@ -342,6 +433,12 @@ function toAlternative(candidate) {
     capabilityConfidence: candidate.capabilityConfidence,
     score: candidate.score,
     whyMatched: candidate.whyMatched,
+    agentRules: {
+      attached: candidate.agentRules,
+      applied: candidate.appliedAgentRules || [],
+      warnings: candidate.agentRuleWarnings || [],
+      downranked: candidate.downrankedByAgentRules || [],
+    },
   };
 }
 

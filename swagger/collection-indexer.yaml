@@ -3,7 +3,7 @@ info:
   title: Collection Indexer API
   version: 1.0.4
   description: >-
-    This is the API for collections. Currently, it only indexes a single whitelisted collection.
+    Collection Indexer API provides read-only collection indexing endpoints for collection status, collection details, holders, address collection summaries, and collection item ownership. It is separate from marketplace listing and order APIs.
   contact:
     email: contact@unisat.io
   license:

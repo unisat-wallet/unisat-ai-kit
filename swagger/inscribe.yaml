@@ -3,8 +3,7 @@ info:
   title: Inscribe API
   version: 1.0.0
   description: >-
-    This is UniSat Wallet Open API. If you wish to use the OpenAPI, please feel
-    free to send us an email, and we will provide you with an API KEY.
+    Inscribe API provides order-based inscription workflows, including reading order summaries and status, creating inscription orders, and checking fees. Order creation endpoints are POST operations that create payment/order state and require explicit user confirmation before execution.
   contact:
     email: contact@unisat.io
   license:
@@ -177,7 +176,7 @@ paths:
         - Inscribe
       operationId: createOrder
       summary: Create an order
-      description: Create an order to inscribe something
+      description: Create an inscription order. This POST operation creates order/payment state and must only be executed after explicit user confirmation.
       requestBody:
         content:
           application/json:
