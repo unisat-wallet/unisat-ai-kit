@@ -33,6 +33,16 @@ function printOutput(payload, format) {
       return;
     }
 
+    if (payload.mode === "plan") {
+      console.log(`${payload.method.toUpperCase()} ${payload.path}`);
+      if (payload.environment) {
+        console.log(`environment: ${payload.environment}${payload.environmentLabel ? ` (${payload.environmentLabel})` : ""}`);
+      }
+      console.log(`url: ${payload.url}`);
+      console.log("dry-run: no network request was sent");
+      return;
+    }
+
     console.log(`${payload.method.toUpperCase()} ${payload.path}`);
     if (payload.environment) {
       console.log(`environment: ${payload.environment}${payload.environmentLabel ? ` (${payload.environmentLabel})` : ""}`);
@@ -46,6 +56,68 @@ function printOutput(payload, format) {
     }
     console.log(JSON.stringify(payload.response.body, null, 2));
     return;
+  }
+
+  if (payload.command === "commands") {
+    if (payload.pagination) {
+      console.log(`showing ${payload.pagination.count} of ${payload.pagination.total} command(s)`);
+      if (!payload.pagination.all) {
+        console.log(`start: ${payload.pagination.start}, limit: ${payload.pagination.limit}`);
+      }
+      if (payload.pagination.nextCommand) {
+        console.log(`next: ${payload.pagination.nextCommand}`);
+      }
+      console.log("");
+    }
+    if (Array.isArray(payload.items)) {
+      payload.items.forEach((item) => {
+        console.log(`${item.commandName} - ${item.summary || item.path}`);
+      });
+    }
+    return;
+  }
+
+  if (payload.operation) {
+    if (payload.mode === "missing_required_params") {
+      console.error(`missing required params for ${payload.command}`);
+      const missing = [...(payload.missing?.pathParams || []), ...(payload.missing?.queryParams || [])];
+      if (payload.missing?.body) {
+        missing.push("body");
+      }
+      if (missing.length > 0) {
+        console.error(`missing: ${missing.join(", ")}`);
+      }
+      if (payload.nextAction) {
+        console.error(payload.nextAction);
+      }
+      return;
+    }
+
+    if (payload.mode === "plan") {
+      console.log(`${payload.operation.method.toUpperCase()} ${payload.operation.path}`);
+      console.log(`command: ${payload.command}`);
+      console.log(`url: ${payload.request.url}`);
+      if (payload.example) {
+        console.log(`example: ${payload.example}`);
+      }
+      return;
+    }
+
+    if (payload.response) {
+      console.log(`${payload.operation.method.toUpperCase()} ${payload.operation.path}`);
+      console.log(`command: ${payload.command}`);
+      if (payload.url) {
+        console.log(`url: ${payload.url}`);
+      }
+      console.log(`status: ${payload.response.status} ${payload.response.statusText}`);
+      console.log("");
+      if (typeof payload.response.body === "string") {
+        console.log(payload.response.body);
+        return;
+      }
+      console.log(JSON.stringify(payload.response.body, null, 2));
+      return;
+    }
   }
 
   if (payload.command === "config.bitcoin-key" || payload.command === "config.fractal-key") {

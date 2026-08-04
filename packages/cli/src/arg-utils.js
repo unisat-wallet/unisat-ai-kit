@@ -4,6 +4,14 @@ function parseArgs(argv) {
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
+    if (token === "-h") {
+      pushOption(options, "help", "true");
+      continue;
+    }
+    if (token === "-v") {
+      pushOption(options, "version", "true");
+      continue;
+    }
     if (!token.startsWith("--")) {
       positionals.push(token);
       continue;

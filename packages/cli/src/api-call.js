@@ -53,17 +53,7 @@ function selectParsedParams(primary, fallback) {
   return parseKeyValueString(fallback);
 }
 
-async function callApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body, clientSource = "cli" }) {
-  if (!apiKey) {
-    return {
-      command: "api.call",
-      mode: "missing_api_key",
-      environment,
-      message: `API key is not configured. Provide --api-key <key> or set the environment-specific key before running api call. If you have not registered an API key yet, register at ${DEVELOPER_PORTAL_URL}`,
-      developerPortalUrl: DEVELOPER_PORTAL_URL,
-    };
-  }
-
+async function callApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body, dryRun = false, clientSource = "cli" }) {
   const plan = buildRequestPlan(apiPath, {
     environment,
     queryParams: selectParsedParams(queryParamsList, query),
@@ -101,6 +91,44 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
 
   const requestBody = parseJsonBody(body);
   const method = plan.detail.method.toUpperCase();
+
+  if (dryRun) {
+    return {
+      command: "api.call",
+      mode: "plan",
+      path: plan.detail.path,
+      method: plan.detail.method,
+      file: plan.detail.file,
+      environment: plan.environment.name,
+      environmentLabel: plan.environment.label,
+      baseUrl: plan.baseUrl,
+      url: plan.url,
+      request: {
+        headers: {
+          Authorization: apiKey ? "Bearer ***" : "Bearer <api-key>",
+          "X-Unisat-AI-Client": clientSource,
+          ...(requestBody !== null ? { "Content-Type": "application/json" } : {}),
+        },
+        queryParams: plan.queryEntries,
+        pathParams: plan.pathParams.map((parameter) => ({
+          name: parameter.name,
+          value: parameter.value,
+        })),
+        body: requestBody,
+      },
+    };
+  }
+
+  if (!apiKey) {
+    return {
+      command: "api.call",
+      mode: "missing_api_key",
+      environment,
+      message: `API key is not configured. Provide --api-key <key> or set the environment-specific key before running api call. If you have not registered an API key yet, register at ${DEVELOPER_PORTAL_URL}`,
+      developerPortalUrl: DEVELOPER_PORTAL_URL,
+    };
+  }
+
   const headers = buildHeaders(apiKey, requestBody !== null, clientSource);
   const response = await fetch(plan.url, {
     method,

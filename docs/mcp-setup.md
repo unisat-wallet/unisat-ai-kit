@@ -98,6 +98,7 @@ Local source MCP config:
 The MCP server exposes:
 
 - `get_status`: returns MCP version, Node.js version, CLI caller capability status, swagger source, and available tools.
+- `call_api`: calls an exact UniSat OpenAPI path.
 
 ## API keys
 
@@ -115,7 +116,7 @@ npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
 npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
-The MCP server does not expose an environment listing or API call tool. Use `get_status` for package diagnostics, and use `unisat-openapi-cli api call` for exact-path calls.
+Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-cli api call` for exact-path calls.
 
 ## Optional environment overrides
 

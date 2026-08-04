@@ -722,6 +722,7 @@ paths:
     post:
       operationId: createBrc20PutOn
       summary: Create listing order.
+      description: This POST operation creates marketplace listing order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -741,6 +742,7 @@ paths:
     post:
       operationId: confirmBrc20PutOn
       summary: Confirm listing order.
+      description: This POST operation confirms marketplace listing order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -760,6 +762,7 @@ paths:
     post:
       operationId: createBrc20BidPrepare
       summary: Return params before creating purchase order.
+      description: This POST operation prepares a marketplace purchase flow and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -779,6 +782,7 @@ paths:
     post:
       operationId: createBrc20Bid
       summary: Create purchase order.
+      description: This POST operation creates marketplace purchase order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -798,6 +802,7 @@ paths:
     post:
       operationId: confirmBrc20Bid
       summary: Confirm purchase order.
+      description: This POST operation confirms marketplace purchase order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -817,6 +822,7 @@ paths:
     post:
       operationId: createBrc20PutOff
       summary: Create delisting order.
+      description: This POST operation creates marketplace delisting order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -836,6 +842,7 @@ paths:
     post:
       operationId: confirmBrc20PutOff
       summary: Confirm delisting order.
+      description: This POST operation confirms marketplace delisting order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -855,6 +862,7 @@ paths:
     post:
       operationId: createBrc20ModifyPrice
       summary: Create the order for price adjustment.
+      description: This POST operation creates marketplace price-adjustment order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:
@@ -874,6 +882,7 @@ paths:
     post:
       operationId: confirmBrc20ModifyPrice
       summary: Confirm the order for price adjustment.
+      description: This POST operation confirms marketplace price-adjustment order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-BRC20
       requestBody:

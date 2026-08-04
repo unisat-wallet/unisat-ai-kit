@@ -520,6 +520,7 @@ paths:
     post:
       operationId: createRunesPutOn
       summary: Create listing order.
+      description: This POST operation creates marketplace listing order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -539,6 +540,7 @@ paths:
     post:
       operationId: confirmRunesPutOn
       summary: Confirm listing order.
+      description: This POST operation confirms marketplace listing order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -558,6 +560,7 @@ paths:
     post:
       operationId: createRunesBidPrepare
       summary: Return params before creating purchase order.
+      description: This POST operation prepares a marketplace purchase flow and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -577,6 +580,7 @@ paths:
     post:
       operationId: createRunesBid
       summary: Create purchase order.
+      description: This POST operation creates marketplace purchase order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -596,6 +600,7 @@ paths:
     post:
       operationId: confirmRunesBid
       summary: Confirm purchase order.
+      description: This POST operation confirms marketplace purchase order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -615,6 +620,7 @@ paths:
     post:
       operationId: createRunesPutOff
       summary: Create delisting order.
+      description: This POST operation creates marketplace delisting order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -634,6 +640,7 @@ paths:
     post:
       operationId: confirmRunesPutOff
       summary: Confirm delisting order.
+      description: This POST operation confirms marketplace delisting order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -653,6 +660,7 @@ paths:
     post:
       operationId: createRunesModifyPrice
       summary: Create the order for price adjustment.
+      description: This POST operation creates marketplace price-adjustment order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -672,6 +680,7 @@ paths:
     post:
       operationId: confirmRunesModifyPrice
       summary: Confirm the order for price adjustment.
+      description: This POST operation confirms marketplace price-adjustment order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -729,6 +738,7 @@ paths:
     post:
       operationId: createRunesBatchBidPrepare
       summary: Return params before creating purchase order.
+      description: This POST operation prepares a marketplace purchase flow and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -748,6 +758,7 @@ paths:
     post:
       operationId: createRunesBatchBid
       summary: Create purchase order.
+      description: This POST operation creates marketplace purchase order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:
@@ -767,6 +778,7 @@ paths:
     post:
       operationId: confirmRunesBatchBid
       summary: Confirm purchase order.
+      description: This POST operation confirms marketplace purchase order state and must only be executed after explicit user confirmation.
       tags:
         - MarketPlace-Runes
       requestBody:

@@ -105,14 +105,20 @@ paths:
           required: false
           schema:
             type: string
-            enum: [yes, no, all]
+            enum:
+              - yes
+              - no
+              - all
         - name: sort
           in: query
           description: "Sort field"
           required: false
           schema:
             type: string
-            enum: [holders, deploy, transactions]
+            enum:
+              - holders
+              - deploy
+              - transactions
         - name: start
           in: query
           description: "Start offset, default 0"
@@ -297,14 +303,12 @@ paths:
           schema:
             type: string
             enum:
-              [
-                deploy-inscribe,
-                transfer,
-                inscribe-mint,
-                inscribe-transfer,
-                brc20prog-withdraw-inscribe,
-                brc20prog-withdraw-transfer,
-              ]
+              - deploy-inscribe
+              - transfer
+              - inscribe-mint
+              - inscribe-transfer
+              - brc20prog-withdraw-inscribe
+              - brc20prog-withdraw-transfer
         - name: height
           in: query
           description: "Filter by block height"
@@ -833,14 +837,12 @@ components:
         type:
           type: string
           enum:
-            [
-              inscribe-deploy,
-              inscribe-mint,
-              inscribe-transfer,
-              transfer,
-              send,
-              receive,
-            ]
+            - inscribe-deploy
+            - inscribe-mint
+            - inscribe-transfer
+            - transfer
+            - send
+            - receive
           example: "inscribe-deploy"
         txid:
           type: string

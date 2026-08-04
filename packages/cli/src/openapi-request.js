@@ -4,6 +4,18 @@ const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("./openap
 function exampleValue(parameter) {
   const normalizedName = parameter.name.toLowerCase();
 
+  if (parameter.example !== undefined) {
+    return parameter.example;
+  }
+
+  if (parameter.default !== undefined) {
+    return parameter.default;
+  }
+
+  if (Array.isArray(parameter.enum) && parameter.enum.length > 0) {
+    return parameter.enum[0];
+  }
+
   if (normalizedName === "start" || normalizedName === "cursor" || normalizedName.endsWith("offset")) {
     return "0";
   }

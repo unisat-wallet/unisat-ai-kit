@@ -57,14 +57,20 @@ paths:
           required: false
           schema:
             type: string
-            enum: [token, collection, nft, contract]
+            enum:
+              - token
+              - collection
+              - nft
+              - contract
         - name: sortBy
           in: query
           description: "sort by timestamp, alkaneid, default=timestamp"
           required: false
           schema:
             type: string
-            enum: [timestamp, alkaneid]
+            enum:
+              - timestamp
+              - alkaneid
             default: timestamp
         - name: order
           in: query
@@ -72,7 +78,9 @@ paths:
           required: false
           schema:
             type: string
-            enum: [asc, desc]
+            enum:
+              - asc
+              - desc
             default: asc
         - name: start
           in: query
@@ -174,7 +182,9 @@ paths:
           required: false
           schema:
             type: string
-            enum: [timestamp, alkaneid]
+            enum:
+              - timestamp
+              - alkaneid
             default: timestamp
         - name: order
           in: query
@@ -182,7 +192,9 @@ paths:
           required: false
           schema:
             type: string
-            enum: [asc, desc]
+            enum:
+              - asc
+              - desc
             default: asc
         - name: start
           in: query
@@ -773,7 +785,11 @@ components:
             $ref: "#/components/schemas/AlkanesUTXOBalance"
     AlkaneType:
       type: string
-      enum: [token, collection, nft, contract]
+      enum:
+        - token
+        - collection
+        - nft
+        - contract
       example: token
     AlkanesUTXOBalance:
       type: object

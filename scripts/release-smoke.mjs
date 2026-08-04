@@ -246,6 +246,43 @@ async function main() {
       UNISAT_BITCOIN_API_KEY: "release_smoke",
     };
 
+    const allCommandList = await run(cliBin, ["commands", "--format", "json"], {
+      cwd: tempDir,
+      env,
+    });
+    const allCommandListPayload = JSON.parse(allCommandList.stdout);
+    assert(allCommandListPayload.command === "commands", "packed cli all commands failed");
+    assert(allCommandListPayload.total > 16, "packed cli should enable all swagger semantic commands");
+    assert(allCommandListPayload.items.some((item) => item.file === "alkanes-indexer.yaml" && item.commandName === "getAlkanesInfoList"), "packed cli alkanes command missing");
+    assert(allCommandListPayload.items.some((item) => item.file === "blockchain-indexer.yaml" && item.commandName === "getRecommendedFees"), "packed cli blockchain command missing");
+    assert(allCommandListPayload.items.some((item) => item.file === "inscribe.yaml" && item.commandName === "createOrder" && item.requestBody.required === true), "packed cli POST body metadata missing");
+
+    const commandList = await run(cliBin, ["commands", "--domain", "brc20", "--format", "json"], {
+      cwd: tempDir,
+      env,
+    });
+    const commandListPayload = JSON.parse(commandList.stdout);
+    assert(commandListPayload.command === "commands", "packed cli commands failed");
+    assert(commandListPayload.total === 16, "packed cli BRC20 command count invalid");
+    assert(commandListPayload.items.some((item) => item.commandName === "getBrc20Status"), "packed cli getBrc20Status missing");
+    const historyByTx = commandListPayload.items.find((item) => item.commandName === "getBrc20HistoryByTickerAndTxid");
+    const typeParam = historyByTx?.parameters.find((parameter) => parameter.name === "type");
+    assert(typeParam?.enum?.includes("inscribe-deploy"), "packed cli BRC20 history type enum missing");
+    const status = commandListPayload.items.find((item) => item.commandName === "getBrc20Status");
+    const sortParam = status?.parameters.find((parameter) => parameter.name === "sort");
+    assert(sortParam?.enum?.includes("holders"), "packed cli BRC20 status sort enum missing");
+    assert(sortParam?.example === "deploy", "packed cli BRC20 status sort example missing");
+
+    const dryRun = await run(cliBin, ["getBrc20Status", "--start", "1", "--limit", "10", "--dry-run", "--format", "json"], {
+      cwd: tempDir,
+      env,
+    });
+    const dryRunPayload = JSON.parse(dryRun.stdout);
+    assert(dryRunPayload.command === "getBrc20Status", "packed cli semantic command failed");
+    assert(dryRunPayload.mode === "plan", "packed cli semantic command should dry-run");
+    assert(dryRunPayload.request.queryString.includes("start=1"), "packed cli semantic command start query missing");
+    assert(dryRunPayload.request.queryString.includes("limit=10"), "packed cli semantic command limit query missing");
+
     const cliCall = await run(cliBin, ["api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"], {
       cwd: tempDir,
       env,

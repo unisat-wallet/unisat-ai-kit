@@ -22,7 +22,7 @@ function getSwaggerContext() {
 
 function getEmbeddedSwaggerFiles() {
   if (embeddedSwaggerFiles !== null) {
-    return embeddedSwaggerFiles;
+    return embeddedSwaggerFiles || null;
   }
 
   embeddedSwaggerFiles = false;
@@ -137,11 +137,29 @@ function createParameter() {
     required: false,
     description: "",
     type: "",
+    enum: [],
+    example: undefined,
+    default: undefined,
+    format: "",
+    minimum: undefined,
+    maximum: undefined,
   };
 }
 
 function normalizeYamlScalar(value) {
   return value.trim().replace(/^[\'"]|[\'"]$/g, "");
+}
+
+function parseInlineEnum(value) {
+  const text = value.trim();
+  if (!text.startsWith("[") || !text.endsWith("]")) {
+    return null;
+  }
+  return text
+    .slice(1, -1)
+    .split(",")
+    .map((item) => normalizeYamlScalar(item.trim()))
+    .filter(Boolean);
 }
 
 function extractParameters(lines) {
@@ -204,7 +222,7 @@ function extractParameters(lines) {
       return;
     }
 
-    const propertyMatch = line.match(/^\s{10}(name|in|required|description):\s+(.+)\s*$/);
+    const propertyMatch = line.match(/^\s{10}(name|in|required|description|example):\s+(.+)\s*$/);
     if (propertyMatch) {
       const [, key, rawValue] = propertyMatch;
       if (key === "required") {
@@ -220,6 +238,30 @@ function extractParameters(lines) {
       const typeMatch = line.match(/^\s{12}type:\s+(.+)\s*$/);
       if (typeMatch) {
         current.type = normalizeYamlScalar(typeMatch[1]);
+        return;
+      }
+
+      const inlineEnumMatch = line.match(/^\s{12}enum:\s+(.+)\s*$/);
+      if (inlineEnumMatch) {
+        current.enum = parseInlineEnum(inlineEnumMatch[1]) || [];
+        return;
+      }
+
+      if (/^\s{12}enum:\s*$/.test(line)) {
+        current.enum = [];
+        return;
+      }
+
+      const schemaPropertyMatch = line.match(/^\s{12}(default|example|format|minimum|maximum):\s+(.+)\s*$/);
+      if (schemaPropertyMatch) {
+        const [, key, rawValue] = schemaPropertyMatch;
+        current[key] = normalizeYamlScalar(rawValue);
+        return;
+      }
+
+      const enumMatch = line.match(/^\s{14}-\s+(.+)\s*$/);
+      if (enumMatch && Array.isArray(current.enum)) {
+        current.enum.push(normalizeYamlScalar(enumMatch[1]));
       }
     }
   });
@@ -362,7 +404,9 @@ module.exports = {
   collectPathBlocks,
   extractTags,
   extractMethods,
+  extractParameters,
   extractScalar,
+  extractServers,
   getOpenApiDetail,
   getSwaggerContext,
 };
