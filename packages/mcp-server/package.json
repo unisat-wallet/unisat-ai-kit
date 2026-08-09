@@ -1,6 +1,6 @@
 {
   "name": "@unisat/openapi-mcp",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "UniSat AI Kit MCP server",
   "license": "MIT",
   "main": "./bin/server.js",
@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@unisat/openapi-cli": "0.1.0",
+    "@unisat/openapi-cli": "0.1.5",
     "zod": "^4.4.3"
   },
   "keywords": [

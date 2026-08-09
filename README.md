@@ -31,7 +31,7 @@ The explicit `--registry=https://registry.npmjs.org/` option avoids failures cau
 
 ## CLI Quick Start
 
-Download the single-executable archive for your operating system. You do not need to install Node.js or npm. Replace `v0.1.4` with the latest release tag if needed.
+Download the single-executable archive for your operating system. You do not need to install Node.js or npm. These examples use `v0.1.5`; replace it with the latest release tag for future releases.
 
 After downloading the CLI, configure each OpenAPI environment separately:
 
@@ -45,7 +45,7 @@ These commands store keys in the current user's UniSat AI Kit config directory.
 ### macOS ARM64
 
 ```bash
-curl -L -o unisat-openapi-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-macos-arm64.tar.gz
+curl -L -o unisat-openapi-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-macos-arm64.tar.gz
 tar -xzf unisat-openapi-cli-macos-arm64.tar.gz
 ./unisat-openapi-cli --help
 ```
@@ -53,7 +53,7 @@ tar -xzf unisat-openapi-cli-macos-arm64.tar.gz
 ### Linux x64
 
 ```bash
-curl -L -o unisat-openapi-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-linux-x64.tar.gz
+curl -L -o unisat-openapi-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-linux-x64.tar.gz
 tar -xzf unisat-openapi-cli-linux-x64.tar.gz
 ./unisat-openapi-cli --help
 ```
@@ -61,7 +61,7 @@ tar -xzf unisat-openapi-cli-linux-x64.tar.gz
 ### Linux ARM64
 
 ```bash
-curl -L -o unisat-openapi-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-linux-arm64.tar.gz
+curl -L -o unisat-openapi-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-linux-arm64.tar.gz
 tar -xzf unisat-openapi-cli-linux-arm64.tar.gz
 ./unisat-openapi-cli --help
 ```
@@ -69,7 +69,7 @@ tar -xzf unisat-openapi-cli-linux-arm64.tar.gz
 ### Windows x64
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.4/unisat-openapi-cli-windows-x64.zip" -OutFile "unisat-openapi-cli-windows-x64.zip"
+Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-windows-x64.zip" -OutFile "unisat-openapi-cli-windows-x64.zip"
 Expand-Archive unisat-openapi-cli-windows-x64.zip -DestinationPath .
 .\unisat-openapi-cli.exe --help
 ```
@@ -137,7 +137,7 @@ Build a specific platform package on matching host hardware:
 npm run package:cli -- --target windows-x64
 ```
 
-The GitHub Actions workflow `.github/workflows/cli-release.yml` builds platform archives on tag pushes like `v0.1.4` and uploads them to the GitHub Release. It can also be run manually from the GitHub Actions page via `workflow_dispatch`.
+The GitHub Actions workflow `.github/workflows/cli-release.yml` builds platform archives on tag pushes like `v0.1.5` and uploads them to the GitHub Release. It can also be run manually from the GitHub Actions page via `workflow_dispatch`.
 
 ### MCP portable release
 
@@ -158,7 +158,7 @@ npm run smoke
 npm run release:smoke
 ```
 
-The workflow `.github/workflows/npm-release.yml` publishes the configured npm packages, currently documented for the package names `@unisat/openapi-cli` and `@unisat/openapi-mcp`. It runs on tag pushes like `v0.1.4` or manual `workflow_dispatch` and requires the `NPM_TOKEN` repository secret.
+The workflow `.github/workflows/npm-release.yml` publishes the configured npm packages, currently documented for the package names `@unisat/openapi-cli` and `@unisat/openapi-mcp`. It runs on tag pushes like `v0.1.5` or manual `workflow_dispatch` and requires the `NPM_TOKEN` repository secret.
 
 ## Repository Layout
 

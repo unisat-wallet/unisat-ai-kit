@@ -1,7 +1,7 @@
 {
   "name": "unisat-ai-kit",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.5",
   "packageManager": "yarn@1.22.22",
   "workspaces": [
     "packages/*"
