@@ -44,7 +44,6 @@ Do not use natural-language interface matching tools. This project intentionally
 - InSwap and BRC20 Swap are equivalent product names. Use `/v1/brc20-swap/*` paths for InSwap requests.
 - BRC20 Swap / InSwap APIs are Fractal-only.
 - `/v1/indexer/inscription/info/{inscriptionId}` accepts either an inscription id or an inscription number in the `inscriptionId` path parameter.
-- `swagger/cat20-dex.yaml` is intentionally absent because CAT20 DEX is deprecated/offline.
 
 ## CLI Examples
 

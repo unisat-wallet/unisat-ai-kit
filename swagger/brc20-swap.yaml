@@ -7284,49 +7284,6 @@ paths:
                   - data
 components:
   schemas:
-    CAT20TokenStats:
-      type: object
-      properties:
-        tokenId:
-          type: string
-        volume:
-          type: string
-        volume30d:
-          type: string
-        volume24h:
-          type: string
-        volume7d:
-          type: string
-        volume6h:
-          type: string
-        price:
-          type: number
-        price6h:
-          type: number
-        price24h:
-          type: number
-        price7d:
-          type: number
-        price30d:
-          type: number
-        name:
-          type: string
-        symbol:
-          type: string
-        decimals:
-          type: integer
-        max:
-          type: integer
-        volumeToken:
-          type: string
-        volumeToken30d:
-          type: string
-        volumeToken24h:
-          type: string
-        volumeToken7d:
-          type: string
-        volumeToken6h:
-          type: string
   securitySchemes:
     bearerAuth:
       type: http
