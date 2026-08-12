@@ -74,6 +74,14 @@ function configuredApiKey(environment) {
   return getConfiguredValue(environment === "fractal" ? "UNISAT_FRACTAL_API_KEY" : "UNISAT_BITCOIN_API_KEY");
 }
 
+function operationRequiresConfirmation(detail) {
+  const metadataValue = detail?.unisat?.["x-unisat-requires-confirmation"];
+  if (typeof metadataValue === "boolean") {
+    return metadataValue;
+  }
+  return String(detail?.method || "").toUpperCase() !== "GET";
+}
+
 const toolDefinitions = [
   {
     name: "get_status",
@@ -123,8 +131,8 @@ const toolDefinitions = [
         );
       }
 
-      const method = String(detail.method || "").toUpperCase();
-      if (method !== "GET" && args.confirm !== true) {
+      const requiresConfirmation = operationRequiresConfirmation(detail);
+      if (requiresConfirmation && args.confirm !== true) {
         return toToolResult(
           {
             command: "api.call",
@@ -132,6 +140,11 @@ const toolDefinitions = [
             path: args.path,
             method: detail.method,
             summary: detail.summary,
+            unisat: detail.unisat,
+            safety: {
+              readOnly: detail.unisat?.["x-unisat-readonly"] === true,
+              requiresConfirmation,
+            },
           },
           true
         );

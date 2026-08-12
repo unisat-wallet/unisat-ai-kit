@@ -130,6 +130,58 @@ function extractTags(lines) {
   return tags;
 }
 
+function parseExtensionValue(value) {
+  const text = value.trim().replace(/^[\'\"]|[\'\"]$/g, "");
+  if (text === "true") {
+    return true;
+  }
+  if (text === "false") {
+    return false;
+  }
+  if (text.startsWith("[") && text.endsWith("]")) {
+    return text
+      .slice(1, -1)
+      .split(",")
+      .map((item) => item.trim().replace(/^[\'\"]|[\'\"]$/g, ""))
+      .filter(Boolean);
+  }
+  return text;
+}
+
+function extractUnisatExtensions(lines) {
+  const extensions = {};
+  let currentKey = null;
+
+  lines.forEach((line) => {
+    const scalarMatch = line.match(/^\s{6}(x-unisat-[A-Za-z0-9_-]+):\s+(.+)\s*$/);
+    if (scalarMatch) {
+      const [, key, rawValue] = scalarMatch;
+      extensions[key] = parseExtensionValue(rawValue);
+      currentKey = Array.isArray(extensions[key]) ? key : null;
+      return;
+    }
+
+    const listStartMatch = line.match(/^\s{6}(x-unisat-[A-Za-z0-9_-]+):\s*$/);
+    if (listStartMatch) {
+      currentKey = listStartMatch[1];
+      extensions[currentKey] = [];
+      return;
+    }
+
+    const listItemMatch = line.match(/^\s{8}-\s+(.+)\s*$/);
+    if (currentKey && listItemMatch) {
+      extensions[currentKey].push(normalizeYamlScalar(listItemMatch[1]));
+      return;
+    }
+
+    if (currentKey && !/^\s{8}/.test(line)) {
+      currentKey = null;
+    }
+  });
+
+  return extensions;
+}
+
 function createParameter() {
   return {
     name: "",
@@ -393,6 +445,7 @@ function getOpenApiDetail(apiPath) {
     summary: extractScalar(block.blockLines, /^\s{6}summary:\s+/),
     description: extractScalar(block.blockLines, /^\s{6}description:\s+/),
     tags: extractTags(block.blockLines),
+    unisat: extractUnisatExtensions(block.blockLines),
     parameters: extractParameters(block.blockLines),
     servers: extractServers(block.fileLines),
     requestBodyTemplate: buildRequestBodyTemplate(block.blockLines),
@@ -407,6 +460,7 @@ module.exports = {
   extractParameters,
   extractScalar,
   extractServers,
+  extractUnisatExtensions,
   getOpenApiDetail,
   getSwaggerContext,
 };

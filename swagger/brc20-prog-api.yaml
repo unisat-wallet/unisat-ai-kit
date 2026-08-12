@@ -16,16 +16,24 @@ servers:
   - url: https://open-api-staging.unisat.io
   - url: https://open-api-signet.unisat.io
 tags:
-  - name: BRC20-Prog
-    description: Bitcoin-only BRC20-Prog token interfaces. Use these endpoints only for 6-character BRC20-Prog tickers, not classic BRC-20 tickers such as ordi.
+  - name: BRC20-Prog Indexer
+    description: Bitcoin-only BRC20-Prog 6-character ticker indexing APIs
 paths:
   /v1/indexer/brc20-prog/bestheight:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getBestHeight
-      summary: Get best height
-      description: "Get the current Bitcoin blockchain best height used by the BRC20-Prog indexer."
+      summary: "Get BRC20-Prog indexer height for Bitcoin"
+      description: >-
+        Returns the latest Bitcoin block height, block hash, and timestamp indexed for BRC20-Prog. Use it to check indexer freshness before querying 6-character BRC20-Prog tickers; this API is Bitcoin-only and should not be used for Classic BRC-20 tokens.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       responses:
         "200":
           description: Successful response
@@ -46,10 +54,18 @@ paths:
   /v1/indexer/brc20-prog/list:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getTickerList
-      summary: Get ticker list
-      description: "Get the list of Bitcoin-only BRC20-Prog tickers. These tickers are 6-character BRC20-Prog tickers; classic BRC-20 tickers such as ordi are returned by /v1/indexer/brc20/list instead."
+      summary: "List indexed 6-character BRC20-Prog tickers"
+      description: >-
+        Returns paginated BRC20-Prog ticker symbols with indexed height, total, and start offset. Use this for Bitcoin-only BRC20-Prog discovery and route Classic BRC-20 tickers such as ordi to the /v1/indexer/brc20/* APIs.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: not-recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: start
           in: query
@@ -88,10 +104,18 @@ paths:
   /v1/indexer/brc20-prog/status:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getTickerStatus
-      summary: Get ticker status
-      description: "Get ticker status information with multiple filtering and sorting options"
+      summary: "Search BRC20-Prog ticker status and mint state"
+      description: >-
+        Returns BRC20-Prog status records including deployment inscription, max supply, minted supply, holder and transaction counts, decimals, and mint completion state. Use it for 6-character ticker discovery, filtering, and ranking on Bitcoin; indexer data may lag new block confirmations.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: ticker
           in: query
@@ -156,10 +180,18 @@ paths:
   /v1/indexer/brc20-prog/{ticker}/info:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getTickerInfo
-      summary: Get ticker info
-      description: "Get detailed information for a 6-character BRC20-Prog ticker on Bitcoin. Do not use this endpoint for classic BRC-20 tickers such as ordi; use /v1/indexer/brc20/{ticker}/info instead."
+      summary: "Get BRC20-Prog ticker deployment and supply details"
+      description: >-
+        Returns Bitcoin-only BRC20-Prog ticker metadata such as original tick, max supply, remaining supply, burned supply, decimals, deploy inscription, creator address, and mint counters. Use it for 6-character BRC20-Prog detail pages; Classic BRC-20 tickers are not supported here.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: ticker
           in: path
@@ -187,10 +219,18 @@ paths:
   /v1/indexer/brc20-prog/history-by-height/{height}:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getTickerHistoryByHeight
-      summary: Get ticker history by height
-      description: "Get ticker history records at specified block height"
+      summary: "List BRC20-Prog events indexed at a Bitcoin height"
+      description: >-
+        Returns BRC20-Prog history events for one block height with ticker, transaction, event type, inscription, amount, balance, and validity data. Use it for Bitcoin block-level audits or backfills; data is read-only indexer state and may depend on confirmation progress.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: height
           in: path
@@ -237,10 +277,18 @@ paths:
   /v1/indexer/brc20-prog/{ticker}/holders:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getTickerHolders
-      summary: Get ticker holders
-      description: "Get the holder list for a 6-character BRC20-Prog ticker on Bitcoin. Do not use this endpoint for classic BRC-20 holder lists."
+      summary: "List holders and balances for a BRC20-Prog ticker"
+      description: >-
+        Returns holder addresses with overall, transferable, and available balances for a 6-character BRC20-Prog ticker. Use it for holder distribution and balance checks on Bitcoin; it reports indexed balances only and performs no signing or transfer action.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: ticker
           in: path
@@ -285,10 +333,18 @@ paths:
   /v1/indexer/brc20-prog/{ticker}/history:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getTickerHistory
-      summary: Get ticker history
-      description: "Get history records of specified ticker with event type and block height filtering"
+      summary: "List BRC20-Prog history events for a ticker"
+      description: >-
+        Returns deploy, mint, transfer, and BRC20-Prog withdrawal events for a 6-character ticker, including event type, block height, transaction, inscription, amount, balance, and validity fields. Use it for token activity feeds or reconciliation; this is read-only Bitcoin indexer data.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: ticker
           in: path
@@ -352,10 +408,18 @@ paths:
   /v1/indexer/address/{address}/brc20-prog/summary:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getAddressTokenSummary
-      summary: Get address token summary
-      description: "Get token summary information of specified address"
+      summary: "List an address's BRC20-Prog token balances"
+      description: >-
+        Returns paginated BRC20-Prog balance summaries for a Bitcoin address, including indexed height, module height, ticker, decimals, overall, transferable, available, and module balances. Use it for Bitcoin-only wallet portfolio views; Classic BRC-20 balances require the brc20 indexer API.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: address
           in: path
@@ -406,10 +470,18 @@ paths:
   /v1/indexer/address/{address}/brc20-prog/ticker/{ticker}/balance:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getAddressTickerBalance
-      summary: Get address ticker balance
-      description: "Get specific ticker balance of specified address"
+      summary: "Get an address's current BRC20-Prog ticker balance"
+      description: >-
+        Returns current indexed balance fields for one Bitcoin address and 6-character BRC20-Prog ticker, including overall, transferable, available, module balance, decimals, and self-mint state. Use it before displaying or preparing token actions; it reports state only and does not verify spend authorization.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: address
           in: path
@@ -443,10 +515,18 @@ paths:
   /v1/indexer/address/{address}/brc20-prog/ticker/{ticker}/balance-by-height/{height}:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getAddressTickerBalanceByHeight
-      summary: Get address ticker balance by height
-      description: "Get ticker balance of specified address at specified height"
+      summary: "Get an address's BRC20-Prog ticker balance at a height"
+      description: >-
+        Returns historical indexed balance fields for one Bitcoin address and 6-character BRC20-Prog ticker at a specific block height, including overall, transferable, and available balances. Use it for snapshots or reconciliation; historical balances may not reflect current spendability.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: address
           in: path
@@ -486,10 +566,18 @@ paths:
   /v1/indexer/address/{address}/brc20-prog/ticker/{ticker}/transferable-inscriptions:
     get:
       tags:
-        - BRC20-Prog
+        - BRC20-Prog Indexer
       operationId: getAddressTickerTransferableInscriptions
-      summary: Get address ticker transferable inscriptions
-      description: "Get transferable inscription list of specific ticker for specified address"
+      summary: "List transferable BRC20-Prog inscriptions for an address"
+      description: >-
+        Returns unused transferable inscriptions for a Bitcoin address and 6-character BRC20-Prog ticker, including inscription id, amount, holder script or wallet, event id, block height, and inscription number. Use it to choose transfer candidates; callers must still validate UTXO ownership, confirmation policy, and signing context before spending.
+      x-unisat-domain: brc20-prog
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Bitcoin-only read-only BRC20-Prog query for 6-character tickers.
       parameters:
         - name: address
           in: path

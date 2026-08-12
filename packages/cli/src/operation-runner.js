@@ -199,8 +199,11 @@ function summarizeOperation(operation) {
     tags: operation.tags,
     summary: operation.summary,
     description: operation.description,
+    unisat: operation.unisat,
     parameters: operation.parameters,
     requestBody: operation.requestBody,
+    readOnly: operation.readOnly,
+    requiresConfirmation: operation.requiresConfirmation,
   };
 }
 

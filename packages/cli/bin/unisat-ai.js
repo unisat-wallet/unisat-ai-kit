@@ -108,6 +108,16 @@ function printCommandsHelp() {
     "      Filter by HTTP method, for example get or post.",
     "  --tag <tag>",
     "      Filter by OpenAPI tag.",
+    "  --unisat-domain <domain>",
+    "      Filter by x-unisat-domain, for example brc20, runes, alkanes, or marketplace.",
+    "  --unisat-network <network>",
+    "      Filter by x-unisat-network, for example bitcoin, fractal, or multi.",
+    "  --unisat-status <status>",
+    "      Filter by x-unisat-status, for example recommended, not-recommended, deprecated, or experimental.",
+    "  --unisat-readonly <true|false>",
+    "      Filter by x-unisat-readonly.",
+    "  --unisat-requires-confirmation <true|false>",
+    "      Filter by x-unisat-requires-confirmation.",
     "  --limit <number>",
     "      Page size. Defaults to 50.",
     "  --start <number>",
@@ -180,15 +190,15 @@ function formatParameterHelp(parameter) {
   return `  --${parameter.name} (${parameter.in}, ${parameter.required ? "required" : "optional"}, ${parameter.type || "unknown"})${detailText}${parameter.description ? ` - ${parameter.description}` : ""}`;
 }
 
-function isReadOnlyOperation(operation) {
-  return String(operation.method).toLowerCase() === "get";
+function hasRequestBody(operation) {
+  return String(operation.method).toLowerCase() !== "get" && operation.requestBody?.required;
 }
 
 function requiredUsageFlags(operation) {
   const flags = operation.parameters
     .filter((parameter) => parameter.required)
     .map((parameter) => ` --${parameter.name}=<${parameter.type || "value"}>`);
-  if (!isReadOnlyOperation(operation) && operation.requestBody?.required) {
+  if (hasRequestBody(operation)) {
     flags.push(" --body='<json>'");
   }
   return flags.join("");
@@ -207,9 +217,15 @@ function printOperationHelp(operation) {
   if (operation.tags.length > 0) {
     console.log(`Tags: ${operation.tags.join(", ")}`);
   }
+  if (operation.unisat && Object.keys(operation.unisat).length > 0) {
+    console.log("UniSat metadata:");
+    Object.entries(operation.unisat).forEach(([key, value]) => {
+      console.log(`  ${key}: ${Array.isArray(value) ? value.join(", ") : value}`);
+    });
+  }
   console.log("");
   console.log("Usage:");
-  const confirmFlag = isReadOnlyOperation(operation) ? "" : " [--confirm]";
+  const confirmFlag = operation.requiresConfirmation ? " [--confirm]" : "";
   console.log(`  ${operation.commandName}${requiredUsageFlags(operation)} [--env bitcoin|fractal] [--api-key <key>]${confirmFlag} [--dry-run] [--format text|json]`);
   console.log("");
   if (operation.parameters.length > 0) {
@@ -219,9 +235,9 @@ function printOperationHelp(operation) {
     });
     console.log("");
   }
-  if (!isReadOnlyOperation(operation)) {
+  if (String(operation.method).toLowerCase() !== "get" && (operation.requestBody?.required || operation.requestBody?.contentTypes?.length > 0)) {
     console.log("Body:");
-    console.log(`  --body '<json>' (${operation.requestBody?.required ? "required" : "optional"}) - JSON request body for this POST operation. Request bodies are not expanded into individual CLI flags.`);
+    console.log(`  --body '<json>' (${operation.requestBody?.required ? "required" : "optional"}) - JSON request body for this ${operation.method.toUpperCase()} operation. Request bodies are not expanded into individual CLI flags.`);
     if (Array.isArray(operation.requestBody?.contentTypes) && operation.requestBody.contentTypes.length > 0) {
       console.log(`  content-types: ${operation.requestBody.contentTypes.join(", ")}`);
     }
@@ -232,9 +248,9 @@ function printOperationHelp(operation) {
   console.log("      Target environment. Defaults to bitcoin.");
   console.log("  --api-key <key>");
   console.log("      API key. Overrides process env and user config .env.");
-  if (!isReadOnlyOperation(operation)) {
+  if (operation.requiresConfirmation) {
     console.log("  --confirm");
-    console.log("      Required to execute non-GET operations.");
+    console.log("      Required to execute operations marked as requiring confirmation by OpenAPI metadata.");
   }
   console.log("  --dry-run");
   console.log("      Preview the request without an API key or network call.");
@@ -282,7 +298,7 @@ function buildCommandsPageCommand(options, nextStart, limit) {
   }
 
   const flags = [];
-  ["domain", "file", "method", "tag"].forEach((name) => {
+  ["domain", "file", "method", "tag", "unisat-domain", "unisat-network", "unisat-status", "unisat-readonly", "unisat-requires-confirmation"].forEach((name) => {
     if (options[name]) {
       flags.push(`--${name} ${options[name]}`);
     }
@@ -299,6 +315,11 @@ function commandsPayload(options) {
     file: options.file,
     method: options.method,
     tag: options.tag,
+    "unisat-domain": options["unisat-domain"],
+    "unisat-network": options["unisat-network"],
+    "unisat-status": options["unisat-status"],
+    "unisat-readonly": options["unisat-readonly"],
+    "unisat-requires-confirmation": options["unisat-requires-confirmation"],
   });
   const all = parseBooleanOption(options.all);
   const limit = all ? items.length : Math.max(1, toInt(options.limit, 50));
@@ -315,6 +336,11 @@ function commandsPayload(options) {
       file: options.file,
       method: options.method,
       tag: options.tag,
+      unisatDomain: options["unisat-domain"],
+      unisatNetwork: options["unisat-network"],
+      unisatStatus: options["unisat-status"],
+      unisatReadonly: options["unisat-readonly"],
+      unisatRequiresConfirmation: options["unisat-requires-confirmation"],
     },
     pagination: {
       all,

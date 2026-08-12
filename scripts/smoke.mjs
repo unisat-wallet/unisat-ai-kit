@@ -265,7 +265,7 @@ async function main() {
   const cliChecks = [
     {
       name: "cli lists all semantic commands",
-      args: ["packages/cli/bin/unisat-ai.js", "commands", "--format", "json"],
+      args: ["packages/cli/bin/unisat-ai.js", "commands", "--all", "--format", "json"],
       validate(stdout) {
         const payload = JSON.parse(stdout);
         assert(payload.command === "commands", "commands payload invalid");
@@ -353,7 +353,8 @@ async function main() {
   }
 
   const introCommand = await runCommand(["packages/cli/bin/unisat-ai.js", "intro", "resolve", "--env", "bitcoin", "--query", "address balance", "--format", "json"], { expectFailure: true });
-  assert(introCommand.stdout.includes("UniSat AI Kit CLI") || introCommand.stderr, "intro command should be rejected or show help");
+  const introPayload = JSON.parse(introCommand.stdout);
+  assert(introPayload.mode === "unknown_command" && introPayload.command === "intro", "intro command should be rejected as an unknown command");
   console.log("ok cli rejects intro commands");
 
   await runMcpSmoke();

@@ -1,6 +1,6 @@
 {
   "name": "@api-agent-test/ai-cli",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "UniSat AI Kit CLI capability layer",
   "license": "MIT",
   "main": "./index.js",

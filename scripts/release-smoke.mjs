@@ -246,7 +246,7 @@ async function main() {
       UNISAT_BITCOIN_API_KEY: "release_smoke",
     };
 
-    const allCommandList = await run(cliBin, ["commands", "--format", "json"], {
+    const allCommandList = await run(cliBin, ["commands", "--all", "--format", "json"], {
       cwd: tempDir,
       env,
     });

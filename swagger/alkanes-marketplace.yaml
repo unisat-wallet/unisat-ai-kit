@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Alkanes MarketPlace API
+  title: Alkanes Marketplace API
   version: 1.0.4
   description: >-
     This API provides endpoints for Alkanes marketplace services, including market statistics, listing search, activity history, and order preparation/submission for Alkanes assets.
@@ -13,16 +13,23 @@ servers:
   - url: https://open-api.unisat.io
   - url: https://open-api-staging.unisat.io
 tags:
-  - name: MarketPlace-Alkanes
-    description: Alkanes MarketPlace Service
+  - name: Marketplace-Alkanes
+    description: Alkanes Marketplace Service
 paths:
   /v3/market/alkanes/auction/alkanes_types:
     post:
       operationId: getAlkanesTypes
-      summary: Get statistical data
-      description: Get statistical data, price, market capitalization, etc. for alkanes.
+      summary: List Alkanes market statistics by time window
+      description: Returns paginated market metrics for Alkanes tickers, including current price, price change, BTC and asset volume, market cap, holder count, transaction count, warning flag, and the BTC price used for valuation.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Safe query-style POST: call without extra confirmation when required request parameters are provided.
       requestBody:
         content:
           application/json:
@@ -98,10 +105,17 @@ paths:
   /v3/market/alkanes/auction/alkanes_types_specified:
     post:
       operationId: getAlkanesTypesSpecified
-      summary: Get statistical data for specified alkanes.
-      description: Get statistical data, price, market capitalization, etc. for Alkanes.
+      summary: Get market statistics for one Alkanes ticker
+      description: Returns ticker-level marketplace metrics such as symbol, current price, price change, BTC and asset volume, cap in BTC and USD, deploy time, holder count, inscription number, transaction count, and warning flag.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Safe query-style POST: call without extra confirmation when required request parameters are provided.
       requestBody:
         content:
           application/json:
@@ -166,9 +180,17 @@ paths:
   /v3/market/alkanes/auction/list:
     post:
       operationId: getAlkanesAuctionList
-      summary: Retrieve Alkanes marketplace listing information.
+      summary: Search active and ended Alkanes marketplace listings
+      description: Returns paginated listing records with auction id, inscription id and number, seller address, price, ticker, amount, unit price, market type, and latest listing timestamp context.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Safe query-style POST: call without extra confirmation when required request parameters are provided.
       requestBody:
         content:
           application/json:
@@ -314,9 +336,17 @@ paths:
   /v3/market/alkanes/auction/actions:
     post:
       operationId: getAlkanesAuctionActions
-      summary: Get information on listings, delistings, and sales.
+      summary: List Alkanes marketplace listing, sale, and update events
+      description: Returns paginated marketplace activity records, including auction id, inscription id and number, event type, price, from/to addresses, timestamp, confirmation count, newest-event marker, and asset-specific metadata.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Safe query-style POST: call without extra confirmation when required request parameters are provided.
       requestBody:
         content:
           application/json:
@@ -516,10 +546,17 @@ paths:
   /v3/market/alkanes/auction/create_put_on:
     post:
       operationId: createAlkanesPutOn
-      summary: Create listing order.
-      description: This POST operation creates marketplace listing order state and must only be executed after explicit user confirmation.
+      summary: Create an Alkanes listing PSBT
+      description: Builds a fixed-price listing draft for an Alkanes UTXO and returns an auction id, PSBT, and wallet sign indexes. Review the asset UTXO, total price, unit price, public key, and receiving address before use.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
       requestBody:
         content:
           application/json:
@@ -536,10 +573,18 @@ paths:
   /v3/market/alkanes/auction/confirm_put_on:
     post:
       operationId: confirmAlkanesPutOn
-      summary: Confirm listing order.
-      description: This POST operation confirms marketplace listing order state and must only be executed after explicit user confirmation.
+      summary: Publish a signed Alkanes listing
+      description: Confirms the signed listing PSBT for an auction id and activates the marketplace listing. The response is empty on success, so callers should verify state through listing or activity queries after confirmation.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Confirmation step: ensure PSBT/signature payload was reviewed and signed by the user.
       requestBody:
         content:
           application/json:
@@ -556,10 +601,17 @@ paths:
   /v3/market/alkanes/auction/create_bid_prepare:
     post:
       operationId: createAlkanesBidPrepare
-      summary: Return params before creating purchase order.
-      description: This POST operation prepares a marketplace purchase flow and must only be executed after explicit user confirmation.
+      summary: Estimate fees and balance for an Alkanes purchase
+      description: Calculates purchase preparation data for an auction id and bid price, including service fee, real fee, fee rate, estimated transaction size, inscription satoshi value, network fee rate, available balance, and total balance.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
       requestBody:
         content:
           application/json:
@@ -576,10 +628,17 @@ paths:
   /v3/market/alkanes/auction/create_bid:
     post:
       operationId: createAlkanesBid
-      summary: Create purchase order.
-      description: This POST operation creates marketplace purchase order state and must only be executed after explicit user confirmation.
+      summary: Create an Alkanes purchase PSBT
+      description: Builds a purchase order for a listing and returns bid id, bid PSBT, optional auction-mode PSBT fields, platform fee, network fee, fee rate, inscription value, and wallet sign indexes.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
       requestBody:
         content:
           application/json:
@@ -596,10 +655,18 @@ paths:
   /v3/market/alkanes/auction/confirm_bid:
     post:
       operationId: confirmAlkanesBid
-      summary: Confirm purchase order.
-      description: This POST operation confirms marketplace purchase order state and must only be executed after explicit user confirmation.
+      summary: Submit a signed Alkanes purchase
+      description: Confirms the signed bid PSBT for an auction and bid id, then returns the settlement transaction id when the purchase is accepted.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Confirmation step: ensure PSBT/signature payload was reviewed and signed by the user.
       requestBody:
         content:
           application/json:
@@ -616,10 +683,17 @@ paths:
   /v3/market/alkanes/auction/create_put_off:
     post:
       operationId: createAlkanesPutOff
-      summary: Create delisting order.
-      description: This POST operation creates marketplace delisting order state and must only be executed after explicit user confirmation.
+      summary: Create an Alkanes delisting PSBT
+      description: Builds a delisting transaction for an auction id and returns PSBT, estimated transaction size, BTC sign indexes, and asset sign indexes. Optional inputs support custom UTXOs, RBF, off-chain cancellation, and multi-address wallets.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
       requestBody:
         content:
           application/json:
@@ -636,10 +710,18 @@ paths:
   /v3/market/alkanes/auction/confirm_put_off:
     post:
       operationId: confirmAlkanesPutOff
-      summary: Confirm delisting order.
-      description: This POST operation confirms marketplace delisting order state and must only be executed after explicit user confirmation.
+      summary: Remove a listed Alkanes order
+      description: Confirms the signed delisting PSBT for an auction id and returns the cancellation transaction id when removal is completed or accepted.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Confirmation step: ensure PSBT/signature payload was reviewed and signed by the user.
       requestBody:
         content:
           application/json:
@@ -656,10 +738,17 @@ paths:
   /v3/market/alkanes/auction/create_modify_price:
     post:
       operationId: createAlkanesModifyPrice
-      summary: Create the order for price adjustment.
-      description: This POST operation creates marketplace price-adjustment order state and must only be executed after explicit user confirmation.
+      summary: Create an Alkanes listing price-update PSBT
+      description: Builds a PSBT to change an existing listing's total and unit price, returning the signing payload and sign indexes for the specified auction id.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
       requestBody:
         content:
           application/json:
@@ -676,10 +765,18 @@ paths:
   /v3/market/alkanes/auction/confirm_modify_price:
     post:
       operationId: confirmAlkanesModifyPrice
-      summary: Confirm the order for price adjustment.
-      description: This POST operation confirms marketplace price-adjustment order state and must only be executed after explicit user confirmation.
+      summary: Apply a signed Alkanes listing price update
+      description: Confirms the signed price-update PSBT for an auction id and updates the active listing price. The response is empty on success, so use listing or activity queries to verify the new price.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Confirmation step: ensure PSBT/signature payload was reviewed and signed by the user.
       requestBody:
         content:
           application/json:
@@ -696,9 +793,18 @@ paths:
   /v3/market/alkanes/auction/create_batch_put_on:
     post:
       operationId: createAlkanesBatchPutOn
-      summary: Create batch listing order.
+      summary: Create batch Alkanes listing PSBTs
+      description: Builds a batch listing draft for multiple Alkanes UTXOs and returns batch auction id, PSBT, and sign indexes. Verify every UTXO, shared unit price, public key, and receiving address before signing.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Batch operation: verify every asset UTXO, shared unit price, and signing payload with the user.
       requestBody:
         content:
           application/json:
@@ -715,9 +821,19 @@ paths:
   /v3/market/alkanes/auction/confirm_batch_put_on:
     post:
       operationId: confirmAlkanesBatchPutOn
-      summary: Confirm batch listing order.
+      summary: Publish signed batch Alkanes listings
+      description: Confirms a signed batch listing PSBT and activates all listings in the batch. The response is empty on success, so verify the published listings through list or activity endpoints.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Batch operation: verify every asset UTXO, shared unit price, and signing payload with the user.
+        - Confirmation step: ensure PSBT/signature payload was reviewed and signed by the user.
       requestBody:
         content:
           application/json:
@@ -734,10 +850,18 @@ paths:
   /v3/market/alkanes/auction/create_batch_bid_prepare:
     post:
       operationId: createAlkanesBatchBidPrepare
-      summary: Return params before creating purchase order.
-      description: This POST operation prepares a marketplace purchase flow and must only be executed after explicit user confirmation.
+      summary: Estimate fees and validate listings for batch Alkanes purchases
+      description: Calculates batch purchase preparation data for auction ids, including service fee, real fee, fee rate, estimated transaction size, network fee rate, available balance, valid auction ids, and invalid auction ids.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Batch operation: verify every requested auctionId and inspect valid/invalid auction ids before creating orders.
       requestBody:
         content:
           application/json:
@@ -754,10 +878,18 @@ paths:
   /v3/market/alkanes/auction/create_batch_bid:
     post:
       operationId: createAlkanesBatchBid
-      summary: Create purchase order.
-      description: This POST operation creates marketplace purchase order state and must only be executed after explicit user confirmation.
+      summary: Create batch Alkanes purchase PSBTs
+      description: Builds batch purchase orders for multiple auction ids and bid prices, returning bid id, bid PSBT, platform fee, network fee, fee rate, and wallet sign indexes.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Batch operation: verify every auctionId, bid price, and signing payload with the user.
       requestBody:
         content:
           application/json:
@@ -774,10 +906,19 @@ paths:
   /v3/market/alkanes/auction/confirm_batch_bid:
     post:
       operationId: confirmAlkanesBatchBid
-      summary: Confirm purchase order.
-      description: This POST operation confirms marketplace purchase order state and must only be executed after explicit user confirmation.
+      summary: Submit signed batch Alkanes purchases
+      description: Confirms the signed batch bid PSBT and returns the settlement transaction id when the batch purchase is accepted.
       tags:
-        - MarketPlace-Alkanes
+        - Marketplace-Alkanes
+      x-unisat-domain: marketplace
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - State-changing marketplace workflow: ask for explicit user confirmation before calling.
+        - Batch operation: verify every auctionId, bid price, and signing payload with the user.
+        - Confirmation step: ensure PSBT/signature payload was reviewed and signed by the user.
       requestBody:
         content:
           application/json:

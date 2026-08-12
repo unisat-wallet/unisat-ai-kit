@@ -6,6 +6,7 @@ const {
   extractScalar,
   extractServers,
   extractTags,
+  extractUnisatExtensions,
   getSwaggerContext,
 } = require("./openapi-utils");
 
@@ -40,8 +41,18 @@ function parameterSummary(parameters) {
   };
 }
 
-function isReadOnly(method) {
+function isReadOnly(method, extensions = {}) {
+  if (typeof extensions["x-unisat-readonly"] === "boolean") {
+    return extensions["x-unisat-readonly"];
+  }
   return String(method).toLowerCase() === "get";
+}
+
+function requiresConfirmation(method, extensions = {}) {
+  if (typeof extensions["x-unisat-requires-confirmation"] === "boolean") {
+    return extensions["x-unisat-requires-confirmation"];
+  }
+  return !isReadOnly(method, extensions);
 }
 
 function requestBodySummary(lines) {
@@ -88,6 +99,7 @@ function buildOperationFromBlock(block, context) {
   const file = normalizeFilePath(block.filePath, context);
   const operationId = extractScalar(block.blockLines, /^\s{6}operationId:\s+/) || fallbackOperationId(method, block.path);
   const parameters = extractParameters(block.blockLines);
+  const unisat = extractUnisatExtensions(block.blockLines);
 
   return {
     commandName: operationId,
@@ -99,14 +111,33 @@ function buildOperationFromBlock(block, context) {
     tags: extractTags(block.blockLines),
     summary: extractScalar(block.blockLines, /^\s{6}summary:\s+/),
     description: extractScalar(block.blockLines, /^\s{6}description:\s+/),
+    unisat,
     parameters,
     parametersSummary: parameterSummary(parameters),
     requestBody: requestBodySummary(block.blockLines),
     servers: extractServers(block.fileLines),
-    readOnly: isReadOnly(method),
+    readOnly: isReadOnly(method, unisat),
     requiresApiKey: true,
-    requiresConfirmation: !isReadOnly(method),
+    requiresConfirmation: requiresConfirmation(method, unisat),
   };
+}
+
+function normalizeFilterValue(value) {
+  return String(value).toLowerCase();
+}
+
+function extensionMatches(operation, extensionName, expected) {
+  if (expected === undefined) {
+    return true;
+  }
+  const actual = operation.unisat?.[`x-unisat-${extensionName}`];
+  if (Array.isArray(actual)) {
+    return actual.some((item) => normalizeFilterValue(item) === normalizeFilterValue(expected));
+  }
+  if (typeof actual === "boolean") {
+    return String(actual) === String(expected);
+  }
+  return actual !== undefined && normalizeFilterValue(actual) === normalizeFilterValue(expected);
 }
 
 function listOperationCommands(filters = {}) {
@@ -117,7 +148,12 @@ function listOperationCommands(filters = {}) {
     .filter((operation) => !filters.domain || operation.domain === filters.domain)
     .filter((operation) => !filters.file || operation.file === filters.file)
     .filter((operation) => !filters.method || operation.method.toLowerCase() === String(filters.method).toLowerCase())
-    .filter((operation) => !filters.tag || operation.tags.some((tag) => tag.toLowerCase() === String(filters.tag).toLowerCase()));
+    .filter((operation) => !filters.tag || operation.tags.some((tag) => tag.toLowerCase() === String(filters.tag).toLowerCase()))
+    .filter((operation) => extensionMatches(operation, "domain", filters["unisat-domain"]))
+    .filter((operation) => extensionMatches(operation, "network", filters["unisat-network"]))
+    .filter((operation) => extensionMatches(operation, "status", filters["unisat-status"]))
+    .filter((operation) => extensionMatches(operation, "readonly", filters["unisat-readonly"]))
+    .filter((operation) => extensionMatches(operation, "requires-confirmation", filters["unisat-requires-confirmation"]));
 }
 
 function getOperationCommand(commandName) {

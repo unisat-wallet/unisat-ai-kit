@@ -16,16 +16,22 @@ servers:
   - url: https://open-api-staging.unisat.io
   - url: https://open-api-signet.unisat.io
 tags:
-  - name: Alkanes
-    description: Alkanes (https://alkanes.build/docs/learn/intro)
+  - name: Indexer-Alkanes
+    description: Indexer-Alkanes APIs
 paths:
   /v1/indexer/alkanes/status:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesStatus
-      summary: Get alkanes status
-      description: "Get alkanes global status"
+      summary: Get Alkanes indexer status, indexed height, and asset count
+      description: >-
+        Returns the current Alkanes indexer progress and runtime versions, including indexed block height, total tracked Alkane assets, metashrew version, and alkanes-rs version.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       responses:
         "200":
           description: successful operation
@@ -46,10 +52,16 @@ paths:
   /v1/indexer/alkanes/info-list:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesInfoList
-      summary: Get Alkanes asset list
-      description: "List or search Alkanes assets across token, collection, NFT, and contract types."
+      summary: List indexed Alkanes assets across tokens, NFTs, and collections
+      description: >-
+        Returns a paginated catalog of Alkane asset metadata. Use it for global discovery across asset types, with optional type filtering and sorting by creation time or alkaneid.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: type
           in: query
@@ -127,10 +139,16 @@ paths:
   /v1/indexer/alkanes/{alkaneid}/info:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesInfo
-      summary: Get Alkane asset information by alkaneid
-      description: "Get detailed metadata for a specific Alkane asset by alkaneid, for example 2:1."
+      summary: Get metadata for one Alkane asset by alkaneid
+      description: >-
+        Returns the asset type and type-specific metadata for a single Alkane, such as token supply fields, NFT content fields, or collection supply and holder counts.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: alkaneid
           in: path
@@ -158,10 +176,16 @@ paths:
   /v1/indexer/alkanes/token-list:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesTokenList
-      summary: Get Alkanes token list
-      description: "List or search fungible Alkanes token assets by alkaneid or name."
+      summary: List fungible Alkanes tokens with supply and holder metadata
+      description: >-
+        Returns token-type Alkanes only, including token name, symbol, divisibility, supply, mint progress, and holder count. Supports lookup by alkaneid or name and sorted pagination.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: alkaneid
           in: query
@@ -241,10 +265,16 @@ paths:
   /v1/indexer/alkanes/{alkaneid}/holders:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesHolders
-      summary: Get Alkanes holders by alkaneid
-      description: "Get holder addresses and balances for a specific Alkane token or asset by alkaneid."
+      summary: List holders and balances for an Alkane asset
+      description: >-
+        Returns paginated holder addresses and their indexed amount for the selected Alkane. Use it to inspect token distribution or collection ownership concentration.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: alkaneid
           in: path
@@ -297,10 +327,16 @@ paths:
   /v1/indexer/alkanes/{alkaneid}/collection-items:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesCollectionItems
-      summary: Get collection items
-      description: ""
+      summary: List NFT or child assets that belong to an Alkane collection
+      description: >-
+        Returns paginated Alkane item metadata for a collection, including each item's asset type and NFT or token details when available.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: alkaneid
           in: path
@@ -351,10 +387,16 @@ paths:
   /v1/indexer/alkanes/{alkaneid}/contract-events:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesContractEvents
-      summary: Get contract events
-      description: ""
+      summary: List contract execution events for an Alkane over a block range
+      description: >-
+        Returns indexed contract events with caller, opcode, fuel, inputs, execution status, block height, txid, and vout. Use it to audit contract activity within a bounded height range.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: alkaneid
           in: path
@@ -417,10 +459,16 @@ paths:
   /v1/indexer/alkanes/utxo/{txid}/{index}/balance:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAlkanesUtxoBalance
-      summary: Get alkanes utxo balance
-      description: ""
+      summary: Get all Alkane balances attached to a specific UTXO
+      description: >-
+        Returns the Alkane assets and amounts indexed on one transaction output, with token, NFT, or collection metadata attached when available.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: txid
           in: path
@@ -456,10 +504,16 @@ paths:
   /v1/indexer/address/{address}/alkanes/{alkaneid}/utxo:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAddressAlkanesUtxo
-      summary: Get utxo alkanes balance by address and alkaneid
-      description: ""
+      summary: List an address's UTXOs that carry a specific Alkane
+      description: >-
+        Returns spendable transaction outputs for an address that contain the selected Alkane, including satoshi value, scriptPubKey, confirmations, and indexed Alkane balances on each UTXO.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: address
           in: path
@@ -515,10 +569,16 @@ paths:
   /v1/indexer/address/{address}/alkanes/token-list:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAddressAlkanesTokenList
-      summary: Get address alkanes token list
-      description: ""
+      summary: List fungible Alkanes tokens held by an address
+      description: >-
+        Returns token assets associated with an address, including each token's metadata and paginated list context. Use it for wallet asset discovery before querying per-token UTXOs or transfer history.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: address
           in: path
@@ -571,10 +631,16 @@ paths:
   /v1/indexer/address/{address}/alkanes/collection-list:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAddressAlkanesCollectionList
-      summary: Get address alkanes collection list
-      description: ""
+      summary: List Alkane collections associated with an address
+      description: >-
+        Returns collection-type Alkane metadata indexed for an address, including collection name, supply, mint progress, and holder count when available.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: address
           in: path
@@ -627,10 +693,16 @@ paths:
   /v1/indexer/address/{address}/alkanes/{alkaneid}/collection-items:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAddressAlkanesCollectionItems
-      summary: Get address collection items by alkaneid
-      description: ""
+      summary: List an address's items from a specific Alkane collection
+      description: >-
+        Returns collection item metadata scoped to one address, useful for showing which NFTs or child assets from a collection are held by that wallet.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: address
           in: path
@@ -689,10 +761,16 @@ paths:
   /v1/indexer/address/{address}/alkanes/{alkaneid}/transfer-history:
     get:
       tags:
-        - Alkanes
+        - Indexer-Alkanes
       operationId: getAddressAlkanesTransferHistory
-      summary: Get transfer history
-      description: ""
+      summary: List an address's transfer history for a specific Alkane
+      description: >-
+        Returns indexed transfer records with block height, txid, transfer type, subtype, address, and amount. Use it to build an address-level activity view over a bounded height range.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
       parameters:
         - name: address
           in: path

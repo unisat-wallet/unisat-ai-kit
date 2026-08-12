@@ -22,19 +22,24 @@ servers:
   - url: https://open-api-fractal.unisat.io
   - url: https://open-api-fractal-testnet.unisat.io
 tags:
-  - name: BRC-20
-    description: Classic BRC-20 token interfaces (https://domo-2.gitbook.io/brc-20-experiment). Use these endpoints for classic tickers such as ordi; use BRC20-Prog endpoints for 6-character BRC20-Prog tickers.
+  - name: BRC20 Indexer
+    description: Classic BRC-20 token indexing and balance query APIs
 paths:
   /v1/indexer/brc20/bestheight:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20BestHeight
-      summary: Get the best block height of BRC20 data
+      summary: "Get Classic BRC-20 indexer height and ticker total"
       description: >-
-        Get the best block height of BRC20 data. This value will be consistent
-        with the latest block height a short time after the block has been
-        confirmed.
+        Returns the latest indexed block height, block hash, block timestamp, and total Classic BRC-20 ticker count. Use it to check indexer freshness before reading token status, holders, history, or address balances; data may lag the chain tip and should not be used for BRC20-Prog 6-character tickers.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       responses:
         "200":
           description: Successful operation
@@ -71,10 +76,18 @@ paths:
   /v1/indexer/brc20/list:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20TickerList
-      summary: Get the ticker list of classic BRC-20 tokens.
-      description: Get the ticker list of classic BRC-20 tokens, such as ordi. BRC20-Prog 6-character tickers are listed by /v1/indexer/brc20-prog/list.
+      summary: "List indexed Classic BRC-20 tickers"
+      description: >-
+        Returns a paginated ticker list with total count and start offset for Classic BRC-20 discovery. Use these tickers with the Classic BRC-20 info, holder, history, and address-balance endpoints; route BRC20-Prog 6-character tickers to the brc20-prog API instead.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: not-recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: start
           description: Start offset
@@ -120,11 +133,18 @@ paths:
   /v1/indexer/brc20/status:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20Status
-      summary: Get the status of BRC20 list.
+      summary: "Search Classic BRC-20 ticker status and mint progress"
       description: >-
-        Obtain BRC20 list status
+        Returns indexed Classic BRC-20 ticker status records including deployment metadata, minted supply, holder and history counts, and completion state. Use sort and completion filters for token discovery or ranking; balances are indexer-derived and may change as new blocks are processed.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: start
           description: Start offset
@@ -195,10 +215,18 @@ paths:
   /v1/indexer/brc20/{ticker}/info:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20InfoByTicker
-      summary: Get classic BRC-20 information by ticker
-      description: Get information for a classic BRC-20 ticker, such as ordi. Do not use this endpoint for BRC20-Prog 6-character tickers; use /v1/indexer/brc20-prog/{ticker}/info instead.
+      summary: "Get Classic BRC-20 ticker deployment and supply info"
+      description: >-
+        Returns deployment inscription, creator, max supply, mint limit, decimals, minted amounts, holder count, and related history counts for one Classic BRC-20 ticker. Use this before showing token detail pages or validating ticker-level context; 6-character BRC20-Prog tickers are intentionally out of scope.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: ticker
           description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
@@ -230,10 +258,18 @@ paths:
   /v1/indexer/brc20/{ticker}/holders:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20HoldersByTicker
-      summary: Get classic BRC-20 holders by ticker.
-      description: Get holder balances for a classic BRC-20 ticker. For BRC20-Prog holders, use /v1/indexer/brc20-prog/{ticker}/holders.
+      summary: "List Classic BRC-20 holders and balances for a ticker"
+      description: >-
+        Returns holder addresses with overall, transferable, and available balances for the selected Classic BRC-20 ticker. Use it for holder distribution views or balance audits; values are indexed token balances and do not authorize transfers or create inscriptions.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: ticker
           description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
@@ -296,10 +332,18 @@ paths:
   /v1/indexer/brc20/{ticker}/history:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20HistoryByTicker
-      summary: Get the full history of BRC20 by ticker.
-      description: Get the full history of BRC20.
+      summary: "List Classic BRC-20 history events for a ticker"
+      description: >-
+        Returns deploy, mint, transfer-inscription, send, and receive events with inscription, transaction, balance, height, and validity fields. Use it for token activity feeds or reconciliation at a height; invalid or unconfirmed protocol actions should be interpreted according to the returned validity and indexer state.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: ticker
           description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
@@ -371,10 +415,18 @@ paths:
   /v1/indexer/brc20/{ticker}/tx/{txid}/history:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20HistoryByTickerAndTxid
-      summary: Get classic BRC-20 history by ticker and txid.
-      description: Get classic BRC-20 history records for the specified ticker and transaction id.
+      summary: "Get Classic BRC-20 ticker events in a transaction"
+      description: >-
+        Returns ticker-specific history events found in a transaction, including event type, inscription id, amount, counterparties, balances, and validity. Use it to explain how a transaction affected a Classic BRC-20 ticker; always treat returned balances as indexed results rather than spend authorization.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: ticker
           description: Classic BRC-20 ticker, such as ordi. Use brc20-prog endpoints for 6-character BRC20-Prog tickers.
@@ -446,10 +498,18 @@ paths:
   /v1/indexer/brc20/history-by-height/{height}:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20HistoryByHeight
-      summary: Get classic BRC-20 history records by block height.
-      description: Get classic BRC-20 history records indexed at the specified block height.
+      summary: "List Classic BRC-20 events indexed at a block height"
+      description: >-
+        Returns paginated Classic BRC-20 history events for a specific block height with ticker, transaction, inscription, amount, and validity details. Use it for block-level indexing audits or backfills; results represent the indexer's view of confirmed protocol events at that height.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: height
           description: Block Height
@@ -506,13 +566,18 @@ paths:
   /v1/indexer/address/{address}/brc20/summary:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20SummaryByAddress
-      summary: Get the BRC20 token summary by address.
+      summary: "List an address's Classic BRC-20 token balances"
       description: >-
-        Obtain classic BRC-20 token summary by address, including available balance,
-        transferable balance. This endpoint returns classic BRC-20 balances; use
-        /v1/indexer/address/{address}/brc20-prog/summary for BRC20-Prog balances.
+        Returns paginated Classic BRC-20 balance summaries for an address, including ticker, indexed height, total count, overall balance, transferable balance, and available balance. Use tick_filter to separate 4-, 5-, or 6-character Classic BRC-20 namespaces when needed; use brc20-prog endpoints for BRC20-Prog semantics.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: address
           description: Address
@@ -602,13 +667,18 @@ paths:
   /v1/indexer/address/{address}/brc20/summary-by-height/{height}:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20SummaryByAddressAndHeight
-      summary: Get the BRC20 token summary by address and height.
+      summary: "List an address's Classic BRC-20 balances at a height"
       description: >-
-        Obtain classic BRC-20 token summary by address, including available balance,
-        transferable balance. This endpoint returns classic BRC-20 balances; use
-        /v1/indexer/address/{address}/brc20-prog/summary for BRC20-Prog balances.
+        Returns the address's indexed Classic BRC-20 balance summaries as of a specific block height, including ticker, overall, transferable, and available balances. Use it for historical portfolio snapshots or reconciliation; balances are read-only indexer state and may differ from current spendability.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: address
           description: Address
@@ -679,13 +749,18 @@ paths:
   /v1/indexer/address/{address}/brc20/{ticker}/info:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20InfoByAddressAndTicker
-      summary: Get the BRC20 token info by address and ticker.
+      summary: "Get an address's Classic BRC-20 balance details for a ticker"
       description: >-
-        Obtain BRC20 token infomation by address, including available balance,
-        transferable balance, number of transferable inscriptions, the first few
-        Inscriptions, etc.
+        Returns one address's overall, available, safe, unsafe, and transferable balances for a Classic BRC-20 ticker, plus related transfer inscriptions and history counts. Use it before building transfer flows or balance displays; this endpoint only reports indexed state and does not guarantee UTXO spend safety.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: address
           description: Address
@@ -746,10 +821,18 @@ paths:
   /v1/indexer/address/{address}/brc20/history:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20HistoryByAddress
-      summary: Get the full history of BRC20 by address.
-      description: Get the full history of BRC20 by address.
+      summary: "List all Classic BRC-20 history events for an address"
+      description: >-
+        Returns paginated Classic BRC-20 events involving an address across tickers, including event type, amount, counterparties, transaction, inscription, and balance fields. Use it for wallet activity timelines and audits; events are indexer-derived and should be checked for validity before user-facing accounting.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: address
           description: Address
@@ -803,10 +886,18 @@ paths:
   /v1/indexer/address/{address}/brc20/{ticker}/history:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20HistoryByAddressAndTicker
-      summary: Get the full history of BRC20 by address and ticker.
-      description: Get the full history of BRC20 by address.
+      summary: "List an address's Classic BRC-20 history for a ticker"
+      description: >-
+        Returns ticker-specific Classic BRC-20 events for an address with event type, transaction, inscription, amount, balance, height, and validity fields. Use it to explain wallet balance changes for one ticker; read the validity flag and confirmation context before treating events as final.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: address
           description: Address
@@ -878,10 +969,18 @@ paths:
   /v1/indexer/address/{address}/brc20/{ticker}/transferable-inscriptions:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20TransferableInscriptionsByAddressAndTicker
-      summary: Get the transferable inscriptions list of BRC20 by address.
-      description: Get the transferable inscriptions list of BRC20 by address.
+      summary: "List transferable Classic BRC-20 inscriptions for an address"
+      description: >-
+        Returns unused transferable inscriptions for a Classic BRC-20 ticker with inscription id, inscription number, satoshi value, confirmations, and transfer amount payload. Use it to select candidate transfer inscriptions; callers must still validate UTXO ownership, confirmation policy, and signing context before spending.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: address
           description: Address
@@ -958,10 +1057,18 @@ paths:
   /v1/indexer/brc20-module/{module}/history:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20ModuleHistoryByAddress
-      summary: Get the history of BRC20 Module by address.
-      description: Get the history of BRC20 Module.
+      summary: "List Classic BRC-20 module history for a module inscription"
+      description: >-
+        Returns module-related Classic BRC-20 events across a height range, including inscription, satpoint, address, amount, validity, and block metadata. Use it to inspect module deposit or movement workflows; this is an indexer audit view and does not submit withdrawals or transfers.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: module
           description: Address
@@ -1030,10 +1137,18 @@ paths:
   /v1/indexer/brc20-module/withdraw-history:
     get:
       tags:
-        - BRC-20
+        - BRC20 Indexer
       operationId: getBrc20WithdrawHistory
-      summary: Get the withdraw history of BRC20.
-      description: Get the withdraw history of BRC20.
+      summary: "List Classic BRC-20 module withdrawal history"
+      description: >-
+        Returns withdrawal-related module events within a height range, including inscription, satpoint, address, token amount, transaction, validity, and block metadata. Use it for module withdrawal monitoring and reconciliation; this endpoint is read-only and never creates, signs, or broadcasts withdrawals.
+      x-unisat-domain: brc20
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Read-only Classic BRC-20 query; never use for BRC20-Prog ticker semantics.
       parameters:
         - name: start
           description: Start height
