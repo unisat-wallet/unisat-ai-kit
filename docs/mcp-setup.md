@@ -13,20 +13,20 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
   "mcpServers": {
     "unisat-ai": {
       "command": "npx",
-      "args": ["-y", "@api-agent-test/ai-mcp"]
+      "args": ["-y", "@unisat/openapi-mcp"]
     }
   }
 }
 ```
 
-The package includes the MCP server and depends on `@api-agent-test/ai-cli`, whose npm package bundles the OpenAPI swagger data used for status reporting and CLI calls.
+The package includes the MCP server and depends on `@unisat/openapi-cli`, whose npm package bundles the OpenAPI swagger data used for status reporting and CLI calls.
 
 ## Option B: global npm install
 
 Install once:
 
 ```bash
-npm install -g @api-agent-test/ai-mcp
+npm install -g @unisat/openapi-mcp
 ```
 
 Configure the agent:
@@ -112,8 +112,8 @@ UNISAT_FRACTAL_API_KEY=YOUR_FRACTAL_KEY
 You can also configure keys with the CLI package:
 
 ```bash
-npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+npx -y @unisat/openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @unisat/openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
 Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-cli api call` for exact-path calls.
@@ -123,7 +123,7 @@ Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-
 The public npm and portable packages already include swagger data. Override the swagger directory only for development or custom builds:
 
 ```bash
-OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @api-agent-test/ai-mcp
+OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/openapi-mcp
 ```
 
 ## Validation

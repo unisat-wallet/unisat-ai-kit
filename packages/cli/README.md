@@ -1,11 +1,11 @@
-﻿# @api-agent-test/ai-cli
+﻿# @unisat/openapi-cli
 
 This package owns the stable external CLI command surface for direct UniSat OpenAPI HTTPS calls.
 
 Install globally after publication:
 
 ```bash
-npm install -g @api-agent-test/ai-cli
+npm install -g @unisat/openapi-cli
 ```
 
 Supported commands:

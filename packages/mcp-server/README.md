@@ -1,17 +1,17 @@
-# @api-agent-test/ai-mcp
+# @unisat/openapi-mcp
 
 This package exposes the UniSat AI Kit MCP server.
 
 Install globally after publication:
 
 ```bash
-npm install -g @api-agent-test/ai-mcp
+npm install -g @unisat/openapi-mcp
 ```
 
 Or run it without a global install:
 
 ```bash
-npx -y @api-agent-test/ai-mcp
+npx -y @unisat/openapi-mcp
 ```
 
 ## Tools

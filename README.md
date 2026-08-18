@@ -19,7 +19,7 @@ For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the 
   "mcpServers": {
     "unisat-ai": {
       "command": "npx",
-      "args": ["-y", "--registry=https://registry.npmjs.org/", "@api-agent-test/ai-mcp"],
+      "args": ["-y", "--registry=https://registry.npmjs.org/", "@unisat/openapi-mcp"],
       "env": {
         "UNISAT_BITCOIN_API_KEY": "YOUR_BITCOIN_API_KEY",
         "UNISAT_FRACTAL_API_KEY": "YOUR_FRACTAL_API_KEY"
@@ -48,8 +48,8 @@ Download the single-executable archive for your operating system. You do not nee
 After downloading the CLI, configure each OpenAPI environment separately:
 
 ```bash
-npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+npx -y @unisat/openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @unisat/openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
 These commands store keys in the current user's UniSat AI Kit config directory.
@@ -167,7 +167,7 @@ npm run smoke
 npm run release:smoke
 ```
 
-The workflow `.github/workflows/npm-release.yml` publishes the configured npm packages, currently documented for the package names `@api-agent-test/ai-cli` and `@api-agent-test/ai-mcp`. It runs on tag pushes like `v0.1.5` or manual `workflow_dispatch` and requires the `NPM_TOKEN` repository secret.
+The workflow `.github/workflows/npm-release.yml` publishes the configured npm packages, currently documented for the package names `@unisat/openapi-cli` and `@unisat/openapi-mcp`. It runs on tag pushes like `v0.1.5` or manual `workflow_dispatch` and requires the `NPM_TOKEN` repository secret.
 
 ## Repository Layout
 
