@@ -35,9 +35,9 @@ function printHelp() {
   console.log("Fixed CLI commands:");
   console.log("  commands");
   console.log("      List generated OpenAPI operation commands from bundled swagger YAML.");
-  console.log("  config bitcoin-key");
+  console.log("  config bitcoin-key --api-key <key>");
   console.log("      Save the Bitcoin OpenAPI API key.");
-  console.log("  config fractal-key");
+  console.log("  config fractal-key --api-key <key>");
   console.log("      Save the Fractal OpenAPI API key.");
   console.log("  api call");
   console.log("      Call an exact UniSat OpenAPI path directly.");
