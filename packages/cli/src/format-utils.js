@@ -71,7 +71,8 @@ function printOutput(payload, format) {
     }
     if (Array.isArray(payload.items)) {
       payload.items.forEach((item) => {
-        console.log(`${item.commandName} - ${item.summary || item.path}`);
+        const recommendation = item.recommendation === "not-recommended" ? " [not recommended]" : "";
+        console.log(`${item.commandName} - ${item.summary || item.path}${recommendation}`);
       });
     }
     return;

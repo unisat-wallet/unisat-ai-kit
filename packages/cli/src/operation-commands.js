@@ -101,6 +101,9 @@ function buildOperationFromBlock(block, context) {
   const parameters = extractParameters(block.blockLines);
   const unisat = extractUnisatExtensions(block.blockLines);
 
+  const status = unisat["x-unisat-status"];
+  const recommendation = status === "not-recommended" ? { recommendation: status } : {};
+
   return {
     commandName: operationId,
     operationId,
@@ -111,6 +114,7 @@ function buildOperationFromBlock(block, context) {
     tags: extractTags(block.blockLines),
     summary: extractScalar(block.blockLines, /^\s{6}summary:\s+/),
     description: extractScalar(block.blockLines, /^\s{6}description:\s+/),
+    ...recommendation,
     unisat,
     parameters,
     parametersSummary: parameterSummary(parameters),
@@ -145,6 +149,7 @@ function listOperationCommands(filters = {}) {
   const blocks = collectPathBlocks(context.swaggerDir);
   return blocks
     .map((block) => buildOperationFromBlock(block, context))
+    .filter((operation) => operation.unisat?.["x-unisat-status"] !== "deprecated")
     .filter((operation) => !filters.domain || operation.domain === filters.domain)
     .filter((operation) => !filters.file || operation.file === filters.file)
     .filter((operation) => !filters.method || operation.method.toLowerCase() === String(filters.method).toLowerCase())
