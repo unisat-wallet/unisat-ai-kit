@@ -3,7 +3,7 @@ info:
   title: Inscribe API
   version: 1.0.0
   description: >-
-    Inscribe API provides order-based inscription workflows, including reading order summaries and status, creating inscription orders, and checking fees. Order creation endpoints are POST operations that create payment/order state and require explicit user confirmation before execution.
+    Inscribe API provides order-based inscription workflows, including reading order summaries and status, creating inscription orders, and checking fees. Order creation endpoints are POST operations that create payment/order state and require explicit user confirmation before execution. For the complete minting flow, including payment, wallet signing, commit, reveal, status polling, and refund handling, refer to the UniSat Open API minting guide: https://github.com/unisat-wallet/unisat-dev-docs/tree/master/open-api. Wallet connection and signing integration should follow the UniSat Wallet API guides: https://github.com/unisat-wallet/unisat-dev-docs/tree/master/wallet-api/api-docs.
   contact:
     email: contact@unisat.io
   license:
@@ -609,7 +609,7 @@ paths:
       operationId: createOrderRunesEtch
       summary: Create Runes etch inscription order
       description: >-
-        Creates a payable inscription order for Runes etching and returns orderId, payAddress, amount, receiveAddress, fee fields, and status. Confirm rune name/symbol/divisibility, premine and terms, file payload, receiveAddress, feeRate, outputValue, and total payment before calling.
+        Creates a payable inscription order for Runes etching and returns orderId, payAddress, amount, receiveAddress, fee fields, and status. Confirm rune name/symbol/divisibility, premine and terms, file payload, receiveAddress, feeRate, outputValue, and total payment before calling. This is the first step of the complete minting flow; follow the UniSat Open API minting guide for payment, signing, commit, reveal, and status polling: https://github.com/unisat-wallet/unisat-dev-docs/tree/master/open-api.
       x-unisat-domain: inscribe
       x-unisat-network: multi
       x-unisat-status: recommended
@@ -647,7 +647,7 @@ paths:
       operationId: createOrderRunesMint
       summary: Create Runes mint inscription order
       description: >-
-        Creates a payable inscription order for Runes minting and returns orderId, payAddress, amount, receiveAddress, fee fields, and status. Confirm runeid, count, receiveAddress, feeRate, outputValue, dev fee fields, and total payment before calling.
+        Creates a payable inscription order for Runes minting and returns orderId, payAddress, amount, receiveAddress, fee fields, and status. Confirm runeid, count, receiveAddress, feeRate, outputValue, dev fee fields, and total payment before calling. This is the first step of the complete minting flow; follow the UniSat Open API minting guide for payment, signing, commit, reveal, and status polling: https://github.com/unisat-wallet/unisat-dev-docs/tree/master/open-api.
       x-unisat-domain: inscribe
       x-unisat-network: multi
       x-unisat-status: recommended

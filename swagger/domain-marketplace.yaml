@@ -3,7 +3,7 @@ info:
   title: Ordinals Domain Marketplace API
   version: 1.0.4
   description: >-
-    This API provides endpoints for Ordinals domain marketplace services, including domain type statistics, domain listing search, inscription details, activity history, and marketplace order workflows.
+    This API provides endpoints for Ordinals domain marketplace services, including domain type statistics, domain listing search, inscription details, activity history, and marketplace order workflows. Interfaces that return PSBTs or require wallet signatures should be integrated with the UniSat Wallet according to https://github.com/unisat-wallet/unisat-dev-docs/tree/master/wallet-api/api-docs.
   contact:
     email: contact@unisat.io
   license:

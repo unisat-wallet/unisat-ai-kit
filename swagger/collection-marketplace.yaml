@@ -3,7 +3,7 @@ info:
   title: Ordinals Collection Marketplace API
   version: 1.0.4
   description: >-
-    This API provides endpoints for Ordinals collection marketplace services, including collection statistics, listing search, address collection summaries, inscription listing details, order preparation, and order submission.
+    This API provides endpoints for Ordinals collection marketplace services, including collection statistics, listing search, address collection summaries, inscription listing details, order preparation, and order submission. Interfaces that return PSBTs or require wallet signatures should be integrated with the UniSat Wallet according to https://github.com/unisat-wallet/unisat-dev-docs/tree/master/wallet-api/api-docs.
   contact:
     email: contact@unisat.io
   license:

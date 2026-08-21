@@ -3,7 +3,7 @@ info:
   title: BRC20 Marketplace API
   version: 1.0.4
   description: >-
-    BRC-20 marketplace APIs for address binding, market discovery, listing inspection, activity history, and PSBT-based listing, purchase, delisting, and price update workflows.
+    BRC-20 marketplace APIs for address binding, market discovery, listing inspection, activity history, and PSBT-based listing, purchase, delisting, and price update workflows. Interfaces that require wallet addresses, signatures, or PSBT signing should be integrated with the UniSat Wallet according to https://github.com/unisat-wallet/unisat-dev-docs/tree/master/wallet-api/api-docs.
   contact:
     email: contact@unisat.io
   license:
@@ -319,7 +319,7 @@ paths:
     post:
       operationId: bindBrc20NftAddress
       summary: Bind marketplace payment and inscription addresses
-      description: Records the BTC payment address and NFT/inscription receiving address pair used by BRC-20 marketplace workflows. Confirm both addresses carefully because later listing and purchase flows may rely on this binding.
+      description: Records the BTC payment address and NFT/inscription receiving address pair used by BRC-20 marketplace workflows. This endpoint requires a wallet-generated signature proving control of both addresses; connect the UniSat Wallet, request the appropriate address/signing context, and verify the returned addresses before submitting. Confirm both addresses carefully because later listing and purchase flows may rely on this binding. For UniSat Wallet connection and signing guidance, refer to https://github.com/unisat-wallet/unisat-dev-docs/tree/master/wallet-api/api-docs.
       tags:
         - Marketplace-BRC20
       x-unisat-domain: marketplace
