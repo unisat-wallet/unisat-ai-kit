@@ -33,7 +33,7 @@ function run(command, args, options = {}) {
     });
 
     child.on("close", (code) => {
-      if (code !== 0) {
+      if (options.expectFailure ? code === 0 || code === null : code !== 0) {
         reject(new Error(`${command} ${args.join(" ")} failed: ${stderr || stdout}`));
         return;
       }
@@ -96,7 +96,7 @@ async function runMcpSmoke(command, args, options = {}) {
           return;
         }
         assert(initResponse.result?.protocolVersion, "packed mcp initialize response invalid");
-        assert(listResponse.result?.tools?.length === 2, "packed mcp should expose get_status and call_api");
+        assert(listResponse.result?.tools?.length === 4, "packed mcp should expose discovery, detail, status and call tools");
         assert(listResponse.result.tools.some((tool) => tool.name === "get_status"), "packed mcp get_status missing");
         assert(listResponse.result.tools.some((tool) => tool.name === "call_api"), "packed mcp call_api missing");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "packed mcp get_status invalid");
@@ -233,6 +233,8 @@ async function main() {
     assert(cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/") && file.endsWith(".yaml")), "packed cli swagger vendor missing");
     assertPackedFile(mcpPack.files, "bin/server.js");
     assertPackedFile(mcpPack.files, "src/tools.js");
+    assertPackedFile(cliPack.files, "src/credits.js");
+    assert(!cliPack.files.includes("vendor/openapi-swagger/credits.yaml"), "credits must not depend on a swagger file");
 
     await run(npmCommand(), ["init", "-y"], { cwd: tempDir });
     await run(npmCommand(), ["install", cliTarball, mcpTarball], { cwd: tempDir });
@@ -246,16 +248,41 @@ async function main() {
       UNISAT_BITCOIN_API_KEY: "release_smoke",
     };
 
+    const configStatus = await run(cliBin, ["config", "status", "--format", "json"], { cwd: tempDir, env });
+    const configPayload = JSON.parse(configStatus.stdout);
+    assert(configPayload.command === "config.status" && configPayload.networkChecked === false, "packed local config status invalid");
+    assert(configPayload.environments.find((item) => item.name === "bitcoin")?.source === "environment", "packed config source invalid");
+    assert(!configStatus.stdout.includes("release_smoke"), "packed config must not expose API keys");
+    const help = await run(cliBin, ["--help", "--format", "json"], { cwd: tempDir, env });
+    assert(JSON.parse(help.stdout).text.includes("First use:"), "packed onboarding help missing");
+    const blockedWrite = await run(cliBin, ["api", "call", "--path", "/v2/inscribe/order/create", "--body", "{}", "--format", "json"], {
+      cwd: tempDir, env, expectFailure: true,
+    });
+    assert(JSON.parse(blockedWrite.stdout).mode === "confirmation_required", "packed exact-path call must require confirmation");
+
     const allCommandList = await run(cliBin, ["commands", "--all", "--format", "json"], {
       cwd: tempDir,
       env,
     });
     const allCommandListPayload = JSON.parse(allCommandList.stdout);
     assert(allCommandListPayload.command === "commands", "packed cli all commands failed");
+    assert(allCommandListPayload.items.some((item) => item.commandName === "getCredits"), "packed CLI credits command missing");
+    const creditsPlan = await run(cliBin, ["getCredits", "--env", "fractal", "--dry-run", "--format", "json"], {
+      cwd: tempDir, env,
+    });
+    assert(JSON.parse(creditsPlan.stdout).request.url === "https://developer.unisat.io/openapi/public/get_credits", "packed credits URL invalid");
     assert(allCommandListPayload.total > 16, "packed cli should enable all swagger semantic commands");
-    assert(allCommandListPayload.items.some((item) => item.file === "alkanes-indexer.yaml" && item.commandName === "getAlkanesInfoList"), "packed cli alkanes command missing");
-    assert(allCommandListPayload.items.some((item) => item.file === "blockchain-indexer.yaml" && item.commandName === "getRecommendedFees"), "packed cli blockchain command missing");
-    assert(allCommandListPayload.items.some((item) => item.file === "inscribe.yaml" && item.commandName === "createOrder" && item.requestBody.required === true), "packed cli POST body metadata missing");
+    assert(allCommandListPayload.items.some((item) => item.domain === "alkanes" && item.commandName === "getAlkanesInfoList"), "packed cli alkanes command missing");
+    assert(allCommandListPayload.items.some((item) => item.domain === "blockchain" && item.commandName === "getRecommendedFees"), "packed cli blockchain command missing");
+    assert(allCommandListPayload.items.every((item) => !item.parameters && !item.description), "packed lists must be compact");
+    const orderHelp = await run(cliBin, ["createOrder", "--help", "--format", "json"], { cwd: tempDir, env });
+    assert(JSON.parse(orderHelp.stdout).operation.requestBody.required === true, "packed cli POST body metadata missing");
+    const bidHelp = await run(cliBin, ["createBrc20BidPrepare", "--help", "--format", "json"]);
+    assert(JSON.parse(bidHelp.stdout).operation.requestBody.referencedSchemas["#/components/schemas/MarketCreateBidPrepareRequest"].includes("auctionId:"), "packed cli referenced body schema missing");
+    const domains = await run(cliBin, ["commands", "domains", "--format", "json"], { cwd: tempDir, env });
+    assert(JSON.parse(domains.stdout).items.some((item) => item.domain === "blockchain"), "packed domains missing");
+    const wrongDomain = await run(cliBin, ["commands", "--domain", "bitcoin", "--format", "json"], { cwd: tempDir, env, expectFailure: true });
+    assert(JSON.parse(wrongDomain.stdout).mode === "invalid_domain", "packed network/domain hint missing");
 
     const commandList = await run(cliBin, ["commands", "--domain", "brc20", "--format", "json"], {
       cwd: tempDir,
@@ -265,11 +292,11 @@ async function main() {
     assert(commandListPayload.command === "commands", "packed cli commands failed");
     assert(commandListPayload.total === 16, "packed cli BRC20 command count invalid");
     assert(commandListPayload.items.some((item) => item.commandName === "getBrc20Status"), "packed cli getBrc20Status missing");
-    const historyByTx = commandListPayload.items.find((item) => item.commandName === "getBrc20HistoryByTickerAndTxid");
-    const typeParam = historyByTx?.parameters.find((parameter) => parameter.name === "type");
+    const historyHelp = await run(cliBin, ["getBrc20HistoryByTickerAndTxid", "--help", "--format", "json"], { cwd: tempDir, env });
+    const typeParam = JSON.parse(historyHelp.stdout).operation.parameters.find((parameter) => parameter.name === "type");
     assert(typeParam?.enum?.includes("inscribe-deploy"), "packed cli BRC20 history type enum missing");
-    const status = commandListPayload.items.find((item) => item.commandName === "getBrc20Status");
-    const sortParam = status?.parameters.find((parameter) => parameter.name === "sort");
+    const statusHelp = await run(cliBin, ["getBrc20Status", "--help", "--format", "json"], { cwd: tempDir, env });
+    const sortParam = JSON.parse(statusHelp.stdout).operation.parameters.find((parameter) => parameter.name === "sort");
     assert(sortParam?.enum?.includes("holders"), "packed cli BRC20 status sort enum missing");
     assert(sortParam?.example === "deploy", "packed cli BRC20 status sort example missing");
 
@@ -284,6 +311,7 @@ async function main() {
     assert(dryRunPayload.request.queryString.includes("limit=10"), "packed cli semantic command limit query missing");
 
     const cliCall = await run(cliBin, ["api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"], {
+      expectFailure: true,
       cwd: tempDir,
       env,
     });

@@ -1,4 +1,6 @@
 const path = require("path");
+const { creditsOperation } = require("./credits");
+const { requestBodySummary } = require("./operation-policy");
 let sea = null;
 try {
   sea = require("node:sea");
@@ -219,6 +221,7 @@ function extractParameters(lines) {
   let current = null;
   let inParameters = false;
   let inSchema = false;
+  let inDescription = false;
 
   function pushCurrent() {
     if (current && current.name) {
@@ -226,9 +229,15 @@ function extractParameters(lines) {
     }
     current = null;
     inSchema = false;
+    inDescription = false;
   }
 
   lines.forEach((line) => {
+    if (inDescription && current && /^\s{12}\S/.test(line)) {
+      current.description += `${current.description ? "\n" : ""}${line.trim()}`;
+      return;
+    }
+    if (line.trim()) inDescription = false;
     if (/^\s{6}parameters:\s*$/.test(line)) {
       inParameters = true;
       return;
@@ -277,6 +286,12 @@ function extractParameters(lines) {
     const propertyMatch = line.match(/^\s{10}(name|in|required|description|example):\s+(.+)\s*$/);
     if (propertyMatch) {
       const [, key, rawValue] = propertyMatch;
+      if (key === "description" && ["->", ">", ">-", "|", "|-"].includes(rawValue.trim())) {
+        current.description = "";
+        inDescription = true;
+        inSchema = false;
+        return;
+      }
       if (key === "required") {
         current.required = rawValue.trim() === "true";
       } else {
@@ -426,6 +441,7 @@ function fallbackOperationId(method, apiPath) {
 }
 
 function getOpenApiDetail(apiPath) {
+  if (apiPath === creditsOperation.path) return creditsOperation;
   const { openapiSwaggerDir, swaggerDir, embedded } = getSwaggerContext();
   const blocks = collectPathBlocks(swaggerDir);
   const block = blocks.find((item) => item.path === apiPath);
@@ -449,6 +465,7 @@ function getOpenApiDetail(apiPath) {
     parameters: extractParameters(block.blockLines),
     servers: extractServers(block.fileLines),
     requestBodyTemplate: buildRequestBodyTemplate(block.blockLines),
+    requestBody: requestBodySummary(block.blockLines, block.fileLines),
     sourceRoot: swaggerDir,
   };
 }

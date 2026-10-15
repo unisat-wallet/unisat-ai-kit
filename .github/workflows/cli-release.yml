@@ -57,6 +57,9 @@ jobs:
       - name: Check Node.js
         run: node --version
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Smoke test
         run: npm run smoke
 

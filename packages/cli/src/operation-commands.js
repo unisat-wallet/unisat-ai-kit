@@ -1,4 +1,6 @@
 const path = require("path");
+const { creditsOperation } = require("./credits");
+const { isReadOnly, requiresConfirmation, requestBodySummary } = require("./operation-policy");
 const {
   collectPathBlocks,
   extractMethods,
@@ -41,58 +43,6 @@ function parameterSummary(parameters) {
   };
 }
 
-function isReadOnly(method, extensions = {}) {
-  if (typeof extensions["x-unisat-readonly"] === "boolean") {
-    return extensions["x-unisat-readonly"];
-  }
-  return String(method).toLowerCase() === "get";
-}
-
-function requiresConfirmation(method, extensions = {}) {
-  if (typeof extensions["x-unisat-requires-confirmation"] === "boolean") {
-    return extensions["x-unisat-requires-confirmation"];
-  }
-  return !isReadOnly(method, extensions);
-}
-
-function requestBodySummary(lines) {
-  let inRequestBody = false;
-  const contentTypes = [];
-  let required = false;
-
-  lines.forEach((line) => {
-    if (/^\s{6}requestBody:\s*$/.test(line)) {
-      inRequestBody = true;
-      return;
-    }
-
-    if (!inRequestBody) {
-      return;
-    }
-
-    if (/^\s{6}responses:\s*$/.test(line)) {
-      inRequestBody = false;
-      return;
-    }
-
-    const contentTypeMatch = line.match(/^\s{10}([A-Za-z0-9.+-]+\/[A-Za-z0-9.+-]+):\s*$/);
-    if (contentTypeMatch) {
-      contentTypes.push(contentTypeMatch[1]);
-      return;
-    }
-
-    const requiredMatch = line.match(/^\s{8}required:\s+(.+)\s*$/);
-    if (requiredMatch) {
-      required = requiredMatch[1].trim() === "true";
-    }
-  });
-
-  return {
-    required,
-    contentTypes,
-  };
-}
-
 function buildOperationFromBlock(block, context) {
   const methods = extractMethods(block.blockLines);
   const method = methods[0] || "";
@@ -118,7 +68,7 @@ function buildOperationFromBlock(block, context) {
     unisat,
     parameters,
     parametersSummary: parameterSummary(parameters),
-    requestBody: requestBodySummary(block.blockLines),
+    requestBody: requestBodySummary(block.blockLines, block.fileLines),
     servers: extractServers(block.fileLines),
     readOnly: isReadOnly(method, unisat),
     requiresApiKey: true,
@@ -147,8 +97,7 @@ function extensionMatches(operation, extensionName, expected) {
 function listOperationCommands(filters = {}) {
   const context = getSwaggerContext();
   const blocks = collectPathBlocks(context.swaggerDir);
-  return blocks
-    .map((block) => buildOperationFromBlock(block, context))
+  return [creditsOperation, ...blocks.map((block) => buildOperationFromBlock(block, context))]
     .filter((operation) => operation.unisat?.["x-unisat-status"] !== "deprecated")
     .filter((operation) => !filters.domain || operation.domain === filters.domain)
     .filter((operation) => !filters.file || operation.file === filters.file)
@@ -162,6 +111,7 @@ function listOperationCommands(filters = {}) {
 }
 
 function getOperationCommand(commandName) {
+  if (commandName === creditsOperation.commandName) return creditsOperation;
   return listOperationCommands().find((operation) => operation.commandName === commandName) || null;
 }
 

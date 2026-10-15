@@ -570,7 +570,7 @@ paths:
       operationId: getBrc20SummaryByAddress
       summary: "List an address's Classic BRC-20 token balances"
       description: >-
-        Returns paginated Classic BRC-20 balance summaries for an address, including ticker, indexed height, total count, overall balance, transferable balance, and available balance. Use tick_filter to separate 4-, 5-, or 6-character Classic BRC-20 namespaces when needed; use brc20-prog endpoints for BRC20-Prog semantics.
+        Returns paginated Classic BRC-20 balance summaries for an address, including ticker, indexed height, total count, overall balance, transferable balance, and available balance. On Bitcoin, use tick_filter to separate 4-, 5-, or 6-character Classic BRC-20 namespaces. Fractal supports 8, 16, and 24, but not bit 32 or combined value 56; Bitcoin character-length meanings do not apply to Fractal. Use brc20-prog endpoints for BRC20-Prog semantics.
       x-unisat-domain: brc20
       x-unisat-network: multi
       x-unisat-status: recommended
@@ -600,13 +600,14 @@ paths:
             type: integer
           example: 16
         - name: tick_filter
-          description: ->
-            filter by tick type
+          description: |-
+            Filter by tick type. The following character-length meanings apply to Bitcoin only.
             8 - Returns only 4-character BRC20 tokens
             16 - Returns only 5-character BRC20 tokens
             32 - Returns only 6-character BRC20 tokens
             24 - Returns 4 and 5-character BRC20 tokens (bitwise combination 8 | 16)
             56 - Returns 4, 5, and 6-character BRC20 tokens (bitwise combination 8 | 16 | 32)
+            Fractal supports 8, 16, and 24 only. Bit 32 and any combination containing it (including 56) are unsupported. Do not infer Fractal ticker character lengths from these Bitcoin descriptions. Omitting the filter uses the server default, not a guarantee of all namespaces.
           in: query
           required: false
           schema:

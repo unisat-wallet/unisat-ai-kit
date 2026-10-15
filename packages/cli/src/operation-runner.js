@@ -1,5 +1,7 @@
 const { callApi } = require("./api-call");
 const { buildRequestPlan, exampleValue } = require("./openapi-request");
+const { validateBody } = require("./operation-policy");
+const { parseBooleanOption } = require("./arg-utils");
 
 const GLOBAL_OPTION_NAMES = new Set([
   "api-key",
@@ -68,7 +70,7 @@ function buildExampleCommand(operation, providedOptions = {}) {
       flags.push(`--${parameter.name}=${value}`);
     });
   if (requiresJsonBody(operation)) {
-    const body = optionProvided(providedOptions, "body") ? providedOptions.body : "{}";
+    const body = optionProvided(providedOptions, "body") ? providedOptions.body : "<JSON matching the request body schema>";
     flags.push(`--body='${body}'`);
   }
   return `unisat-openapi-cli ${operation.commandName}${flags.length ? ` ${flags.join(" ")}` : ""} --format json`;
@@ -92,6 +94,8 @@ function buildPlanPayload(operation, options) {
     };
   }
 
+  const bodyProblem = validateBody(options.body, operation);
+  if (bodyProblem) return { command: operation.commandName, operation: summarizeOperation(operation), ...bodyProblem };
   const plan = buildRequestPlan(operation.path, {
     environment,
     pathParams,
@@ -119,6 +123,8 @@ function buildPlanPayload(operation, options) {
       recoverable: true,
     };
   }
+
+  if (plan.mode === "invalid_parameters") return { command: operation.commandName, ...plan };
 
   return {
     command: operation.commandName,
@@ -151,24 +157,10 @@ function buildPlanPayload(operation, options) {
 }
 
 async function runOperationCommand(operation, options, apiKey, apiKeySource) {
-  const wantsDryRun = options["dry-run"] === "true" || options.plan === "true";
+  const wantsDryRun = parseBooleanOption(options["dry-run"]) || parseBooleanOption(options.plan);
   const planPayload = buildPlanPayload(operation, options);
   if (wantsDryRun || planPayload.mode !== "plan") {
     return planPayload;
-  }
-
-  if (operation.requiresConfirmation && options.confirm !== "true") {
-    return {
-      command: operation.commandName,
-      mode: "confirmation_required",
-      operation: summarizeOperation(operation),
-      message: "This operation requires explicit confirmation. Re-run with --confirm after user approval.",
-      safety: {
-        readOnly: operation.readOnly,
-        requiresConfirmation: true,
-      },
-      recoverable: true,
-    };
   }
 
   const pathParams = collectLocationParams(operation, options, "path");
@@ -181,6 +173,7 @@ async function runOperationCommand(operation, options, apiKey, apiKeySource) {
     pathParamsList: pathParams,
     queryParamsList: queryParams,
     body: options.body,
+    confirm: parseBooleanOption(options.confirm),
   });
 
   return {

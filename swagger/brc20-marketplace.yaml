@@ -115,8 +115,8 @@ paths:
   /v3/market/brc20/auction/brc20_types:
     post:
       operationId: getBrc20Types
-      summary: Rank BRC-20 tickers by marketplace metrics
-      description: Returns paginated market statistics for BRC-20 tickers, including current price, price change, BTC volume, token volume, market cap, and featured deploy entries. Supports ticker length, time window, explicit ticker list, and pagination filters.
+      summary: List BRC-20 tickers and marketplace metrics
+      description: Returns paginated market statistics for BRC-20 tickers, including current price, price change, BTC volume, token volume, market cap, and featured deploy entries. Supports ticker length, time window, explicit ticker list, and pagination filters. The specification does not guarantee global sort order, volume units, or time-window boundaries. A locally sorted page is only a ranking of that sample; label the requested timeType, sample coverage and fetch time. Verify metric semantics before publishing a global ranking or converting units.
       tags:
         - Marketplace-BRC20
       x-unisat-domain: marketplace
@@ -143,7 +143,7 @@ paths:
                     - day1
                     - day7
                     - day30
-                  description: "Optional: day1, day7, day30"
+                  description: "Optional: day1, day7, day30. Exact boundaries and timezone are unspecified; do not label day1 as a verified rolling 24-hour window."
                   type: string
                 ticks:
                   description: Specify a list of ticks
@@ -408,6 +408,7 @@ paths:
                     minPrice:
                       type: number
                     maxPrice:
+                      description: Server-side price filter; the specification does not define its units or whether it limits total or unit price. Do not use it as a hard purchase budget. Verify each returned listing total and obtain a fee quote before assessing affordability.
                       type: number
                     nftConfirm:
                       type: boolean

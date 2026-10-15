@@ -5,6 +5,8 @@ import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
 import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
+import { runRegressionChecks } from "./regression-checks.mjs";
+import { runAgentChecks } from "./agent-checks.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -123,11 +125,11 @@ async function runMcpSmoke() {
         }
         assert(initResponse.result?.protocolVersion === "2025-06-18", "initialize response invalid");
         assert(Array.isArray(listResponse.result?.tools), "tools/list response invalid");
-        assert(listResponse.result.tools.length === 2, "MCP should expose get_status and call_api");
+        assert(listResponse.result.tools.length === 4, "MCP should expose discovery, detail, status and call tools");
         assert(listResponse.result.tools.some((tool) => tool.name === "get_status"), "get_status tool missing");
         assert(listResponse.result.tools.some((tool) => tool.name === "call_api"), "call_api tool missing");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "tools/call get_status invalid");
-        assert(statusResponse.result.structuredContent.tools.length === 2, "get_status tool list invalid");
+        assert(statusResponse.result.structuredContent.tools.length === 4, "get_status tool list invalid");
         assert(statusResponse.result.structuredContent.tools.includes("get_status"), "get_status tool name invalid");
         assert(statusResponse.result.structuredContent.tools.includes("call_api"), "call_api tool name invalid");
         assert(callResponse.result?.structuredContent?.command === "api.call", "tools/call call_api invalid");
@@ -261,6 +263,10 @@ async function main() {
   console.log("ok request planning");
   validateSemanticPostBodyPlanning();
   console.log("ok semantic POST body planning");
+  await runRegressionChecks();
+  console.log("ok API failure and bundle regressions");
+  await runAgentChecks();
+  console.log("ok agent onboarding, config status, errors, and confirmation");
 
   const cliChecks = [
     {
@@ -270,9 +276,10 @@ async function main() {
         const payload = JSON.parse(stdout);
         assert(payload.command === "commands", "commands payload invalid");
         assert(payload.total > 16, "all swagger semantic commands should be enabled");
-        assert(payload.items.some((item) => item.file === "alkanes-indexer.yaml" && item.commandName === "getAlkanesInfoList"), "alkanes-indexer command missing");
-        assert(payload.items.some((item) => item.file === "blockchain-indexer.yaml" && item.commandName === "getRecommendedFees"), "blockchain-indexer command missing");
-        assert(payload.items.some((item) => item.file === "inscribe.yaml" && item.commandName === "createOrder" && item.requestBody.required === true), "POST body metadata missing");
+        assert(payload.items.some((item) => item.domain === "alkanes" && item.commandName === "getAlkanesInfoList"), "alkanes-indexer command missing");
+        assert(payload.items.some((item) => item.domain === "blockchain" && item.commandName === "getRecommendedFees"), "blockchain-indexer command missing");
+        assert(payload.items.some((item) => item.commandName === "createOrder"), "POST command missing");
+        assert(payload.items.every((item) => !item.parameters && !item.description && !item.requestBody), "list must contain summaries only");
       },
     },
     {
@@ -284,12 +291,22 @@ async function main() {
         assert(payload.total === 16, "BRC20 command count invalid");
         assert(payload.items.some((item) => item.commandName === "getBrc20Status"), "getBrc20Status command missing");
         assert(payload.items.some((item) => item.commandName === "getBrc20InfoByTicker"), "getBrc20InfoByTicker command missing");
-        const historyByTx = payload.items.find((item) => item.commandName === "getBrc20HistoryByTickerAndTxid");
-        const typeParam = historyByTx?.parameters.find((parameter) => parameter.name === "type");
+      },
+    },
+    {
+      name: "cli exposes single-command history metadata",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20HistoryByTickerAndTxid", "--help", "--format", "json"],
+      validate(stdout) {
+        const typeParam = JSON.parse(stdout).operation.parameters.find((parameter) => parameter.name === "type");
         assert(typeParam?.enum?.includes("inscribe-deploy"), "BRC20 history type enum missing");
         assert(typeParam.enum.includes("receive"), "BRC20 history type enum incomplete");
-        const status = payload.items.find((item) => item.commandName === "getBrc20Status");
-        const sortParam = status?.parameters.find((parameter) => parameter.name === "sort");
+      },
+    },
+    {
+      name: "cli exposes single-command sort metadata",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20Status", "--help", "--format", "json"],
+      validate(stdout) {
+        const sortParam = JSON.parse(stdout).operation.parameters.find((parameter) => parameter.name === "sort");
         assert(sortParam?.enum?.includes("holders"), "BRC20 status sort enum missing");
         assert(sortParam?.example === "deploy", "BRC20 status sort example missing");
       },
@@ -337,6 +354,7 @@ async function main() {
     },
     {
       name: "cli api call uses dotenv key",
+      expectFailure: true,
       args: ["packages/cli/bin/unisat-ai.js", "api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"],
       validate(stdout) {
         const payload = JSON.parse(stdout);
