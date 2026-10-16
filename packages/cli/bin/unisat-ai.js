@@ -42,7 +42,7 @@ function printHelp() {
   console.log("  config status --env bitcoin|fractal --format json");
   console.log("      Inspect key presence and source locally without revealing keys or making network calls.");
   console.log("  getCredits --env bitcoin|fractal --format json");
-  console.log("      Get current key limits, usage, and expireTime (Unix seconds).");
+  console.log("      Get current key limits, usage, and expireTime (Unix seconds; 0 means no expiration).");
   console.log("      Uses the configured key; see getCredits --help for fields and options.");
   console.log("  commands");
   console.log("      List command names, business domains, and short summaries. Use commands domains to see categories.");
@@ -87,7 +87,7 @@ function printHelp() {
     "  Only Bitcoin and Fractal mainnets are supported; commands depend on CLI version and key permissions.",
     "  Dry-run validates required inputs and JSON syntax, not credentials, balances, or all business fields.",
     "  Both API commands and api call enforce required inputs and operation confirmation rules.",
-    "  Credits measure backend consumption, not necessarily request count; expireTime is Unix seconds.",
+    "  Credits measure backend consumption, not necessarily request count; expireTime is Unix seconds; 0 means no expiration, not unlimited quota.",
     "  Preserve zero/missing quota fields; do not infer unlimited usage from them.",
     "  Requests time out after 30 seconds. No automatic retries; check write status before resubmitting.",
     "  JSON mode writes one JSON object to stdout. Success exits 0; failure exits nonzero.",

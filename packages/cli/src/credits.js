@@ -9,7 +9,7 @@ const creditsOperation = {
   domain: "credits",
   tags: ["Credits"],
   summary: "Get current API key limits, usage, and expiration",
-  description: "Uses the selected environment's configured key or --api-key. Calls the developer service with Bearer authentication; no query parameters or confirmation are required. response.body.data contains reqPerDay, optional reqPerMonth, qpsQuota, cumulReqQuota, reqQuota, creditsToday, creditsYesterday, creditsThisMonth, creditsLastMonth, and expireTime (Unix timestamp in seconds). Preserve expireTime=0 as returned by the backend; do not infer unlimited quota from it. Use getCredits --env bitcoin --format json or getCredits --env fractal --format json.",
+  description: "Uses the selected environment's configured key or --api-key. Calls the developer service with Bearer authentication; no query parameters or confirmation are required. response.body.data contains reqPerDay, optional reqPerMonth, qpsQuota, cumulReqQuota, reqQuota, creditsToday, creditsYesterday, creditsThisMonth, creditsLastMonth, and expireTime (Unix timestamp in seconds). expireTime=0 means no expiration (valid indefinitely); positive values are Unix timestamps in seconds. No expiration does not imply unlimited quota. Use getCredits --env bitcoin --format json or getCredits --env fractal --format json.",
   unisat: {
     "x-unisat-domain": "credits",
     "x-unisat-network": "multi",

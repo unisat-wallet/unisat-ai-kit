@@ -2,7 +2,7 @@
 
 UniSat AI Kit provides a stdio MCP server. Public users should configure an installed command, not a local source path.
 
-The MCP server exposes `get_status` and exact-path `call_api`. Interface discovery and interface matching are handled by the UniSat OpenAPI Agent Skill.
+The MCP server exposes `get_status`, `list_operations`, `get_operation`, and exact-path `call_api`. Discover an interface and inspect its parameters using the built-in tools; an Agent Skill is not required.
 
 ## Option A: npx configuration
 
@@ -98,6 +98,8 @@ Local source MCP config:
 The MCP server exposes:
 
 - `get_status`: returns MCP version, Node.js version, CLI caller capability status, swagger source, and available tools.
+- `list_operations`: discovers interfaces by query/domain with bounded pagination.
+- `get_operation`: describes parameters and safety metadata.
 - `call_api`: calls an exact UniSat OpenAPI path.
 
 ## API keys

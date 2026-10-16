@@ -2,19 +2,32 @@
 
 This package owns the stable external CLI command surface for direct UniSat OpenAPI HTTPS calls.
 
-Install globally after publication:
+Requires Node.js 18 or later and npm. Install globally:
 
 ```bash
 npm install -g @unisat/openapi-cli
 ```
 
-Supported commands:
+First query (replace the key placeholder locally):
+
+```bash
+unisat-openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_API_KEY
+unisat-openapi-cli config status --env bitcoin --format json
+unisat-openapi-cli getBlockchainInfo --env bitcoin --format json
+```
+
+Obtain a key at https://developer.unisat.io/. Read the latest indexed height from `response.body.data.blocks`. Success requires exit code 0, `response.ok: true` and business `code: 0`; HTTP 200 alone is insufficient. No wallet or address is needed.
+
+Supported commands include:
 
 - `config bitcoin-key`
 - `config fractal-key`
 - `api call`
+- `commands domains` and `commands --domain blockchain`
+- Named API commands such as `getBlockchainInfo`
+- `<command> --help` and `<command> --dry-run`
 
-The CLI intentionally does not discover, match, recommend, or explain OpenAPI interfaces. Agents should inspect `swagger/*.yaml` or use the UniSat OpenAPI Agent Skill to choose an exact path before calling the CLI.
+Use built-in discovery and per-command help to choose an API; no Agent Skill or source checkout is required. Domains are business categories, not networks. `commands --all` can produce very large output. Use text for discovery and JSON for structured results. Top-level `--help` explains quota lookup and safety limits.
 
 Environments:
 
