@@ -254,7 +254,7 @@ async function main() {
     assert(configPayload.environments.find((item) => item.name === "bitcoin")?.source === "environment", "packed config source invalid");
     assert(!configStatus.stdout.includes("release_smoke"), "packed config must not expose API keys");
     const help = await run(cliBin, ["--help", "--format", "json"], { cwd: tempDir, env });
-    assert(JSON.parse(help.stdout).text.includes("First use:"), "packed onboarding help missing");
+    assert(JSON.parse(help.stdout).text.includes("commands domains"), "packed command discovery help missing");
     const blockedWrite = await run(cliBin, ["api", "call", "--path", "/v2/inscribe/order/create", "--body", "{}", "--format", "json"], {
       cwd: tempDir, env, expectFailure: true,
     });

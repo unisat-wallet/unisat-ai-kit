@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildAppSource } from "./package-single-cli.mjs";
 import { runPrecisionChecks } from "./precision-checks.mjs";
+import { runProxyChecks, withoutProxyEnvironment } from "./proxy-checks.mjs";
 
 const require = createRequire(import.meta.url);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -23,6 +24,11 @@ function runNode(source) {
 }
 
 export async function runRegressionChecks() {
+  await runProxyChecks();
+  return withoutProxyEnvironment(runChecks);
+}
+
+async function runChecks() {
   await runPrecisionChecks();
   // Execute the actual generated bundle to verify JSON module exports too.
   const bundle = runNode(`process.argv = ['node', 'bundle', '--version'];\n${buildAppSource()}`);

@@ -12,7 +12,13 @@ const { callApi } = require("../packages/cli/src/api-call");
 const { getOperationCommand } = require("../packages/cli/src/operation-commands");
 const { registerTools } = require("../packages/mcp-server/src/tools");
 
+import { withoutProxyEnvironment } from "./proxy-checks.mjs";
+
 export async function runAgentChecks() {
+  return withoutProxyEnvironment(runChecks);
+}
+
+async function runChecks() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "unisat-agent-checks-"));
   const envFile = path.join(tempDir, ".env");
   fs.writeFileSync(envFile, "UNISAT_BITCOIN_API_KEY=fake_file_btc\nUNISAT_FRACTAL_API_KEY=fake_file_fractal\n");
@@ -54,7 +60,7 @@ export async function runAgentChecks() {
       assert.equal(cli(args).payload.mode, "help");
     }
     const help = cli(["--help"]).payload.text;
-    for (const phrase of ["First use", "config status", "mainnets", "--confirm", "30 seconds", "not necessarily request count"]) assert.ok(help.includes(phrase));
+    for (const phrase of ["Commands:", "config status", "getCredits", "commands domains", "mainnets", "--confirm", "30 seconds"]) assert.ok(help.includes(phrase));
     assert.equal(cli(["--version"]).payload.mode, "version");
     const domains = cli(["commands", "domains"]).payload.items;
     assert.ok(domains.some((item) => item.domain === "blockchain" && item.count > 0));

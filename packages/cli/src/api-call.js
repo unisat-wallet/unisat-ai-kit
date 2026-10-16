@@ -2,6 +2,7 @@ const { buildRequestPlan, parseKeyValueString } = require("./openapi-request");
 const { isReadOnly, requiresConfirmation, validateBody } = require("./operation-policy");
 const { withRecovery } = require("./result-utils");
 const { parseLosslessJson } = require("./lossless-json");
+const { fetchWithProxy, networkDiagnostic } = require("./http-transport");
 
 const DEVELOPER_PORTAL_URL = "https://developer.unisat.io/";
 
@@ -165,7 +166,7 @@ async function executeApi({ apiPath, apiKey, apiKeySource, environment, query, q
   const headers = buildHeaders(apiKey, requestBody !== null, clientSource);
   let response, responseBody, contentType;
   try {
-    response = await fetch(plan.url, {
+    response = await fetchWithProxy(plan.url, {
       method, headers, signal: AbortSignal.timeout(30000),
       // Send the validated original JSON; parsing and reserializing can round
       // numbers or change a preserved numeric token into a JSON string.
@@ -178,6 +179,7 @@ async function executeApi({ apiPath, apiKey, apiKeySource, environment, query, q
     const mode = error.name === "TimeoutError" || error.name === "AbortError" ? "timeout"
       : error instanceof SyntaxError ? "invalid_response" : "network_error";
     return { command: "api.call", mode, path: apiPath, method: plan.detail.method, safety,
+      network: mode === "network_error" ? networkDiagnostic(error, plan.url) : undefined,
       message: mode === "timeout" ? "OpenAPI request timed out after 30 seconds."
         : mode === "invalid_response" ? "Server returned malformed JSON." : "OpenAPI network request failed." };
   }

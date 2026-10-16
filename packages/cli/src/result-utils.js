@@ -24,12 +24,13 @@ function withRecovery(payload) {
     || (payload.mode === "http_error" && payload.response?.status >= 500);
   const retryable = payload.retryable ?? (safeToRetry && transient);
   const uncertainWrite = !safeToRetry && (transient || payload.mode === "invalid_response");
+  const proxyFailure = payload.mode === "network_error" && payload.network?.viaProxy;
   return {
     ...payload,
-    retryable,
+    retryable: proxyFailure ? false : retryable,
     nextAction: uncertainWrite
       ? "The operation may have reached the server. Query its status before resubmitting; do not automatically retry."
-      : payload.nextAction || NEXT_ACTIONS[payload.mode]
+      : payload.nextAction || (proxyFailure ? "Check HTTP_PROXY, HTTPS_PROXY, NO_PROXY and proxy availability/authentication. Fix the proxy before retrying; no direct fallback was attempted." : NEXT_ACTIONS[payload.mode])
         || (retryable ? "Retry with bounded backoff; stop and report if the failure persists." : "Review the error and command --help before retrying."),
   };
 }

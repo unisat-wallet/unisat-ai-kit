@@ -7,94 +7,49 @@ const { callApi } = require("../src/api-call");
 const { resolveConfiguredKey, getConfigStatus, upsertDotEnvValue } = require("../src/env-file");
 const { withRecovery } = require("../src/result-utils");
 const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("../src/openapi-environments");
-const { getSwaggerContext } = require("../src/openapi-utils");
 const { listOperationCommands, getOperationCommand } = require("../src/operation-commands");
 const { buildExampleCommand, runOperationCommand } = require("../src/operation-runner");
 const { printOutput } = require("../src/format-utils");
 const cliContext = { command: "cli", format: "text" };
 
-const GUIDE_NOTES = [
-  "Use text for quick discovery lists; use --format json when structured parsing is needed.",
-  "Start with commands domains, then commands --domain <domain> for a short command list.",
-  "Read <command> --help for details; JSON changes the format, not the list's detail level.",
-  "Use <api-command> --help, then --dry-run before real API calls.",
-  "API keys are read from --api-key, process env, then user config .env.",
-];
-
-function getSwaggerPathHint() {
-  const context = getSwaggerContext();
-  return context.embedded ? "embedded OpenAPI swagger asset" : `${context.swaggerDir}/*.yaml`;
-}
-
 function printHelp() {
-  const swaggerPathHint = getSwaggerPathHint();
-  console.log("UniSat OpenAPI CLI");
-  console.log("Query blockchain data, call UniSat business APIs, and inspect API key quota and usage.");
-  console.log("API keys authorize service access; they do not provide wallet signing authority.");
-  console.log("");
-  console.log("Usage:");
-  console.log("  unisat-openapi-cli <command> [options]");
-  console.log("  unisat-openapi-cli --help");
-  console.log("  unisat-openapi-cli -h");
-  console.log("  unisat-openapi-cli help");
-  console.log("");
-  console.log("Fixed CLI commands:");
-  console.log("  config status --env bitcoin|fractal --format json");
-  console.log("      Inspect key presence and source locally without revealing keys or making network calls.");
-  console.log("  getCredits --env bitcoin|fractal --format json");
-  console.log("      Get current key limits, usage, and expireTime (Unix seconds; 0 means no expiration).");
-  console.log("      Uses the configured key; see getCredits --help for fields and options.");
-  console.log("  commands");
-  console.log("      List command names, business domains, and short summaries. Use commands domains to see categories.");
-  console.log("  config bitcoin-key --api-key <key>");
-  console.log("      Save the Bitcoin OpenAPI API key.");
-  console.log("  config fractal-key --api-key <key>");
-  console.log("      Save the Fractal OpenAPI API key.");
-  console.log("  api call");
-  console.log("      Call an exact UniSat OpenAPI path directly.");
-  console.log("  <api-command>");
-  console.log(`      Call an API command generated from an OpenAPI operationId. Discover API commands by reading ${swaggerPathHint} or running commands --format json.`);
-  console.log("");
-  console.log("Global options:");
-  console.log("  --format text|json");
-  console.log("      Output format. Use json for agents and scripts.");
-  console.log("  --help, -h");
-  console.log("      Show help for the CLI, a fixed command, or an API command.");
-  console.log("  --version, -v");
-  console.log("      Show CLI package version.");
-  console.log("");
-  console.log("Environments:");
-  console.log("  bitcoin -> https://open-api.unisat.io -> UNISAT_BITCOIN_API_KEY");
-  console.log("  fractal -> https://open-api-fractal.unisat.io -> UNISAT_FRACTAL_API_KEY");
-  console.log("");
-  console.log("Notes:");
-  GUIDE_NOTES.forEach((note) => console.log(`  - ${note}`));
   printCommandHelp([
-    "", "First use:",
-    "  1. Choose --env bitcoin or --env fractal explicitly (both are mainnets; default: bitcoin).",
-    "  2. Run config status --env <environment> --format json. Configured does not mean valid.",
-    "     Obtain a key at https://developer.unisat.io/ if needed; ask the user to configure it.",
-    "     Prefer environment variables or user config; never commit keys or echo them into chat.",
-    "  3. Run getCredits --env <environment> --format json to check quota, usage, and expireTime.",
-    "     Check before the first call or a batch, not before every request.",
-    "  4. Run commands domains, then commands --domain <domain>, then <command> --help.",
-    "     Domains are business categories (e.g. blockchain), not network filters. Use --env on API calls.",
-    "     Text is sufficient for discovery; use --format json when structured parsing is needed.",
-    "  5. Supply required inputs and run <command> --env <environment> --dry-run --format json.",
-    "  6. Execute; supply --confirm only when required and explicitly authorized by the user.",
-    "", "Limits and output:",
-    "  Help, command discovery, config status, and dry-run need no API key or network access.",
-    "  Only Bitcoin and Fractal mainnets are supported; commands depend on CLI version and key permissions.",
-    "  Dry-run validates required inputs and JSON syntax, not credentials, balances, or all business fields.",
-    "  Both API commands and api call enforce required inputs and operation confirmation rules.",
-    "  Credits measure backend consumption, not necessarily request count; expireTime is Unix seconds; 0 means no expiration, not unlimited quota.",
-    "  Preserve zero/missing quota fields; do not infer unlimited usage from them.",
-    "  Requests time out after 30 seconds. No automatic retries; check write status before resubmitting.",
-    "  JSON mode writes one JSON object to stdout. Success exits 0; failure exits nonzero.",
-    "  Unsafe integers and numbers that lose decimal precision are returned as exact JSON strings.",
-    "  Keep these strings for BigInt/decimal arithmetic; do not coerce them to Number. Request JSON is sent unchanged.",
-    "  Check mode, retryable, and nextAction on failures; response.body contains the original API result.",
-  ]);
+  "UniSat OpenAPI CLI",
+  "Discover and call UniSat APIs for blockchain data, asset management, inscription creation, trading and application development.",
+  "",
+  "Usage: unisat-openapi-cli <command> [options]",
+  "",
+  "Commands:",
+  "  config bitcoin-key --api-key <key>  Save your Bitcoin API key.",
+  "  config fractal-key --api-key <key>  Save your Fractal API key.",
+  "      Get keys at https://developer.unisat.io/; configure only the networks you use.",
+  "  config status                     Check local key configuration (not online validity).",
+  "  getCredits                        Check key access, quota, usage and expiration before a batch.",
+  "      expireTime=0 means no expiration. See getCredits --help for quota fields.",
+  "",
+  "  commands domains                  List business categories, not networks.",
+  "  commands --domain <domain>        List commands in a category.",
+  "      commands lists command summaries; commands --all can produce large output.",
+  "  <command> --help                  Inspect parameters and usage.",
+  "  <api-command> --dry-run           Preview a request offline; does not validate funds or access.",
+  "  <api-command>                     Execute with the required inputs.",
+  "  api call --path <path>            Alternatively, call an exact API path.",
+  "",
+  "Options:",
+  "  --env bitcoin|fractal  Both are mainnets; default: bitcoin.",
+  "  --format text|json    Text for discovery; JSON for scripts/agents.",
+  "  --help, -h            Show help.",
+  "  --version, -v         Show version.",
+  "",
+  "Notes:",
+  "  Keys: --api-key > UNISAT_BITCOIN_API_KEY / UNISAT_FRACTAL_API_KEY > user config.",
+  "  Never share keys. API access does not grant wallet signing authority.",
+  "  Use --confirm only when required and explicitly authorized by the user.",
+  "  Timeout: 30 seconds; no auto-retry. Check write status before resubmitting.",
+  "  JSON: one object; exit 0 on success, nonzero on failure. See mode, retryable, nextAction.",
+  "  API result: response.body. Preserve numeric strings; use BigInt/decimal for calculations.",
+  "  Proxy: HTTP_PROXY / HTTPS_PROXY; NO_PROXY bypasses selected hosts (http/https proxies)."
+]);
 }
 
 function printCommandHelp(lines) {
