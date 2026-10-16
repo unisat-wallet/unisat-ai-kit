@@ -3,6 +3,7 @@ const { isReadOnly, requiresConfirmation, validateBody } = require("./operation-
 const { withRecovery } = require("./result-utils");
 const { parseLosslessJson } = require("./lossless-json");
 const { fetchWithProxy, networkDiagnostic } = require("./http-transport");
+const { creditsOperation, normalizeCreditsResponse } = require("./credits");
 
 const DEVELOPER_PORTAL_URL = "https://developer.unisat.io/";
 
@@ -175,6 +176,7 @@ async function executeApi({ apiPath, apiKey, apiKeySource, environment, query, q
     contentType = response.headers.get("content-type") || "";
     const responseText = await response.text();
     responseBody = contentType.includes("application/json") ? parseLosslessJson(responseText) : responseText;
+    if (plan.detail.path === creditsOperation.path) responseBody = normalizeCreditsResponse(responseBody);
   } catch (error) {
     const mode = error.name === "TimeoutError" || error.name === "AbortError" ? "timeout"
       : error instanceof SyntaxError ? "invalid_response" : "network_error";

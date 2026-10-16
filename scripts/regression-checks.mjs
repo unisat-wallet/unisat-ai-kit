@@ -133,10 +133,12 @@ async function checkCredits(handlers) {
     reqQuota: 250000, creditsToday: 200, creditsYesterday: 300,
     creditsThisMonth: 5000, creditsLastMonth: 7000, expireTime: 1800000000,
   };
+  const { cumulReqQuota, ...visibleData } = data;
   const operation = getOperationCommand("getCredits");
   assert.equal(operation.path, apiPath);
   assert.equal(operation.requiresConfirmation, false);
   assert.equal(operation.file, "builtin:credits");
+  assert.match(operation.description, /NOT the remaining daily allowance/);
   for (const args of [["--help"], ["getCredits", "--help"]]) {
     const help = runNode(`process.argv = ['node', 'cli', ...${JSON.stringify(args)}]; require('./packages/cli/bin/unisat-ai.js');`);
     assert.equal(help.status, 0);
@@ -169,7 +171,7 @@ async function checkCredits(handlers) {
         };
         const result = await handlers.call_api({ path: apiPath, environment, ...(override ? { apiKey: key } : {}) });
         assert.equal(result.isError, false);
-        assert.deepEqual(result.structuredContent.response.body.data, data);
+        assert.deepEqual(result.structuredContent.response.body.data, visibleData);
         assert.ok(!JSON.stringify(result).includes(key), "Do not expose the configured key");
 
         for (const command of [["getCredits"], ["api", "call", "--path", apiPath]]) {
@@ -189,16 +191,23 @@ async function checkCredits(handlers) {
             require('./packages/cli/bin/unisat-ai.js');
           `);
           assert.equal(cli.status, 0, cli.stderr || cli.stdout);
-          assert.deepEqual(JSON.parse(cli.stdout).response.body.data, data);
+          assert.deepEqual(JSON.parse(cli.stdout).response.body.data, visibleData);
           assert.ok(!cli.stdout.includes(key));
         }
       }
     }
     // The Go backend omits reqPerMonth when zero; do not invent a limit.
-    const { reqPerMonth, ...withoutMonthlyLimit } = { ...data, expireTime: 0 };
+    const { reqPerMonth, ...withoutMonthlyLimit } = { ...visibleData, expireTime: 0 };
     globalThis.fetch = async () => Response.json({ code: 0, data: withoutMonthlyLimit });
     const absentMonthly = await handlers.call_api({ path: apiPath });
     assert.deepEqual(absentMonthly.structuredContent.response.body.data, withoutMonthlyLimit);
+    for (const extra of [{ reqQuota: 0 }, {}, { reqQuota: "9007199254740993" }]) {
+      globalThis.fetch = async () => Response.json({ code: 0, data: { cumulReqQuota: 51000, ...extra } });
+      const credits = await callApi({ apiPath, apiKey: "fake" });
+      assert.deepEqual(credits.response.body.data, extra, "Omit only cumulative quota; preserve zero, missing and exact string balances");
+      const unrelated = await callApi({ apiPath: "/v1/indexer/blockchain/info", apiKey: "fake" });
+      assert.equal(unrelated.response.body.data.cumulReqQuota, 51000, "Do not filter other API responses");
+    }
     globalThis.fetch = async () => Response.json({ code: 100, msg: "key invalid" });
     const invalid = await handlers.call_api({ path: apiPath });
     assert.equal(invalid.isError, true);

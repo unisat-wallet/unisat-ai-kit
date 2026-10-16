@@ -142,7 +142,7 @@ const toolDefinitions = [
   {
     name: "call_api",
     title: "Call OpenAPI Interface",
-    description: "Call an exact UniSat OpenAPI path discovered with list_operations and inspected with get_operation. Use /openapi/public/get_credits to query the current API key's quota, usage, and expireTime (Unix seconds; 0 means no expiration, not unlimited quota); environment selects the configured Bitcoin or Fractal key. Only supply confirm after explicit user authorization of that write operation; it is not an error recovery flag.",
+    description: "Call an exact UniSat OpenAPI path discovered with list_operations and inspected with get_operation. Use /openapi/public/get_credits to query the current API key's quota, usage, and expireTime (Unix seconds; 0 means no expiration, not unlimited quota); environment selects the configured Bitcoin or Fractal key. reqQuota is the remaining times-based credit balance, NOT the remaining daily allowance (reqPerDay minus creditsToday). Cumulative allocation is omitted from results. Only supply confirm after explicit user authorization of that write operation; it is not an error recovery flag.",
     inputSchema: callApiSchema,
     async handler(args) {
       const environment = args.environment || "bitcoin";
