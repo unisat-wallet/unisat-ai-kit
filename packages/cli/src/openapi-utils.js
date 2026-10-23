@@ -1,53 +1,25 @@
 const path = require("path");
-let sea = null;
-try {
-  sea = require("node:sea");
-} catch (_error) {
-  sea = null;
-}
 const { getSourceRoots } = require("./repo-paths");
 const { walkFiles, readUtf8 } = require("./file-utils");
-
-const SWAGGER_ASSET_NAME = "openapi-swagger.json";
-let embeddedSwaggerFiles = null;
 
 function getSwaggerContext() {
   const { openapiSwaggerDir } = getSourceRoots();
   return {
     openapiSwaggerDir,
     swaggerDir: openapiSwaggerDir,
-    embedded: getEmbeddedSwaggerFiles() !== null,
+    embedded: false,
   };
 }
 
-function getEmbeddedSwaggerFiles() {
-  if (embeddedSwaggerFiles !== null) {
-    return embeddedSwaggerFiles;
-  }
-
-  embeddedSwaggerFiles = false;
-  if (!sea || !sea.isSea()) {
-    return null;
-  }
-
-  try {
-    const raw = sea.getAsset(SWAGGER_ASSET_NAME, "utf8");
-    embeddedSwaggerFiles = JSON.parse(raw);
-    return embeddedSwaggerFiles;
-  } catch (_error) {
-    return null;
-  }
-}
-
 function collectPathBlocks(swaggerDir) {
-  const embeddedFiles = getEmbeddedSwaggerFiles();
-  const files = embeddedFiles
-    ? Object.keys(embeddedFiles).sort()
-    : walkFiles(swaggerDir, (filePath) => filePath.endsWith(".yaml")).sort();
+  const files = walkFiles(
+    swaggerDir,
+    (filePath) => filePath.endsWith(".yaml")
+  ).sort();
   const blocks = [];
 
   files.forEach((filePath) => {
-    const content = embeddedFiles ? embeddedFiles[filePath] : readUtf8(filePath);
+    const content = readUtf8(filePath);
     const lines = content.split(/\r?\n/);
     let index = 0;
 
@@ -332,7 +304,7 @@ function fallbackOperationId(method, apiPath) {
 }
 
 function getOpenApiDetail(apiPath) {
-  const { openapiSwaggerDir, swaggerDir, embedded } = getSwaggerContext();
+  const { openapiSwaggerDir, swaggerDir } = getSwaggerContext();
   const blocks = collectPathBlocks(swaggerDir);
   const block = blocks.find((item) => item.path === apiPath);
 
@@ -346,7 +318,7 @@ function getOpenApiDetail(apiPath) {
   return {
     path: block.path,
     method,
-    file: embedded ? block.filePath : path.relative(openapiSwaggerDir, block.filePath),
+    file: path.relative(openapiSwaggerDir, block.filePath),
     operationId: extractScalar(block.blockLines, /^\s{6}operationId:\s+/) || fallbackOperationId(method, block.path),
     summary: extractScalar(block.blockLines, /^\s{6}summary:\s+/),
     description: extractScalar(block.blockLines, /^\s{6}description:\s+/),

@@ -6,6 +6,11 @@ const { getConfiguredValue, upsertDotEnvValue } = require("../src/env-file");
 const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("../src/openapi-environments");
 const { introResolve, introShow } = require("../src/intro");
 const { printOutput } = require("../src/format-utils");
+const {
+  ensureSwaggerCache,
+  getSwaggerCacheStatus,
+  refreshSwaggerCache,
+} = require("../src/swagger-cache");
 
 const GUIDE_NOTES = [
   "Use --format json when another agent or script needs stable machine-readable output.",
@@ -29,6 +34,8 @@ function printHelp() {
   console.log("Commands:");
   console.log("  config bitcoin-key --api-key <key> [--format text|json]");
   console.log("  config fractal-key --api-key <key> [--format text|json]");
+  console.log("  swagger status [--format text|json]");
+  console.log("  swagger refresh [--force] [--format text|json]");
   console.log("  intro show --path <api-path> [--format text|json]");
   console.log("  intro resolve [--query <text> | --path <api-path>] [--env bitcoin|fractal] [--shell powershell|bash] [--top 5] [--format text|json]");
   console.log("  api call --path <api-path> [--env bitcoin|fractal] [--query-param k=v ...] [--path-param k=v ...] [--query \"a=1&b=2\"] [--path-params \"id=1\"] [--body '{\"x\":1}'] [--api-key <key>] [--format text|json]");
@@ -108,6 +115,24 @@ function printApiCallHelp() {
   ]);
 }
 
+function printSwaggerHelp() {
+  printCommandHelp([
+    "swagger commands:",
+    "  swagger status [--format text|json]",
+    "  swagger refresh [--force] [--format text|json]",
+    "",
+    "The cache refreshes automatically when API commands run and the cache TTL has expired.",
+  ]);
+}
+
+async function initializeSwaggerCache() {
+  const status = await ensureSwaggerCache();
+  if (status.warning) {
+    console.error(`warning: using cached Swagger: ${status.warning}`);
+  }
+  return status;
+}
+
 function resolveApiKey(options, environment) {
   if (options["api-key"]) {
     return {
@@ -158,6 +183,10 @@ async function main() {
       printConfigHelp();
       return;
     }
+    if (domain === "swagger") {
+      printSwaggerHelp();
+      return;
+    }
     if (domain === "api" && (action === "call" || action === "help")) {
       printApiCallHelp();
       return;
@@ -166,10 +195,28 @@ async function main() {
     return;
   }
 
+  if (domain === "swagger" && action === "status") {
+    printOutput(
+      { command: "swagger.status", mode: "detail", ...getSwaggerCacheStatus() },
+      format
+    );
+    return;
+  }
+
+  if (domain === "swagger" && action === "refresh") {
+    const status = await refreshSwaggerCache({ force: options.force === "true" });
+    printOutput(
+      { command: "swagger.refresh", mode: "detail", ...status },
+      format
+    );
+    return;
+  }
+
   if (domain === "api" && action === "call") {
     if (!options.path) {
       fail("api call requires --path");
     }
+    await initializeSwaggerCache();
 
     const environmentName = options.env || DEFAULT_OPENAPI_ENVIRONMENT;
     const environment = getOpenApiEnvironment(environmentName);
@@ -202,6 +249,7 @@ async function main() {
     if (!options.path) {
       fail("intro show requires --path");
     }
+    await initializeSwaggerCache();
     printOutput(introShow(options.path), format);
     return;
   }
@@ -210,6 +258,7 @@ async function main() {
     if (!options.query && !options.path) {
       fail("intro resolve requires --query or --path");
     }
+    await initializeSwaggerCache();
     const shell = options.shell || "powershell";
     if (shell !== "powershell" && shell !== "bash") {
       fail("intro resolve supports powershell or bash");

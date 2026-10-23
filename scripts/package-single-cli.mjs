@@ -8,7 +8,6 @@ import { fileURLToPath } from "url";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(rootDir, "dist", "single-cli");
 const buildDir = path.join(distDir, "build");
-const swaggerDir = process.env.OPENAPI_SWAGGER_DIR || path.join(rootDir, "swagger");
 
 const targetNames = {
   win32: "windows",
@@ -58,34 +57,6 @@ function run(command, args, options = {}) {
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
-}
-
-function walkFiles(dir, predicate, results = []) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walkFiles(fullPath, predicate, results);
-      continue;
-    }
-    if (predicate(fullPath)) {
-      results.push(fullPath);
-    }
-  }
-  return results;
-}
-
-function writeSwaggerAsset() {
-  const files = {};
-  walkFiles(swaggerDir, (filePath) => filePath.endsWith(".yaml"))
-    .sort()
-    .forEach((filePath) => {
-      const relativePath = path.relative(swaggerDir, filePath).replace(/\\/g, "/");
-      files[relativePath] = fs.readFileSync(filePath, "utf8");
-    });
-
-  const assetPath = path.join(buildDir, "openapi-swagger.json");
-  fs.writeFileSync(assetPath, JSON.stringify(files), "utf8");
-  return assetPath;
 }
 
 function writeAppSource() {
@@ -138,7 +109,7 @@ function collectLocalModules(entryPath, sourceRoot, modules = new Map()) {
   return modules;
 }
 
-function writeSeaConfig(mainPath, assetPath) {
+function writeSeaConfig(mainPath) {
   const seaConfigPath = path.join(buildDir, "sea-config.json");
   fs.writeFileSync(
     seaConfigPath,
@@ -147,9 +118,6 @@ function writeSeaConfig(mainPath, assetPath) {
         main: mainPath,
         output: path.join(buildDir, "sea-prep.blob"),
         disableExperimentalSEAWarning: true,
-        assets: {
-          "openapi-swagger.json": assetPath,
-        },
       },
       null,
       2
@@ -234,9 +202,8 @@ async function build(options) {
   fs.rmSync(path.join(distDir, `unisat-openapi-cli-${options.target}.zip`), { force: true });
   fs.rmSync(path.join(distDir, `unisat-openapi-cli-${options.target}.tar.gz`), { force: true });
 
-  const assetPath = writeSwaggerAsset();
   const mainPath = writeAppSource();
-  const seaConfigPath = writeSeaConfig(mainPath, assetPath);
+  const seaConfigPath = writeSeaConfig(mainPath);
   await run(process.execPath, ["--experimental-sea-config", seaConfigPath]);
 
   const exePath = path.join(buildDir, executableName(options.target));

@@ -17,7 +17,7 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 }
 ```
 
-The package includes the MCP server and depends on `@unisat/openapi-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
+The package includes the MCP server and depends on `@unisat/openapi-cli`. On startup, the CLI layer downloads the current OpenAPI files published by `unisat-dev-docs` and then uses its local cache.
 
 ## Option B: global npm install
 
@@ -67,7 +67,7 @@ Windows configuration:
 }
 ```
 
-Use an absolute path to the extracted launcher. The portable archive contains production dependencies and bundled swagger data.
+Use an absolute path to the extracted launcher. The first start requires access to the public Swagger manifest; later starts can use the validated local cache.
 
 ## Option D: local source development
 
@@ -121,11 +121,16 @@ The MCP `list_environments` tool reports whether each key is configured.
 
 ## Optional environment overrides
 
-The public npm and portable packages already include swagger data. Override the swagger directory only for development or custom builds:
+Override the manifest, cache, TTL, or Swagger directory only for development and controlled deployments:
 
 ```bash
+UNISAT_OPENAPI_MANIFEST_URL=https://api-docs.unisat.io/swagger/manifest.json
+UNISAT_OPENAPI_CACHE_DIR=/absolute/path/to/cache
+UNISAT_OPENAPI_CACHE_TTL_MS=86400000
 OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/openapi-mcp
 ```
+
+`OPENAPI_SWAGGER_DIR` has the highest priority and disables remote refresh.
 
 ## Validation
 

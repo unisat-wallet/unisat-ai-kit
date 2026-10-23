@@ -7,6 +7,8 @@ import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const smokeEnvFile = path.join(rootDir, ".smoke.env");
+const smokeSwaggerDir = path.join(rootDir, "scripts", "fixtures");
+process.env.OPENAPI_SWAGGER_DIR = smokeSwaggerDir;
 
 function smokeEnv() {
   return {

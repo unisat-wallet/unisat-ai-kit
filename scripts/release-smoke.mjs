@@ -7,6 +7,8 @@ import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
 import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const smokeSwaggerDir = path.join(rootDir, "scripts", "fixtures");
+process.env.OPENAPI_SWAGGER_DIR = smokeSwaggerDir;
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -248,7 +250,7 @@ async function main() {
     cliTarball = cliPack.tarball;
     mcpTarball = mcpPack.tarball;
 
-    assert(cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/") && file.endsWith(".yaml")), "packed cli swagger vendor missing");
+    assert(!cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/")), "packed cli must not contain swagger snapshots");
     assertPackedFile(mcpPack.files, "bin/server.js");
     assertPackedFile(mcpPack.files, "src/tools.js");
 
@@ -260,7 +262,7 @@ async function main() {
     const mcpBin = packageBin(binDir, "unisat-openapi-mcp");
     const env = {
       ...process.env,
-      OPENAPI_SWAGGER_DIR: "",
+      OPENAPI_SWAGGER_DIR: smokeSwaggerDir,
     };
 
     const cliShow = await run(cliBin, ["intro", "show", "--path", "/v1/indexer/brc20/{ticker}/info", "--format", "json"], {

@@ -5,10 +5,9 @@ set -euo pipefail
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd -P)"
 LOCAL_BIN_DIR="$HOME/.local/bin"
 
-export OPENAPI_SWAGGER_DIR="${OPENAPI_SWAGGER_DIR:-$ROOT_DIR/swagger}"
 
 echo "repo: $ROOT_DIR"
-echo "openapi swagger: $OPENAPI_SWAGGER_DIR"
+echo "openapi swagger: runtime cache"
 echo "cli launcher: $LOCAL_BIN_DIR/unisat-openapi-cli"
 echo "mcp launcher: $LOCAL_BIN_DIR/unisat-openapi-mcp"
 

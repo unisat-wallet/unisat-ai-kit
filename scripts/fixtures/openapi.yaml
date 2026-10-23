@@ -1,0 +1,76 @@
+openapi: 3.0.3
+info:
+  title: UniSat AI Kit smoke fixture
+  version: 1.0.0
+servers:
+  - url: https://open-api.unisat.io
+tags:
+  - name: Indexer-BRC20
+  - name: BRC20 Swap
+  - name: Marketplace-BRC20
+paths:
+  /v1/brc20-swap/balance:
+    get:
+      tags:
+        - BRC20 Swap
+      summary: Get BRC20 swap balance
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: tick
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: success
+  /v1/indexer/address/{address}/balance:
+    get:
+      tags:
+        - Indexer-BRC20
+      summary: Get address balance
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: success
+  /v1/indexer/brc20/{ticker}/info:
+    get:
+      tags:
+        - Indexer-BRC20
+      summary: Get BRC20 ticker information
+      parameters:
+        - name: ticker
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: success
+  /v3/market/brc20/auction/ticker_history:
+    get:
+      tags:
+        - Marketplace-BRC20
+      summary: Get marketplace BRC20 ticker history
+      responses:
+        "200":
+          description: success
+  /v3/market/runes/auction/runes_types:
+    post:
+      tags:
+        - Marketplace-BRC20
+      summary: Update marketplace runes auction types
+      responses:
+        "200":
+          description: success
+components:
+  schemas: {}

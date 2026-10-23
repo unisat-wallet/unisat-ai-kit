@@ -55,6 +55,24 @@ function printOutput(payload, format) {
     return;
   }
 
+  if (payload.command === "swagger.status" || payload.command === "swagger.refresh") {
+    console.log(`swagger: ${payload.available ? "available" : "unavailable"}`);
+    console.log(`source: ${payload.source}`);
+    if (payload.version) {
+      console.log(`version: ${payload.version}`);
+    }
+    if (payload.bundleHash) {
+      console.log(`hash: ${payload.bundleHash}`);
+    }
+    if (payload.swaggerDir) {
+      console.log(`files: ${payload.swaggerDir}`);
+    }
+    if (payload.lastCheckedAt) {
+      console.log(`last checked: ${payload.lastCheckedAt}`);
+    }
+    return;
+  }
+
   if (payload.command === "intro.show") {
     if (payload.mode === "not_found") {
       console.log(`path not found: ${payload.path}`);

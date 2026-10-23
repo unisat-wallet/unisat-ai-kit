@@ -12,6 +12,8 @@ Supported commands:
 
 - `config bitcoin-key`
 - `config fractal-key`
+- `swagger status`
+- `swagger refresh`
 - `intro resolve`
 - `intro show`
 - `api call`
@@ -37,7 +39,15 @@ node bin/unisat-ai.js intro resolve --env fractal --query "get fractal address b
 node bin/unisat-ai.js api call --env fractal --path "/v1/public/fractal/supply" --format json
 ```
 
-Use `node bin/unisat-ai.js --help` for agent-oriented workflow notes and command usage.
+Use `node bin/unisat-ai.js --help` for agent-oriented workflow notes and command usage. Swagger is downloaded from the `unisat-dev-docs` manifest on first use, cached locally, and checked for updates after its cache TTL expires.
+
+Inspect or manually refresh the cache:
+
+```bash
+unisat-openapi-cli swagger status
+unisat-openapi-cli swagger refresh
+unisat-openapi-cli swagger refresh --force
+```
 
 API keys are stored in a user config `.env` file by the config commands. `api call` reads keys in this order: `--api-key`, process environment, user config `.env`.
 
@@ -53,7 +63,7 @@ Each archive contains:
 
 - `unisat-openapi-cli.exe` on Windows, or `unisat-openapi-cli` on macOS/Linux
 - bundled CLI code
-- embedded OpenAPI swagger data
+- runtime Swagger download and local cache support
 
 Users configure keys the same way:
 
@@ -61,4 +71,3 @@ Users configure keys the same way:
 unisat-openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
 unisat-openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
-

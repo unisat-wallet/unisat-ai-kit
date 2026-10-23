@@ -6,10 +6,8 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const cliDir = path.join(rootDir, "packages", "cli");
 const vendorDir = path.join(cliDir, "vendor");
 const bundledDevDocsDir = path.join(vendorDir, "unisat-dev-docs");
-const bundledSwaggerDir = path.join(vendorDir, "openapi-swagger");
 
 const sourceDevDocsDir = process.env.UNISAT_DEV_DOCS_DIR || "";
-const sourceSwaggerDir = process.env.OPENAPI_SWAGGER_DIR || path.join(rootDir, "swagger");
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
@@ -58,13 +56,8 @@ function copyDevDocsIfAvailable() {
 }
 
 function main() {
-  if (!fs.existsSync(sourceSwaggerDir)) {
-    throw new Error(`missing OPENAPI_SWAGGER_DIR source: ${sourceSwaggerDir}`);
-  }
-
   resetDir(vendorDir);
   copyDevDocsIfAvailable();
-  copyTree(sourceSwaggerDir, bundledSwaggerDir, (filePath) => filePath.endsWith(".yaml"));
 }
 
 main();

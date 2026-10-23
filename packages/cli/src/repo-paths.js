@@ -1,36 +1,40 @@
 const fs = require("fs");
 const path = require("path");
+const { getCachedSwaggerDir } = require("./swagger-cache");
 
-function resolveBundledPath(...segments) {
-  return path.resolve(__dirname, "..", "vendor", ...segments);
+let runtimeSwaggerDir = "";
+
+function setSwaggerRuntimeDir(swaggerDir) {
+  runtimeSwaggerDir = swaggerDir ? path.resolve(swaggerDir) : "";
 }
 
-function resolveRepoPath(envName, bundledSegments, fallbackSegments) {
-  if (process.env[envName]) {
-    return process.env[envName];
+function resolveSwaggerDir() {
+  if (process.env.OPENAPI_SWAGGER_DIR) {
+    return path.resolve(process.env.OPENAPI_SWAGGER_DIR);
   }
 
-  const bundledPath = resolveBundledPath(...bundledSegments);
-  if (fs.existsSync(bundledPath)) {
-    return bundledPath;
+  if (runtimeSwaggerDir && fs.existsSync(runtimeSwaggerDir)) {
+    return runtimeSwaggerDir;
   }
 
-  return path.resolve(__dirname, "..", "..", "..", ...fallbackSegments);
+  const cachedSwaggerDir = getCachedSwaggerDir();
+  if (cachedSwaggerDir && fs.existsSync(cachedSwaggerDir)) {
+    return cachedSwaggerDir;
+  }
+
+  throw new Error(
+    'Swagger cache is unavailable. Run "unisat-openapi-cli swagger refresh" first.'
+  );
 }
 
 function getSourceRoots() {
-  const repoRoot = path.resolve(__dirname, "..", "..", "..");
-
   return {
-    openapiSwaggerDir: resolveRepoPath(
-      "OPENAPI_SWAGGER_DIR",
-      ["openapi-swagger"],
-      ["swagger"]
-    ),
-    repoRoot,
+    openapiSwaggerDir: resolveSwaggerDir(),
+    repoRoot: path.resolve(__dirname, "..", "..", ".."),
   };
 }
 
 module.exports = {
   getSourceRoots,
+  setSwaggerRuntimeDir,
 };

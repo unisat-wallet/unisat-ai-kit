@@ -168,9 +168,9 @@ packages/
   mcp-server/
   shared-types/
 scripts/
-swagger/
 ```
 
 - `packages/cli`: CLI command implementation.
 - `packages/mcp-server`: MCP tools backed by the CLI capability layer.
-- `swagger/`: local OpenAPI source and the data embedded into releases.
+- Swagger is downloaded from `unisat-dev-docs` at runtime and stored in the user cache.
+- Run `unisat-openapi-cli swagger refresh` to refresh it manually.
