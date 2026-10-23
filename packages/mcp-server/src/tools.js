@@ -16,6 +16,7 @@ const {
   getDotEnvPath,
   getOpenApiDetail,
   getSwaggerContext,
+  getSwaggerCacheStatus,
 } = cliExports;
 
 function toToolResult(payload, isError = false) {
@@ -36,6 +37,9 @@ function getToolNames() {
 }
 
 function getSwaggerStatus() {
+  if (typeof getSwaggerCacheStatus === "function") {
+    return getSwaggerCacheStatus();
+  }
   if (typeof getSwaggerContext !== "function") {
     return {
       available: false,
@@ -46,7 +50,7 @@ function getSwaggerStatus() {
   const context = getSwaggerContext();
   return {
     available: true,
-    source: context.embedded ? "embedded" : "filesystem",
+    source: "filesystem",
     path: context.swaggerDir,
   };
 }

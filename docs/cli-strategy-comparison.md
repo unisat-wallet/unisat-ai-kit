@@ -33,7 +33,7 @@ CLI 作为 OpenAPI 的本地能力层，主要负责把 UniSat OpenAPI 以命令
 当前 CLI 已经实现了方案一的基础闭环：
 
 - 基础入口：支持 `--help` / `-h` / `help`、`--version` / `-v`，以及 `--format text|json`。
-- API 发现：`commands` 可从 bundled swagger YAML 生成 API 命令列表，并支持过滤、分页和 `--all`。
+- API 发现：`commands` 可从本地缓存的 Swagger YAML 生成 API 命令列表，并支持过滤、分页和 `--all`。
 - 通用调用：`api call --path <api-path>` 支持 path/query/body 参数、环境选择、API key 和 `--dry-run`。
 - 独立 API 命令：基于 OpenAPI `operationId` 生成 `<api-command>`，支持 `--help`、`--dry-run`、`--env`、`--api-key`、`--format`，非 GET 操作支持 `--confirm`。
 - 配置能力：`config bitcoin-key` / `config fractal-key` 可保存 API key，调用时按 `--api-key`、process env、用户配置 `.env` 的顺序读取。
@@ -208,7 +208,7 @@ UniSat OpenAPI CLI
 
 ## 结论
 
-方案一适合作为当前 CLI 的基础方向：完整、通用、与 OpenAPI 一致，适合 agent、开发者和自动化脚本。当前代码已经完成方案一的核心闭环，包括 API 发现、direct API call、generated API command、bundled swagger、dry-run、分页、help/version 和 JSON 错误输出；后续重点是继续补充 smoke 覆盖和边界一致性验证。
+方案一适合作为当前 CLI 的基础方向：完整、通用、与 OpenAPI 一致，适合 agent、开发者和自动化脚本。当前代码已经完成方案一的核心闭环，包括 API 发现、direct API call、generated API command、运行时 Swagger 缓存、dry-run、分页、help/version 和 JSON 错误输出；后续重点是继续补充 smoke 覆盖和边界一致性验证。
 
 方案二适合作为后续产品化增强：只围绕少量高价值任务提供聚合能力，降低使用门槛，提高结果可读性。
 

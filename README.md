@@ -2,7 +2,7 @@
 
 UniSat AI Kit provides a stdio MCP server and a command-line tool for direct UniSat OpenAPI HTTPS calls.
 
-The CLI intentionally does not discover, match, recommend, or explain OpenAPI interfaces. Agents should inspect `swagger/*.yaml` or use the UniSat OpenAPI Agent Skill to choose an exact path before using `api call`.
+The CLI does not match natural language to interfaces or recommend APIs. Agents should use `commands --format json`, inspect the locally cached Swagger YAML, or use the UniSat OpenAPI Agent Skill to choose a generated command or exact path.
 
 ## Register API Keys
 
@@ -36,7 +36,7 @@ The explicit `--registry=https://registry.npmjs.org/` option avoids failures cau
 Recommended agent flow:
 
 1. Read the UniSat OpenAPI Agent Skill.
-2. Inspect the relevant `swagger/*.yaml` files and hidden-rule notes in the skill.
+2. Inspect `commands --format json`, the cached Swagger YAML, and hidden-rule notes in the skill.
 3. Choose an exact OpenAPI path, method, environment, path params, query params, and body.
 4. Ask the user for missing parameters or confirmation for state-changing operations.
 5. Execute with MCP `call_api` or `unisat-openapi-cli api call --path <exact-openapi-path>`.
@@ -172,9 +172,11 @@ The workflow `.github/workflows/npm-release.yml` publishes the configured npm pa
 ## Repository Layout
 
 ```text
-packages/cli/          CLI exact-path OpenAPI caller
+packages/cli/          CLI and generated OpenAPI operation commands
 packages/mcp-server/   MCP server
-swagger/               UniSat OpenAPI YAML files
 scripts/               packaging and smoke-test scripts
 docs/                  setup and release documentation
 ```
+
+- Swagger is downloaded from `unisat-dev-docs` at runtime and stored in the user cache.
+- Run `unisat-openapi-cli swagger refresh` to refresh it manually.

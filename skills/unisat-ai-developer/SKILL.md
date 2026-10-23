@@ -48,13 +48,13 @@ unisat-openapi-mcp
 ## Working Rules
 
 - Prefer the installed `unisat-openapi-cli` and `unisat-openapi-mcp` instead of re-implementing logic inside the skill.
-- The CLI only executes exact OpenAPI paths. It does not resolve natural language, recommend interfaces, or show interface details.
+- The CLI exposes generated operation commands and exact-path calls. It does not resolve natural language or recommend interfaces.
 - The MCP server exposes `get_status` and exact-path `call_api`.
-- Current CLI calls are backed by repository-local or bundled OpenAPI swagger data.
+- CLI and MCP tools use the locally cached OpenAPI files published by `unisat-dev-docs`.
 - When the user asks how to configure MCP, run the install script first or print the config snippet it generates.
 - When the user reports capability issues, run `doctor.sh` first.
 
 ## Boundaries
 
 - This is a distribution skill, not a source of truth for product facts.
-- If swagger data needs correction, fix it in the owning source and refresh this repository's `swagger/` data.
+- If Swagger data needs correction, fix it in `unisat-dev-docs`, publish it, then run `unisat-openapi-cli swagger refresh`.

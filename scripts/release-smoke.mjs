@@ -7,6 +7,8 @@ import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
 import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const smokeSwaggerDir = path.join(rootDir, "scripts", "fixtures");
+process.env.OPENAPI_SWAGGER_DIR = smokeSwaggerDir;
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -230,7 +232,7 @@ async function main() {
     cliTarball = cliPack.tarball;
     mcpTarball = mcpPack.tarball;
 
-    assert(cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/") && file.endsWith(".yaml")), "packed cli swagger vendor missing");
+    assert(!cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/")), "packed cli must not contain swagger snapshots");
     assertPackedFile(mcpPack.files, "bin/server.js");
     assertPackedFile(mcpPack.files, "src/tools.js");
 
@@ -242,7 +244,7 @@ async function main() {
     const mcpBin = packageBin(binDir, "unisat-openapi-mcp");
     const env = {
       ...process.env,
-      OPENAPI_SWAGGER_DIR: "",
+      OPENAPI_SWAGGER_DIR: smokeSwaggerDir,
       UNISAT_BITCOIN_API_KEY: "release_smoke",
     };
 
@@ -252,36 +254,28 @@ async function main() {
     });
     const allCommandListPayload = JSON.parse(allCommandList.stdout);
     assert(allCommandListPayload.command === "commands", "packed cli all commands failed");
-    assert(allCommandListPayload.total > 16, "packed cli should enable all swagger semantic commands");
-    assert(allCommandListPayload.items.some((item) => item.file === "alkanes-indexer.yaml" && item.commandName === "getAlkanesInfoList"), "packed cli alkanes command missing");
-    assert(allCommandListPayload.items.some((item) => item.file === "blockchain-indexer.yaml" && item.commandName === "getRecommendedFees"), "packed cli blockchain command missing");
-    assert(allCommandListPayload.items.some((item) => item.file === "inscribe.yaml" && item.commandName === "createOrder" && item.requestBody.required === true), "packed cli POST body metadata missing");
+    assert(allCommandListPayload.total === 6, "packed cli should load all fixture commands");
+    assert(allCommandListPayload.items.some((item) => item.file === "openapi.yaml" && item.commandName === "getV1IndexerAddressAddressBalance"), "packed cli address balance command missing");
+    assert(allCommandListPayload.items.some((item) => item.file === "openapi.yaml" && item.commandName === "postV3MarketRunesAuctionRunesTypes"), "packed cli POST command missing");
 
-    const commandList = await run(cliBin, ["commands", "--domain", "brc20", "--format", "json"], {
+    const commandList = await run(cliBin, ["commands", "--tag", "Indexer-BRC20", "--format", "json"], {
       cwd: tempDir,
       env,
     });
     const commandListPayload = JSON.parse(commandList.stdout);
     assert(commandListPayload.command === "commands", "packed cli commands failed");
-    assert(commandListPayload.total === 16, "packed cli BRC20 command count invalid");
-    assert(commandListPayload.items.some((item) => item.commandName === "getBrc20Status"), "packed cli getBrc20Status missing");
-    const historyByTx = commandListPayload.items.find((item) => item.commandName === "getBrc20HistoryByTickerAndTxid");
-    const typeParam = historyByTx?.parameters.find((parameter) => parameter.name === "type");
-    assert(typeParam?.enum?.includes("inscribe-deploy"), "packed cli BRC20 history type enum missing");
-    const status = commandListPayload.items.find((item) => item.commandName === "getBrc20Status");
-    const sortParam = status?.parameters.find((parameter) => parameter.name === "sort");
-    assert(sortParam?.enum?.includes("holders"), "packed cli BRC20 status sort enum missing");
-    assert(sortParam?.example === "deploy", "packed cli BRC20 status sort example missing");
+    assert(commandListPayload.total === 3, "packed cli tag filter count invalid");
+    assert(commandListPayload.items.some((item) => item.commandName === "getV1IndexerBrc20TickerInfo"), "packed cli BRC20 info command missing");
 
-    const dryRun = await run(cliBin, ["getBrc20Status", "--start", "1", "--limit", "10", "--dry-run", "--format", "json"], {
+    const dryRun = await run(cliBin, ["getV1Brc20SwapBalance", "--address", "bc1-smoke", "--tick", "ordi", "--dry-run", "--format", "json"], {
       cwd: tempDir,
       env,
     });
     const dryRunPayload = JSON.parse(dryRun.stdout);
-    assert(dryRunPayload.command === "getBrc20Status", "packed cli semantic command failed");
+    assert(dryRunPayload.command === "getV1Brc20SwapBalance", "packed cli semantic command failed");
     assert(dryRunPayload.mode === "plan", "packed cli semantic command should dry-run");
-    assert(dryRunPayload.request.queryString.includes("start=1"), "packed cli semantic command start query missing");
-    assert(dryRunPayload.request.queryString.includes("limit=10"), "packed cli semantic command limit query missing");
+    assert(dryRunPayload.request.queryString.includes("address=bc1-smoke"), "packed cli semantic command address query missing");
+    assert(dryRunPayload.request.queryString.includes("tick=ordi"), "packed cli semantic command tick query missing");
 
     const cliCall = await run(cliBin, ["api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"], {
       cwd: tempDir,

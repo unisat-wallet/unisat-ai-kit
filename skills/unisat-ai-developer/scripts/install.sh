@@ -28,7 +28,6 @@ write_wrapper() {
   cat >"$file_path" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-export OPENAPI_SWAGGER_DIR="\${OPENAPI_SWAGGER_DIR:-$ROOT_DIR/swagger}"
 cd "$ROOT_DIR"
 exec node "$target_script" "\$@"
 EOF

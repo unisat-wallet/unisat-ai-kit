@@ -198,9 +198,6 @@ function copyPortableFiles(target, packageDir) {
   copyTree(path.join(rootDir, "packages", "cli", "src"), path.join(cliTargetDir, "src"), (filePath) => filePath.endsWith(".js"));
   fs.copyFileSync(path.join(rootDir, "packages", "cli", "package.json"), path.join(cliTargetDir, "package.json"));
 
-  const swaggerSource = process.env.OPENAPI_SWAGGER_DIR || path.join(rootDir, "swagger");
-  copyTree(swaggerSource, path.join(cliTargetDir, "vendor", "openapi-swagger"), (filePath) => filePath.endsWith(".yaml"));
-
   fs.writeFileSync(
     path.join(packageDir, "README.txt"),
     [
