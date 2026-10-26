@@ -19,7 +19,7 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 }
 ```
 
-The package includes the MCP server and depends on `@api-agent-test/ai-cli`, whose npm package bundles the OpenAPI swagger data used for status reporting and CLI calls.
+The package includes the MCP server and depends on `@api-agent-test/ai-cli`. On startup, the CLI layer downloads the current OpenAPI files published by `unisat-dev-docs` and then uses its local cache.
 
 ## Option B: global npm install
 
@@ -69,7 +69,7 @@ Windows configuration:
 }
 ```
 
-Use an absolute path to the extracted launcher. The portable archive contains production dependencies and bundled swagger data.
+Use an absolute path to the extracted launcher. The first start requires access to the public Swagger manifest; later starts can use the validated local cache.
 
 ## Option D: local source development
 
@@ -120,11 +120,16 @@ Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-
 
 ## Optional environment overrides
 
-The public npm and portable packages already include swagger data. Override the swagger directory only for development or custom builds:
+Override the manifest, cache, TTL, or Swagger directory only for development and controlled deployments:
 
 ```bash
+UNISAT_OPENAPI_MANIFEST_URL=https://api-docs.unisat.io/swagger/manifest.json
+UNISAT_OPENAPI_CACHE_DIR=/absolute/path/to/cache
+UNISAT_OPENAPI_CACHE_TTL_MS=86400000
 OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @api-agent-test/ai-mcp
 ```
+
+`OPENAPI_SWAGGER_DIR` has the highest priority and disables remote refresh.
 
 ## Validation
 

@@ -6,7 +6,6 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
 const requiredPaths = [
   "package.json",
-  "swagger",
   "packages/cli/package.json",
   "packages/cli/bin/unisat-ai.js",
   "packages/cli/src",

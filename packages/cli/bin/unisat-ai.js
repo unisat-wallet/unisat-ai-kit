@@ -5,21 +5,25 @@ const { version } = require("../package.json");
 const { callApi } = require("../src/api-call");
 const { getConfiguredValue, upsertDotEnvValue } = require("../src/env-file");
 const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("../src/openapi-environments");
-const { getSwaggerContext } = require("../src/openapi-utils");
 const { listOperationCommands, getOperationCommand } = require("../src/operation-commands");
 const { buildExampleCommand, runOperationCommand } = require("../src/operation-runner");
 const { printOutput } = require("../src/format-utils");
+const {
+  ensureSwaggerCache,
+  getSwaggerCacheStatus,
+  refreshSwaggerCache,
+} = require("../src/swagger-cache");
 
 const GUIDE_NOTES = [
   "Use --format json for agent-friendly output.",
-  "Use commands --format json or bundled swagger YAML to discover API commands.",
+  "Use commands --format json or cached Swagger YAML to discover API commands.",
   "Use <api-command> --help, then --dry-run before real API calls.",
   "API keys are read from --api-key, process env, then user config .env.",
 ];
 
 function getSwaggerPathHint() {
-  const context = getSwaggerContext();
-  return context.embedded ? "embedded OpenAPI swagger asset" : `${context.swaggerDir}/*.yaml`;
+  const status = getSwaggerCacheStatus();
+  return status.swaggerDir ? `${status.swaggerDir}/*.yaml` : "the local Swagger cache";
 }
 
 function printHelp() {
@@ -34,7 +38,11 @@ function printHelp() {
   console.log("");
   console.log("Fixed CLI commands:");
   console.log("  commands");
-  console.log("      List generated OpenAPI operation commands from bundled swagger YAML.");
+  console.log("      List generated OpenAPI operation commands from cached Swagger YAML.");
+  console.log("  swagger status");
+  console.log("      Show the local Swagger cache status.");
+  console.log("  swagger refresh");
+  console.log("      Download and validate the latest Swagger snapshot.");
   console.log("  config bitcoin-key");
   console.log("      Save the Bitcoin OpenAPI API key.");
   console.log("  config fractal-key");
@@ -97,7 +105,7 @@ function printCommandsHelp() {
     "  unisat-openapi-cli commands [options]",
     "",
     "Description:",
-    "  List generated OpenAPI operation commands from bundled swagger YAML files that define operationId values.",
+    "  List generated OpenAPI operation commands from cached Swagger YAML files.",
     "",
     "Options:",
     "  --domain <domain>",
@@ -264,6 +272,24 @@ function printOperationHelp(operation) {
   console.log(`  ${buildExampleCommand(operation).replace(" --format json", " --dry-run --format json")}`);
 }
 
+function printSwaggerHelp() {
+  printCommandHelp([
+    "swagger commands:",
+    "  swagger status [--format text|json]",
+    "  swagger refresh [--force] [--format text|json]",
+    "",
+    "The cache refreshes automatically when API commands run and the cache TTL has expired.",
+  ]);
+}
+
+async function initializeSwaggerCache() {
+  const status = await ensureSwaggerCache();
+  if (status.warning) {
+    console.error(`warning: using cached Swagger: ${status.warning}`);
+  }
+  return status;
+}
+
 function resolveApiKey(options, environment) {
   if (options["api-key"]) {
     return {
@@ -375,11 +401,20 @@ async function main() {
       printConfigHelp();
       return;
     }
+    if (domain === "swagger") {
+      printSwaggerHelp();
+      return;
+    }
     if (domain === "api" && (action === "call" || action === "help" || !action)) {
       printApiCallHelp();
       return;
     }
-    const operation = domain ? getOperationCommand(domain) : null;
+    if (!domain || domain === "help") {
+      printHelp();
+      return;
+    }
+    await initializeSwaggerCache();
+    const operation = getOperationCommand(domain);
     if (operation) {
       printOperationHelp(operation);
       return;
@@ -398,16 +433,34 @@ async function main() {
     fail("unsupported --format, use text or json");
   }
 
+  if (domain === "swagger" && action === "status") {
+    printOutput(
+      { command: "swagger.status", mode: "detail", ...getSwaggerCacheStatus() },
+      format
+    );
+    return;
+  }
+
+  if (domain === "swagger" && action === "refresh") {
+    const status = await refreshSwaggerCache({ force: parseBooleanOption(options.force) });
+    printOutput(
+      { command: "swagger.refresh", mode: "detail", ...status },
+      format
+    );
+    return;
+  }
+
   if (domain === "commands") {
-    if (options.help) {
-      printCommandsHelp();
-      return;
-    }
+    await initializeSwaggerCache();
     printOutput(commandsPayload(options), format);
     return;
   }
 
-  const operation = getOperationCommand(domain);
+  let operation = null;
+  if (domain !== "api" && domain !== "config" && domain !== "swagger") {
+    await initializeSwaggerCache();
+    operation = getOperationCommand(domain);
+  }
   if (operation) {
     if (options.help) {
       printOperationHelp(operation);
@@ -430,23 +483,11 @@ async function main() {
     return;
   }
 
-  if (options.help) {
-    if (domain === "config") {
-      printConfigHelp();
-      return;
-    }
-    if (domain === "api" && (action === "call" || action === "help" || !action)) {
-      printApiCallHelp();
-      return;
-    }
-    printHelp();
-    return;
-  }
-
   if (domain === "api" && action === "call") {
     if (!options.path) {
       fail("api call requires --path");
     }
+    await initializeSwaggerCache();
 
     const environmentName = options.env || DEFAULT_OPENAPI_ENVIRONMENT;
     const environment = getOpenApiEnvironment(environmentName);

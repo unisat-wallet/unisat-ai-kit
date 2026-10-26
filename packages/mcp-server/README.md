@@ -19,7 +19,7 @@ npx -y @api-agent-test/ai-mcp
 - `get_status`: return server, CLI, swagger, and config status.
 - `call_api`: call an exact UniSat OpenAPI path.
 
-The MCP server does not expose interface discovery or interface matching. Agents should use the UniSat OpenAPI Agent Skill to inspect `swagger/*.yaml` and choose an exact OpenAPI path before calling `call_api`.
+The MCP server does not expose interface discovery or interface matching. Agents should use the UniSat OpenAPI Agent Skill or CLI `commands --format json` output to choose an exact OpenAPI path before calling `call_api`.
 
 ## Result format
 
