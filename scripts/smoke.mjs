@@ -1,3 +1,4 @@
+import { testSwaggerDir } from "./test-swagger.mjs";
 import fs from "fs";
 import { spawn } from "child_process";
 import path from "path";
@@ -5,13 +6,13 @@ import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
 import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
+import { runRegressionChecks } from "./regression-checks.mjs";
+import { runAgentChecks } from "./agent-checks.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
 const { buildPlanPayload } = require("../packages/cli/src/operation-runner.js");
 const smokeEnvFile = path.join(rootDir, ".smoke.env");
-const smokeSwaggerDir = path.join(rootDir, "scripts", "fixtures");
-process.env.OPENAPI_SWAGGER_DIR = smokeSwaggerDir;
 
 function smokeEnv() {
   return {
@@ -125,11 +126,11 @@ async function runMcpSmoke() {
         }
         assert(initResponse.result?.protocolVersion === "2025-06-18", "initialize response invalid");
         assert(Array.isArray(listResponse.result?.tools), "tools/list response invalid");
-        assert(listResponse.result.tools.length === 2, "MCP should expose get_status and call_api");
+        assert(listResponse.result.tools.length === 4, "MCP should expose discovery, detail, status and call tools");
         assert(listResponse.result.tools.some((tool) => tool.name === "get_status"), "get_status tool missing");
         assert(listResponse.result.tools.some((tool) => tool.name === "call_api"), "call_api tool missing");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "tools/call get_status invalid");
-        assert(statusResponse.result.structuredContent.tools.length === 2, "get_status tool list invalid");
+        assert(statusResponse.result.structuredContent.tools.length === 4, "get_status tool list invalid");
         assert(statusResponse.result.structuredContent.tools.includes("get_status"), "get_status tool name invalid");
         assert(statusResponse.result.structuredContent.tools.includes("call_api"), "call_api tool name invalid");
         assert(callResponse.result?.structuredContent?.command === "api.call", "tools/call call_api invalid");
@@ -263,6 +264,10 @@ async function main() {
   console.log("ok request planning");
   validateSemanticPostBodyPlanning();
   console.log("ok semantic POST body planning");
+  await runRegressionChecks();
+  console.log("ok API failure and bundle regressions");
+  await runAgentChecks();
+  console.log("ok agent onboarding, config status, errors, and confirmation");
 
   const cliChecks = [
     {
@@ -271,43 +276,63 @@ async function main() {
       validate(stdout) {
         const payload = JSON.parse(stdout);
         assert(payload.command === "commands", "commands payload invalid");
-        assert(payload.total === 6, "all fixture commands should be enabled");
-        assert(payload.items.some((item) => item.file === "openapi.yaml" && item.commandName === "getV1IndexerAddressAddressBalance"), "address balance command missing");
-        assert(payload.items.some((item) => item.file === "openapi.yaml" && item.commandName === "postV1IndexerLocalPushtx" && item.requestBody.required === true), "POST body metadata missing");
+        assert(payload.total > 16, "all swagger semantic commands should be enabled");
+        assert(payload.items.some((item) => item.domain === "alkanes" && item.commandName === "getAlkanesInfoList"), "alkanes-indexer command missing");
+        assert(payload.items.some((item) => item.domain === "blockchain" && item.commandName === "getRecommendedFees"), "blockchain-indexer command missing");
+        assert(payload.items.some((item) => item.commandName === "createOrder"), "POST command missing");
+        assert(payload.items.every((item) => !item.parameters && !item.description && !item.requestBody), "list must contain summaries only");
       },
     },
     {
-      name: "cli filters semantic commands by tag",
-      args: ["packages/cli/bin/unisat-ai.js", "commands", "--tag", "Indexer-BRC20", "--format", "json"],
+      name: "cli lists BRC20 semantic commands",
+      args: ["packages/cli/bin/unisat-ai.js", "commands", "--domain", "brc20", "--format", "json"],
       validate(stdout) {
         const payload = JSON.parse(stdout);
         assert(payload.command === "commands", "commands payload invalid");
-        assert(payload.total === 3, "tag-filtered command count invalid");
-        assert(payload.items.some((item) => item.commandName === "getV1IndexerBrc20TickerInfo"), "BRC20 info command missing");
+        assert(payload.total === 16, "BRC20 command count invalid");
+        assert(payload.items.some((item) => item.commandName === "getBrc20Status"), "getBrc20Status command missing");
+        assert(payload.items.some((item) => item.commandName === "getBrc20InfoByTicker"), "getBrc20InfoByTicker command missing");
+      },
+    },
+    {
+      name: "cli exposes single-command history metadata",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20HistoryByTickerAndTxid", "--help", "--format", "json"],
+      validate(stdout) {
+        const typeParam = JSON.parse(stdout).operation.parameters.find((parameter) => parameter.name === "type");
+        assert(typeParam?.enum?.includes("inscribe-deploy"), "BRC20 history type enum missing");
+        assert(typeParam.enum.includes("receive"), "BRC20 history type enum incomplete");
+      },
+    },
+    {
+      name: "cli exposes single-command sort metadata",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20Status", "--help", "--format", "json"],
+      validate(stdout) {
+        const sortParam = JSON.parse(stdout).operation.parameters.find((parameter) => parameter.name === "sort");
+        assert(sortParam?.enum?.includes("holders"), "BRC20 status sort enum missing");
+        assert(sortParam?.example === "deploy", "BRC20 status sort example missing");
       },
     },
     {
       name: "cli semantic command dry run",
-      args: ["packages/cli/bin/unisat-ai.js", "getV1Brc20SwapBalance", "--address", "bc1-smoke", "--tick", "ordi", "--dry-run", "--format", "json"],
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20Status", "--start", "1", "--limit", "10", "--dry-run", "--format", "json"],
       validate(stdout) {
         const payload = JSON.parse(stdout);
-        assert(payload.command === "getV1Brc20SwapBalance", "semantic command payload invalid");
+        assert(payload.command === "getBrc20Status", "semantic command payload invalid");
         assert(payload.mode === "plan", "semantic command dry-run should plan");
-        assert(payload.request.url.includes("/v1/brc20-swap/balance?"), "semantic command plan URL invalid");
-        assert(payload.request.queryString.includes("address=bc1-smoke"), "semantic command address query missing");
-        assert(payload.request.queryString.includes("tick=ordi"), "semantic command tick query missing");
+        assert(payload.request.url.includes("/v1/indexer/brc20/status?"), "semantic command plan URL invalid");
+        assert(payload.request.queryString.includes("start=1"), "semantic command start query missing");
+        assert(payload.request.queryString.includes("limit=10"), "semantic command limit query missing");
       },
     },
     {
       name: "cli semantic command detects missing params",
-      args: ["packages/cli/bin/unisat-ai.js", "getV1Brc20SwapBalance", "--dry-run", "--format", "json"],
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20InfoByTicker", "--dry-run", "--format", "json"],
       expectFailure: true,
       validate(stdout) {
         const payload = JSON.parse(stdout);
-        assert(payload.command === "getV1Brc20SwapBalance", "missing param command payload invalid");
+        assert(payload.command === "getBrc20InfoByTicker", "missing param command payload invalid");
         assert(payload.mode === "missing_required_params", "missing semantic params should be reported");
-        assert(payload.missing.queryParams.includes("address"), "missing address should be reported");
-        assert(payload.missing.queryParams.includes("tick"), "missing tick should be reported");
+        assert(payload.missing.pathParams.includes("ticker"), "missing ticker should be reported");
       },
     },
     {
@@ -330,6 +355,7 @@ async function main() {
     },
     {
       name: "cli api call uses dotenv key",
+      expectFailure: true,
       args: ["packages/cli/bin/unisat-ai.js", "api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"],
       validate(stdout) {
         const payload = JSON.parse(stdout);

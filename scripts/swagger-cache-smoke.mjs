@@ -89,11 +89,28 @@ try {
     UNISAT_OPENAPI_MANIFEST_URL: `http://127.0.0.1:${address.port}/manifest.json`,
   };
 
+  const builtin = await runCli(["getCredits", "--dry-run", "--format", "json"], env);
+  if (builtin.mode !== "plan" || fs.existsSync(path.join(cacheDir, "state.json"))) {
+    throw new Error("built-in credits must work without initializing remote Swagger");
+  }
+
+  const generated = await runCli(
+    ["getV1IndexerBrc20TickerInfo", "--ticker", "ordi", "--dry-run", "--format", "json"],
+    env
+  );
+  if (generated.mode !== "plan") throw new Error("generated command cold-cache initialization failed");
+
+  const exact = await runCli(
+    ["api", "call", "--path", "/v1/indexer/brc20/{ticker}/info", "--path-param", "ticker=ordi", "--dry-run", "--format", "json"],
+    { ...env, UNISAT_OPENAPI_CACHE_DIR: path.join(cacheDir, "exact-path-cache") }
+  );
+  if (exact.mode !== "plan") throw new Error("exact-path cold-cache initialization failed");
+
   const commands = await runCli(
     ["commands", "--all", "--format", "json"],
     env
   );
-  if (commands.command !== "commands" || commands.total !== 6) {
+  if (commands.command !== "commands" || commands.total !== 7) {
     throw new Error("automatic Swagger cache initialization failed");
   }
 

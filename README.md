@@ -1,18 +1,70 @@
-﻿# UniSat AI Kit
+# UniSat AI Kit
 
-UniSat AI Kit provides a stdio MCP server and a command-line tool for direct UniSat OpenAPI HTTPS calls.
+UniSat AI Kit provides a CLI and stdio MCP server for AI agents to discover and call UniSat OpenAPI. Query blockchain data, address assets, inscriptions, BRC-20 and marketplace data, or build applications using these APIs.
 
-The CLI does not match natural language to interfaces or recommend APIs. Agents should use `commands --format json`, inspect the locally cached Swagger YAML, or use the UniSat OpenAPI Agent Skill to choose a generated command or exact path.
+## Before you start
 
-## Register API Keys
+- npm/npx installation requires Node.js 18 or later and npm. The standalone CLI executable does not require Node.js.
+- Obtain a Bitcoin API key at [UniSat Developer Center](https://developer.unisat.io/) for the examples below.
+- Bitcoin and Fractal mainnets are supported, with separate keys and API permissions.
+- API keys grant service access, not wallet signing authority. Do not provide private keys or seed phrases.
+- API definitions are downloaded from dev-docs on demand and cached locally; the first API discovery requires network access.
 
-Register API keys at https://developer.unisat.io/ before using UniSat OpenAPI calls.
+## CLI quick start
 
-Do not commit real API keys into repository files. Prefer user-level agent config or system environment variables for production use.
+### 1. Install
 
-## MCP Quick Start
+```bash
+npm install -g @api-agent-test/ai-cli --registry=https://registry.npmjs.org/
+```
 
-For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the recommended public configuration is `npx`:
+Alternatively, extract the CLI archive for your OS and CPU from [GitHub Releases](https://github.com/unisat-wallet/unisat-ai-kit/releases). Use the corresponding command prefix below:
+
+| Installation | Command prefix |
+| --- | --- |
+| Global npm installation, or executable on PATH | `unisat-openapi-cli` |
+| Extracted macOS/Linux executable | `./unisat-openapi-cli` |
+| Extracted Windows executable (PowerShell) | `.\unisat-openapi-cli.exe` |
+
+Add the executable directory to PATH to use `unisat-openapi-cli` from any terminal or agent.
+
+View the available commands:
+
+```bash
+unisat-openapi-cli --help
+```
+
+### 2. Configure API keys
+
+Replace the placeholder with your key and run locally:
+
+```bash
+unisat-openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_API_KEY
+```
+
+For Fractal:
+
+```bash
+unisat-openapi-cli config fractal-key --api-key YOUR_FRACTAL_API_KEY
+```
+
+Configure only the networks you need. Keys are saved in your user config. Alternatively, set `UNISAT_BITCOIN_API_KEY` and `UNISAT_FRACTAL_API_KEY` in the environment.
+
+### 3. Query the latest block height
+
+```bash
+unisat-openapi-cli getBlockchainInfo --env bitcoin --format json
+```
+
+With the CLI on PATH and the key configured, ask an agent with terminal access:
+
+> Use unisat-openapi-cli to get the latest Bitcoin block height.
+
+For more commands and usage details, run `unisat-openapi-cli --help`.
+
+## MCP quick start
+
+Add this stdio MCP server to your agent client (configuration format may vary by client):
 
 ```json
 {
@@ -29,154 +81,28 @@ For Cursor, Claude, Codex, and other agents that support stdio MCP servers, the 
 }
 ```
 
-The explicit `--registry=https://registry.npmjs.org/` option avoids failures caused by stale npm mirrors or private registry configuration. The MCP server exposes `get_status` and exact-path `call_api`; interface lookup is handled by the Agent Skill. See `docs/mcp-setup.md` for full setup details.
+Replace the key placeholders for the networks you use, remove unused entries, and reconnect the server. The first launch downloads the package from npm.
 
-## Agent Workflow
+Ask your agent:
 
-Recommended agent flow:
+> Use UniSat MCP to get the latest Bitcoin block height.
 
-1. Read the UniSat OpenAPI Agent Skill.
-2. Inspect `commands --format json`, the cached Swagger YAML, and hidden-rule notes in the skill.
-3. Choose an exact OpenAPI path, method, environment, path params, query params, and body.
-4. Ask the user for missing parameters or confirmation for state-changing operations.
-5. Execute with MCP `call_api` or `unisat-openapi-cli api call --path <exact-openapi-path>`.
-
-## CLI Quick Start
-
-Download the single-executable archive for your operating system. You do not need to install Node.js or npm. Replace `v0.1.5` with the latest release tag if needed.
-
-After downloading the CLI, configure each OpenAPI environment separately:
-
-```bash
-npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
-```
-
-These commands store keys in the current user's UniSat AI Kit config directory.
-
-### macOS ARM64
-
-```bash
-curl -L -o unisat-openapi-cli-macos-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-macos-arm64.tar.gz
-tar -xzf unisat-openapi-cli-macos-arm64.tar.gz
-./unisat-openapi-cli --help
-```
-
-### Linux x64
-
-```bash
-curl -L -o unisat-openapi-cli-linux-x64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-linux-x64.tar.gz
-tar -xzf unisat-openapi-cli-linux-x64.tar.gz
-./unisat-openapi-cli --help
-```
-
-### Linux ARM64
-
-```bash
-curl -L -o unisat-openapi-cli-linux-arm64.tar.gz https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-linux-arm64.tar.gz
-tar -xzf unisat-openapi-cli-linux-arm64.tar.gz
-./unisat-openapi-cli --help
-```
-
-### Windows x64
-
-```powershell
-Invoke-WebRequest -Uri "https://github.com/unisat-wallet/unisat-ai-kit/releases/download/v0.1.5/unisat-openapi-cli-windows-x64.zip" -OutFile "unisat-openapi-cli-windows-x64.zip"
-Expand-Archive unisat-openapi-cli-windows-x64.zip -DestinationPath .
-.\unisat-openapi-cli.exe --help
-```
-
-## Optional Global Installation
-
-macOS / Linux:
-
-```bash
-sudo mv ./unisat-openapi-cli /usr/local/bin/unisat-openapi-cli
-unisat-openapi-cli --help
-```
-
-Windows:
-
-Add the extracted folder containing `unisat-openapi-cli.exe` to your system `PATH`.
-
-## Use The CLI
-
-```bash
-unisat-openapi-cli --help
-unisat-openapi-cli api call --env bitcoin --path "/v1/indexer/address/{address}/balance" --path-param address=YOUR_ADDRESS --format json
-```
-
-Supported command groups:
-
-- `config bitcoin-key`
-- `config fractal-key`
-- `api call`
+See [MCP setup](docs/mcp-setup.md) for alternative installation methods.
 
 ## Development
 
-```bash
-node scripts/doctor.mjs
-node scripts/smoke.mjs
-npm run package:cli
-```
-
-Useful package scripts:
-
-- `npm run cli` runs the local CLI source.
-- `npm run mcp:server` runs the local stdio MCP server.
-- `npm run smoke` validates source CLI and MCP behavior.
-- `npm run release:smoke` validates packed npm packages in a temporary install directory.
-- `npm run package:cli` builds the current platform single-executable archive into `dist/single-cli`.
-- `npm run package:cli:portable` builds the legacy multi-file portable package.
-- `npm run package:mcp:portable` builds the MCP portable archive into `dist/portable-mcp`.
-
-## Release Build
-
-### CLI executable release
-
-Build the current computer's package:
+From a source checkout:
 
 ```bash
-npm run package:cli
-```
-
-Build a specific platform package on matching host hardware:
-
-```bash
-npm run package:cli -- --target windows-x64
-```
-
-The GitHub Actions workflow `.github/workflows/cli-release.yml` builds platform archives on tag pushes like `v0.1.5` and uploads them to the GitHub Release. It can also be run manually from the GitHub Actions page via `workflow_dispatch`.
-
-### MCP portable release
-
-Build the current platform MCP portable archive:
-
-```bash
-npm run package:mcp:portable
-```
-
-The GitHub release workflow uploads MCP portable archives together with CLI executable archives.
-
-### npm package release
-
-Before publishing npm packages, verify source and packed-package behavior:
-
-```bash
+npm install
+npm run cli -- --help
+npm run test:agent
 npm run smoke
 npm run release:smoke
 ```
 
-The workflow `.github/workflows/npm-release.yml` publishes the configured npm packages, currently documented for the package names `@api-agent-test/ai-cli` and `@api-agent-test/ai-mcp`. It runs on tag pushes like `v0.1.5` or manual `workflow_dispatch` and requires the `NPM_TOKEN` repository secret.
+- `npm run mcp:server`: start the local MCP server.
+- `npm run package:cli`: build the current platform's standalone CLI archive.
+- `npm run package:mcp:portable`: build the MCP portable archive.
 
-## Repository Layout
-
-```text
-packages/cli/          CLI and generated OpenAPI operation commands
-packages/mcp-server/   MCP server
-scripts/               packaging and smoke-test scripts
-docs/                  setup and release documentation
-```
-
-- Swagger is downloaded from `unisat-dev-docs` at runtime and stored in the user cache.
-- Run `unisat-openapi-cli swagger refresh` to refresh it manually.
+Release automation: [CLI/MCP archives](.github/workflows/cli-release.yml) and [npm packages](.github/workflows/npm-release.yml). See [architecture](docs/architecture.md) and the [agent regression plan](tests/agent-regression/README.md) for development details.

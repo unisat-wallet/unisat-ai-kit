@@ -2,23 +2,32 @@
 
 This package owns the stable external CLI command surface for direct UniSat OpenAPI HTTPS calls.
 
-Install globally after publication:
+Requires Node.js 18 or later and npm. Install globally:
 
 ```bash
 npm install -g @api-agent-test/ai-cli
 ```
 
-Supported commands:
+First query (replace the key placeholder locally):
 
-- `commands`
+```bash
+unisat-openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_API_KEY
+unisat-openapi-cli config status --env bitcoin --format json
+unisat-openapi-cli getBlockchainInfo --env bitcoin --format json
+```
+
+Obtain a key at https://developer.unisat.io/. Read the latest indexed height from `response.body.data.blocks`. Success requires exit code 0, `response.ok: true` and business `code: 0`; HTTP 200 alone is insufficient. No wallet or address is needed.
+
+Supported commands include:
+
 - `config bitcoin-key`
 - `config fractal-key`
-- `swagger status`
-- `swagger refresh`
 - `api call`
-- `<api-command>` generated from an OpenAPI `operationId`
+- `commands domains` and `commands --domain blockchain`
+- Named API commands such as `getBlockchainInfo`
+- `<command> --help` and `<command> --dry-run`
 
-The CLI does not match natural language to interfaces or recommend APIs. Agents can run `commands --format json`, inspect the cached Swagger YAML, or use the UniSat OpenAPI Agent Skill to select a generated command or exact path.
+Use built-in discovery and per-command help to choose an API; no Agent Skill or source checkout is required. Domains are business categories, not networks. `commands --all` can produce very large output. Use text for discovery and JSON for structured results. Top-level `--help` explains quota lookup and safety limits.
 
 Environments:
 
@@ -39,17 +48,11 @@ node bin/unisat-ai.js config fractal-key --api-key YOUR_FRACTAL_KEY
 node bin/unisat-ai.js api call --env fractal --path "/v1/public/fractal/supply" --format json
 ```
 
-Use `node bin/unisat-ai.js --help` for agent-oriented workflow notes and command usage. Swagger is downloaded from the `unisat-dev-docs` manifest on first use, cached locally, and checked for updates after its cache TTL expires.
-
-Inspect or manually refresh the cache:
-
-```bash
-unisat-openapi-cli swagger status
-unisat-openapi-cli swagger refresh
-unisat-openapi-cli swagger refresh --force
-```
+Use `node bin/unisat-ai.js --help` for command usage.
 
 API keys are stored in a user config `.env` file by the config commands. `api call` reads keys in this order: `--api-key`, process environment, user config `.env`.
+
+Swagger is downloaded on demand and cached locally. Use `unisat-openapi-cli swagger status` to inspect the cache or `swagger refresh` to update it. `OPENAPI_SWAGGER_DIR` supplies a local override.
 
 ## Website Download Package
 
@@ -63,7 +66,7 @@ Each archive contains:
 
 - `unisat-openapi-cli.exe` on Windows, or `unisat-openapi-cli` on macOS/Linux
 - bundled CLI code
-- runtime Swagger download and local cache support
+- remote Swagger download and local cache support
 
 Users configure keys the same way:
 

@@ -1,0 +1,48 @@
+openapi: 3.0.3
+info:
+  title: BRC20 Swap API
+  version: 1.0.4
+  description: >-
+    BRC20 Swap API provides a set of Fractal-only interfaces for BRC20 Swap and InSwap services.
+    BRC20 Swap and InSwap are equivalent product names; user requests that mention InSwap should be routed to these /v1/brc20-swap/* endpoints.
+    It allows users to interact with the BRC20 Swap ecosystem, including balance checks,
+    pool information, liquidity management, quote/preparation steps, liquidity operations, swap operations, and token transfers.
+  contact:
+    email: contact@unisat.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://open-api-fractal.unisat.io
+tags:
+  - name: Swap-BRC20
+    description: Fractal-only BRC20 Swap / InSwap service. InSwap is an alias of BRC20 Swap.
+paths:
+  /v1/brc20-swap/balance:
+    get:
+      tags:
+        - Swap-BRC20
+      operationId: getBrc20SwapBalance
+      summary: Get an address's InSwap balance for one tick
+      description: >-
+        Returns module, swap, pending-swap, and pending-available balances plus decimal precision for a specific address and token tick.
+      x-unisat-domain: swap
+      x-unisat-network: fractal
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-aliases: [InSwap, BRC20 Swap]
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: address
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: tick
+          required: true
+      responses:
+        "200":
+          description: Fixture response

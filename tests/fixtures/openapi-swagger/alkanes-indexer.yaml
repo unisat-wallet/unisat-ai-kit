@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: Alkanes Indexer API
+  version: 1.0.4
+  description: >-
+    The Alkanes Indexer API is developed by the UniSat team, providing a simplified and developer-friendly interface based on the official Alkanes indexer (kungfuflex/alkanes).
+    It is built on specific versions of metashrew and alkanes-rs to ensure compatibility and consistency.
+    We welcome feedback and suggestions for improvement.
+  contact:
+    email: contact@unisat.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://open-api.unisat.io
+  - url: https://open-api-staging.unisat.io
+  - url: https://open-api-signet.unisat.io
+tags:
+  - name: Indexer-Alkanes
+    description: Indexer-Alkanes APIs
+paths:
+  /v1/indexer/alkanes/info-list:
+    get:
+      tags:
+        - Indexer-Alkanes
+      operationId: getAlkanesInfoList
+      summary: List indexed Alkanes assets across tokens, NFTs, and collections
+      description: >-
+        Returns a paginated catalog of Alkane asset metadata. Use it for global discovery across asset types, with optional type filtering and sorting by creation time or alkaneid.
+      x-unisat-domain: alkanes
+      x-unisat-network: bitcoin
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      parameters:
+        - name: type
+          in: query
+          description: "search by type,optional"
+          required: false
+          schema:
+            type: string
+            enum:
+              - token
+              - collection
+              - nft
+              - contract
+        - name: sortBy
+          in: query
+          description: "sort by timestamp, alkaneid, default=timestamp"
+          required: false
+          schema:
+            type: string
+            enum:
+              - timestamp
+              - alkaneid
+            default: timestamp
+        - name: order
+          in: query
+          description: "sort order,optional,default=asc"
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: asc
+        - name: start
+          in: query
+          description: "default=0"
+          required: false
+          schema:
+            type: integer
+            example: 0
+        - name: limit
+          in: query
+          description: "min=1,max=500,default=10"
+          required: false
+          schema:
+            type: integer
+            example: 10
+      responses:
+        "200":
+          description: Fixture response

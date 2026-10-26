@@ -1,0 +1,87 @@
+openapi: 3.0.3
+info:
+  title: Inscribe API
+  version: 1.0.0
+  description: >-
+    Inscribe API provides order-based inscription workflows, including reading order summaries and status, creating inscription orders, and checking fees. Order creation endpoints are POST operations that create payment/order state and require explicit user confirmation before execution. For the complete minting flow, including payment, wallet signing, commit, reveal, status polling, and refund handling, refer to the UniSat Open API minting guide: https://github.com/unisat-wallet/unisat-dev-docs/tree/master/open-api. Wallet connection and signing integration should follow the UniSat Wallet API guides: https://github.com/unisat-wallet/unisat-dev-docs/tree/master/wallet-api/api-docs.
+  contact:
+    email: contact@unisat.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://open-api.unisat.io
+  - url: https://open-api-staging.unisat.io
+  - url: https://open-api-testnet.unisat.io
+  - url: https://open-api-testnet4.unisat.io
+  - url: https://open-api-signet.unisat.io
+  - url: https://open-api-fractal.unisat.io
+  - url: https://open-api-fractal-testnet.unisat.io
+tags:
+  - name: Inscribe
+    description: Multi-network inscription order workflow for querying orders, creating payment-backed orders, requesting commit data, submitting signatures, broadcasting reveal/refund transactions, and checking refund estimates.
+paths:
+  /v2/inscribe/order/create:
+    post:
+      tags:
+        - Inscribe
+      operationId: createOrder
+      summary: Create generic inscription payment order
+      description: >-
+        Creates an inscription order for arbitrary files and returns orderId, payAddress, required amount, receiveAddress, fee breakdown, and order/file status. Confirm receiveAddress, file data, outputValue, feeRate, dev fee fields, and expected payment amount before calling because it starts payable order state.
+      x-unisat-domain: inscribe
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      x-unisat-ai-hints:
+        - Creates payable inscription order state: ask for explicit user confirmation before calling.
+        - Verify receive address, fee rate, output value, content or asset parameters, and total payment amount.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreateParams"
+        required: true
+      responses:
+        "200":
+          description: Fixture response
+
+components:
+  schemas:
+    OrderCreateParams:
+      type: object
+      properties:
+        receiveAddress:
+          type: string
+          description: Bitcoin address to receive the inscriptions
+        feeRate:
+          type: number
+          format: float
+          description: The fee rate of transaction
+          example: 1
+        outputValue:
+          type: integer
+          format: int32
+          description: The balance of inscription
+          example: 546
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              filename:
+                type: string
+              dataURL:
+                type: string
+          example:
+            - filename: 1000.sats
+              dataURL: >-
+                data:text/plain;charset=utf-8;base64,eyJwIjoic25zIiwib3AiOiJyZWciLCJuYW1lIjoiMTAwMDAuc2F0cyJ9
+        devAddress:
+          type: string
+          description: Developer address to receive extra fee
+        devFee:
+          type: integer
+          format: int32
+          description: Extra fee to pay to developer's address

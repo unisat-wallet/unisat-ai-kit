@@ -60,21 +60,21 @@ function ensureDir(dirPath) {
 }
 
 function writeAppSource() {
+  const bundlePath = path.join(buildDir, "main.js");
+  fs.writeFileSync(bundlePath, buildAppSource(), "utf8");
+  return bundlePath;
+}
+
+export function buildAppSource() {
   const sourceRoot = path.join(rootDir, "packages", "cli");
   const entryPath = path.join(sourceRoot, "bin", "unisat-ai.js");
   const modules = collectLocalModules(entryPath, sourceRoot);
-  const bundlePath = path.join(buildDir, "main.js");
   const moduleEntries = [...modules.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([id, source]) => `${JSON.stringify(id)}: function(require, module, exports) {\n${source}\n}`)
     .join(",\n");
 
-  fs.writeFileSync(
-    bundlePath,
-    `const __modules = {\n${moduleEntries}\n};\nconst __cache = {};\nfunction __localRequire(id) {\n  if (__cache[id]) return __cache[id].exports;\n  if (!__modules[id]) return require(id);\n  const module = { exports: {} };\n  __cache[id] = module;\n  __modules[id](__localRequire, module, module.exports);\n  return module.exports;\n}\n__localRequire(${JSON.stringify(toModuleId(entryPath, sourceRoot))});\n`,
-    "utf8"
-  );
-  return bundlePath;
+  return `const __modules = {\n${moduleEntries}\n};\nconst __cache = {};\nfunction __localRequire(id) {\n  if (__cache[id]) return __cache[id].exports;\n  if (!__modules[id]) return require(id);\n  const module = { exports: {} };\n  __cache[id] = module;\n  __modules[id](__localRequire, module, module.exports);\n  return module.exports;\n}\n__localRequire(${JSON.stringify(toModuleId(entryPath, sourceRoot))});\n`;
 }
 
 function toModuleId(filePath, sourceRoot) {
@@ -97,6 +97,10 @@ function collectLocalModules(entryPath, sourceRoot, modules = new Map()) {
   }
 
   let source = fs.readFileSync(entryPath, "utf8").replace(/^#!.*\r?\n/, "");
+  if (path.extname(entryPath) === ".json") {
+    modules.set(id, `module.exports = ${JSON.stringify(JSON.parse(source))};`);
+    return modules;
+  }
   source = source.replace(/require\((['"])(\.\.?\/[^'"]+)\1\)/g, (match, quote, request) => {
     const resolved = resolveLocalRequire(entryPath, request);
     if (!resolved) {
@@ -235,7 +239,9 @@ async function main() {
   await build(options);
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}

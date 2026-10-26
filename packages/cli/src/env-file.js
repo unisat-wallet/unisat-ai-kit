@@ -100,8 +100,36 @@ function getConfiguredValue(key) {
   return process.env[key] || readDotEnv()[key] || "";
 }
 
+function resolveConfiguredKey(environment, explicitKey) {
+  if (explicitKey) return { apiKey: explicitKey, apiKeySource: "argument" };
+  if (process.env[environment.apiKeyEnv]) {
+    return { apiKey: process.env[environment.apiKeyEnv], apiKeySource: "environment" };
+  }
+  const apiKey = readDotEnv()[environment.apiKeyEnv] || "";
+  return { apiKey, apiKeySource: apiKey ? "user_config" : "none" };
+}
+
+function getConfigStatus(environment, explicitKey) {
+  const { listOpenApiEnvironments } = require("./openapi-environments");
+  return {
+    command: "config.status", mode: "detail",
+    version: require("../package.json").version,
+    environment: environment.name,
+    envFile: getDotEnvPath(),
+    networkChecked: false,
+    environments: listOpenApiEnvironments().map((item) => {
+      const resolved = resolveConfiguredKey(item, item.name === environment.name ? explicitKey : undefined);
+      return { name: item.name, selected: item.name === environment.name, keyEnv: item.apiKeyEnv,
+        configured: Boolean(resolved.apiKey), source: resolved.apiKeySource, validity: "not_checked" };
+    }),
+    nextAction: "Run getCredits --env " + environment.name + " --format json to validate the key online and inspect quota and expiration.",
+  };
+}
+
 module.exports = {
   getConfiguredValue,
+  resolveConfiguredKey,
+  getConfigStatus,
   getDotEnvPath,
   getUserConfigDir,
   readDotEnv,

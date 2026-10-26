@@ -2,7 +2,7 @@
 
 UniSat AI Kit provides a stdio MCP server. Public users should configure an installed command, not a local source path.
 
-The MCP server exposes `get_status` and exact-path `call_api`. Interface discovery and interface matching are handled by the UniSat OpenAPI Agent Skill.
+The MCP server exposes `get_status`, `list_operations`, `get_operation`, and exact-path `call_api`. Discover an interface and inspect its parameters using the built-in tools; an Agent Skill is not required.
 
 ## Option A: npx configuration
 
@@ -19,7 +19,7 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 }
 ```
 
-The package includes the MCP server and depends on `@api-agent-test/ai-cli`. On startup, the CLI layer downloads the current OpenAPI files published by `unisat-dev-docs` and then uses its local cache.
+The package includes the MCP server and depends on `@api-agent-test/ai-cli`, whose request layer downloads OpenAPI definitions from the dev-docs manifest and uses a local cache.
 
 ## Option B: global npm install
 
@@ -69,7 +69,7 @@ Windows configuration:
 }
 ```
 
-Use an absolute path to the extracted launcher. The first start requires access to the public Swagger manifest; later starts can use the validated local cache.
+Use an absolute path to the extracted launcher. The portable archive contains production dependencies. Its first start downloads Swagger; later starts can use the local cache.
 
 ## Option D: local source development
 
@@ -98,6 +98,8 @@ Local source MCP config:
 The MCP server exposes:
 
 - `get_status`: returns MCP version, Node.js version, CLI caller capability status, swagger source, and available tools.
+- `list_operations`: discovers interfaces by query/domain with bounded pagination.
+- `get_operation`: describes parameters and safety metadata.
 - `call_api`: calls an exact UniSat OpenAPI path.
 
 ## API keys
@@ -120,16 +122,11 @@ Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-
 
 ## Optional environment overrides
 
-Override the manifest, cache, TTL, or Swagger directory only for development and controlled deployments:
+Swagger is downloaded from dev-docs and cached locally. For controlled deployments, override the manifest URL, cache directory or TTL with UNISAT_OPENAPI_MANIFEST_URL, UNISAT_OPENAPI_CACHE_DIR or UNISAT_OPENAPI_CACHE_TTL_MS. OPENAPI_SWAGGER_DIR bypasses remote downloads:
 
 ```bash
-UNISAT_OPENAPI_MANIFEST_URL=https://api-docs.unisat.io/swagger/manifest.json
-UNISAT_OPENAPI_CACHE_DIR=/absolute/path/to/cache
-UNISAT_OPENAPI_CACHE_TTL_MS=86400000
 OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @api-agent-test/ai-mcp
 ```
-
-`OPENAPI_SWAGGER_DIR` has the highest priority and disables remote refresh.
 
 ## Validation
 
@@ -140,4 +137,4 @@ npm run smoke
 npm run release:smoke
 ```
 
-The smoke checks cover MCP `initialize`, `tools/list`, and `tools/call` for `get_status` only.
+The smoke checks cover CLI/MCP discovery, request safety, precision, proxy transport, and remote Swagger cache initialization.

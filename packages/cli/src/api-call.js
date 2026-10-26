@@ -1,5 +1,9 @@
 const { buildRequestPlan, parseKeyValueString } = require("./openapi-request");
-const { fetchWithProxy } = require("./http-transport");
+const { isReadOnly, requiresConfirmation, validateBody } = require("./operation-policy");
+const { withRecovery } = require("./result-utils");
+const { parseLosslessJson } = require("./lossless-json");
+const { fetchWithProxy, networkDiagnostic } = require("./http-transport");
+const { creditsOperation, normalizeCreditsResponse } = require("./credits");
 
 const DEVELOPER_PORTAL_URL = "https://developer.unisat.io/";
 
@@ -43,7 +47,7 @@ function parseJsonBody(body) {
     return null;
   }
 
-  return JSON.parse(body);
+  return parseLosslessJson(body);
 }
 
 function selectParsedParams(primary, fallback) {
@@ -54,14 +58,21 @@ function selectParsedParams(primary, fallback) {
   return parseKeyValueString(fallback);
 }
 
-async function callApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body, dryRun = false, clientSource = "cli" }) {
-  const plan = buildRequestPlan(apiPath, {
+async function executeApi({ apiPath, apiKey, apiKeySource, environment, query, queryParamsList, pathParams, pathParamsList, body, dryRun = false, confirm = false, clientSource = "cli" }) {
+  let plan;
+  try {
+    plan = buildRequestPlan(apiPath, {
     environment,
     queryParams: selectParsedParams(queryParamsList, query),
     pathParams: selectParsedParams(pathParamsList, pathParams),
     includeOptionalQuery: false,
     requirePathParams: true,
-  });
+    requireQueryParams: true,
+    });
+  } catch (error) {
+    if (!(error instanceof URIError)) throw error;
+    return { command: "api.call", mode: "invalid_parameters", message: "Invalid percent encoding in path or query parameters." };
+  }
 
   if (!plan) {
     return {
@@ -80,6 +91,8 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
     };
   }
 
+  if (plan.mode === "invalid_parameters") return { command: "api.call", ...plan };
+
   if (plan.mode === "missing_path_params") {
     return {
       command: "api.call",
@@ -90,6 +103,20 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
     };
   }
 
+  if (plan.mode === "missing_query_params") {
+    return {
+      command: "api.call",
+      ...plan,
+      message: `Missing required query parameter(s): ${plan.missingQueryParams.join(", ")}.`,
+    };
+  }
+
+  const bodyProblem = validateBody(body, plan.detail);
+  if (bodyProblem) return { command: "api.call", path: apiPath, ...bodyProblem };
+  const safety = {
+    readOnly: isReadOnly(plan.detail.method, plan.detail.unisat),
+    requiresConfirmation: requiresConfirmation(plan.detail.method, plan.detail.unisat),
+  };
   const requestBody = parseJsonBody(body);
   const method = plan.detail.method.toUpperCase();
 
@@ -97,6 +124,7 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
     return {
       command: "api.call",
       mode: "plan",
+      safety,
       path: plan.detail.path,
       method: plan.detail.method,
       file: plan.detail.file,
@@ -120,6 +148,12 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
     };
   }
 
+  if (safety.requiresConfirmation && confirm !== true) {
+    return { command: "api.call", mode: "confirmation_required", path: apiPath,
+      method: plan.detail.method, safety,
+      message: "This operation requires user authorization. Supply --confirm only after approval." };
+  }
+
   if (!apiKey) {
     return {
       command: "api.call",
@@ -131,26 +165,52 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
   }
 
   const headers = buildHeaders(apiKey, requestBody !== null, clientSource);
-  const response = await fetchWithProxy(plan.url, {
-    method,
-    headers,
-    body: requestBody === null ? undefined : JSON.stringify(requestBody),
-  });
-
-  const contentType = response.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-  const responseBody = isJson ? await response.json() : await response.text();
+  let response, responseBody, contentType;
+  try {
+    response = await fetchWithProxy(plan.url, {
+      method, headers, signal: AbortSignal.timeout(30000),
+      // Send the validated original JSON; parsing and reserializing can round
+      // numbers or change a preserved numeric token into a JSON string.
+      body: requestBody === null ? undefined : body,
+    });
+    contentType = response.headers.get("content-type") || "";
+    const responseText = await response.text();
+    responseBody = contentType.includes("application/json") ? parseLosslessJson(responseText) : responseText;
+    if (plan.detail.path === creditsOperation.path) responseBody = normalizeCreditsResponse(responseBody);
+  } catch (error) {
+    const mode = error.name === "TimeoutError" || error.name === "AbortError" ? "timeout"
+      : error instanceof SyntaxError ? "invalid_response" : "network_error";
+    return { command: "api.call", mode, path: apiPath, method: plan.detail.method, safety,
+      network: mode === "network_error" ? networkDiagnostic(error, plan.url) : undefined,
+      message: mode === "timeout" ? "OpenAPI request timed out after 30 seconds."
+        : mode === "invalid_response" ? "Server returned malformed JSON." : "OpenAPI network request failed." };
+  }
   const apiKeyProblem = getApiKeyProblem(response, responseBody);
+  const quotaUnavailable = String(responseBody?.code) === "-2003"
+    && /quota unavailable/i.test(responseBody?.msg || responseBody?.message || "");
   const httpError = !response.ok && !apiKeyProblem;
+  const apiError = responseBody && typeof responseBody === "object"
+    && ["number", "string"].includes(typeof responseBody.code)
+    && responseBody.code !== 0 && responseBody.code !== "0";
 
   return {
     command: "api.call",
-    mode: apiKeyProblem ? "api_key_error" : httpError ? "http_error" : "detail",
-    message: apiKeyProblem
+    mode: response.status === 403 ? "forbidden" : response.status === 429 ? "rate_limited"
+      : apiKeyProblem ? "api_key_error" : httpError ? "http_error" : apiError ? "api_error" : "detail",
+    safety,
+    ...(quotaUnavailable ? {
+      reason: "quota_unavailable",
+      retryable: false,
+      nextAction: "Check getCredits for the selected network and ask the account owner to verify quota and endpoint entitlement. A successful credits query does not prove endpoint access. Do not retry unchanged or switch networks to bypass this failure.",
+    } : {}),
+    message: quotaUnavailable ? "The server reports quota unavailable for this key and selected network. This does not establish that the key is invalid."
+      : apiKeyProblem
       ? "API key is missing, invalid, or not authorized. Check --api-key or the selected environment key and try again."
       : httpError
         ? `UniSat OpenAPI returned HTTP ${response.status}.`
-        : undefined,
+        : apiError
+          ? `UniSat OpenAPI returned code ${responseBody.code}: ${responseBody.msg || responseBody.message || "Unknown API error"}`
+          : undefined,
     path: plan.detail.path,
     method: plan.detail.method,
     file: plan.detail.file,
@@ -173,13 +233,19 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
       body: requestBody,
     },
     response: {
-      ok: response.ok,
+      ok: response.ok && !apiError && !apiKeyProblem,
+      httpOk: response.ok,
       status: response.status,
       statusText: response.statusText,
       contentType,
+      retryAfter: response.headers.get("retry-after") || undefined,
       body: responseBody,
     },
   };
+}
+
+async function callApi(options) {
+  return withRecovery(await executeApi(options));
 }
 
 module.exports = {

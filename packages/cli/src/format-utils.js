@@ -1,10 +1,35 @@
+const { withRecovery } = require("./result-utils");
+
 function printOutput(payload, format) {
+  payload = withRecovery(payload);
   if (format === "json") {
     console.log(JSON.stringify(payload, null, 2));
     return;
   }
 
+  if (payload.retryable !== undefined) {
+    console.error(payload.message || payload.mode);
+    if (payload.missing) console.error(`missing: ${JSON.stringify(payload.missing)}`);
+    console.error(payload.nextAction);
+    return;
+  }
+
+  if (payload.command === "config.status") {
+    console.log(`version: ${payload.version}`);
+    console.log(`selected environment: ${payload.environment}`);
+    console.log(`config file: ${payload.envFile}`);
+    payload.environments.forEach((item) => console.log(`${item.name}: ${item.configured ? "configured" : "not configured"}, source=${item.source}, validity=${item.validity}`));
+    console.log("Local inspection only; no network request was made.");
+    console.log(payload.nextAction);
+    return;
+  }
+
   if (payload.command === "api.call") {
+    if (["missing_path_params", "missing_query_params", "invalid_environment"].includes(payload.mode)) {
+      console.error(payload.message);
+      return;
+    }
+
     if (payload.mode === "missing_api_key") {
       console.error(payload.message);
       console.error("Bitcoin key: UNISAT_BITCOIN_API_KEY");
@@ -58,6 +83,12 @@ function printOutput(payload, format) {
     return;
   }
 
+  if (payload.command === "commands.domains") {
+    payload.items.forEach((item) => console.log(`${item.domain} - ${item.count} command(s)`));
+    console.log(payload.nextAction);
+    return;
+  }
+
   if (payload.command === "commands") {
     if (payload.pagination) {
       console.log(`showing ${payload.pagination.count} of ${payload.pagination.total} command(s)`);
@@ -71,9 +102,11 @@ function printOutput(payload, format) {
     }
     if (Array.isArray(payload.items)) {
       payload.items.forEach((item) => {
-        console.log(`${item.commandName} - ${item.summary || item.path}`);
+        const recommendation = item.recommendation === "not-recommended" ? " [not recommended]" : "";
+        console.log(`${item.commandName} [${item.domain}] - ${item.summary || ""}${recommendation}`);
       });
     }
+    if (payload.nextAction) console.log(payload.nextAction);
     return;
   }
 
