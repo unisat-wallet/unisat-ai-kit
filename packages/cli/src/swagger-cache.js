@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { fetchWithProxy } = require("./http-transport");
 
 const DEFAULT_MANIFEST_URL =
   "https://api-docs.unisat.io/swagger/manifest.json";
@@ -316,7 +317,7 @@ async function refreshSwaggerCache(options = {}) {
   if (process.env.OPENAPI_SWAGGER_DIR) {
     return getSwaggerCacheStatus();
   }
-  const fetchImpl = options.fetchImpl || globalThis.fetch;
+  const fetchImpl = options.fetchImpl || fetchWithProxy;
   if (typeof fetchImpl !== "function") {
     throw new Error("this Node.js runtime does not provide fetch");
   }

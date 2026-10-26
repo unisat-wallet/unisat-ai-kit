@@ -1,4 +1,5 @@
 const { buildRequestPlan, parseKeyValueString } = require("./openapi-request");
+const { fetchWithProxy } = require("./http-transport");
 
 const DEVELOPER_PORTAL_URL = "https://developer.unisat.io/";
 
@@ -130,7 +131,7 @@ async function callApi({ apiPath, apiKey, apiKeySource, environment, query, quer
   }
 
   const headers = buildHeaders(apiKey, requestBody !== null, clientSource);
-  const response = await fetch(plan.url, {
+  const response = await fetchWithProxy(plan.url, {
     method,
     headers,
     body: requestBody === null ? undefined : JSON.stringify(requestBody),
