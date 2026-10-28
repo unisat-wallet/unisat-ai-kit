@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
+import { assertSupportedNode } from "./node-version.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(rootDir, "dist", "single-cli");
@@ -265,6 +266,7 @@ async function main() {
     printHelp();
     return;
   }
+  assertSupportedNode();
   await build(options);
 }
 

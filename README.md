@@ -105,6 +105,15 @@ Supported command groups:
 
 ## Development
 
+Use Node.js 22.23.4 (pinned in `.nvmrc`), or a supported patched release matching
+`^22.23.4 || ^24.22.1 || ^26.12.1`. With nvm, run `nvm install` and `nvm use`.
+The same runtime requirements apply to CLI and MCP npm installations and deployment hosts.
+Run `npm run doctor` to check the Node.js and Brotli versions before installing dependencies.
+
+Linux single-executable releases now use official Node.js builds and require glibc 2.28+;
+CentOS 7 / glibc 2.17 is no longer supported. Previously downloaded executables bundle
+their own runtime and must be replaced with a rebuilt release.
+
 ```bash
 node scripts/doctor.mjs
 node scripts/smoke.mjs

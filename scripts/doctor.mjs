@@ -1,8 +1,16 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { assertSupportedNode } from "./node-version.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+console.log(JSON.stringify({ node: process.version, brotli: process.versions.brotli }));
+try {
+  assertSupportedNode();
+} catch (error) {
+  console.error(`doctor failed: ${error.message}`);
+  process.exit(1);
+}
 
 const requiredPaths = [
   "package.json",

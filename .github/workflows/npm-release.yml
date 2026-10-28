@@ -20,8 +20,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.15.1
+          node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
+
+      - name: Check Node.js
+        run: npm run doctor
 
       - name: Install dependencies
         run: npm install
