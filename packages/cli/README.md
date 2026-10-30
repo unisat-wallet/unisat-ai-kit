@@ -1,11 +1,11 @@
-﻿# @api-agent-test/ai-cli
+﻿# @unisat/openapi-cli
 
 This package owns the stable external CLI command surface for direct UniSat OpenAPI HTTPS calls.
 
-Requires Node.js 18 or later and npm. Install globally:
+Requires Node.js `^22.23.4 || ^24.22.1 || ^26.12.1` and npm. Install globally:
 
 ```bash
-npm install -g @api-agent-test/ai-cli
+npm install -g @unisat/openapi-cli
 ```
 
 First query (replace the key placeholder locally):

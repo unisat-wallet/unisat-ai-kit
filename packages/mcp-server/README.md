@@ -1,17 +1,17 @@
-# @api-agent-test/ai-mcp
+# @unisat/openapi-mcp
 
 This package exposes the UniSat AI Kit MCP server.
 
-Requires Node.js 18 or later and npm. Install globally:
+Requires Node.js `^22.23.4 || ^24.22.1 || ^26.12.1` and npm. Install globally:
 
 ```bash
-npm install -g @api-agent-test/ai-mcp
+npm install -g @unisat/openapi-mcp
 ```
 
 Or run it without a global install:
 
 ```bash
-npx -y @api-agent-test/ai-mcp
+npx -y @unisat/openapi-mcp
 ```
 
 The server downloads Swagger on startup and uses its local cache. Configure `OPENAPI_SWAGGER_DIR` to use local definitions instead.

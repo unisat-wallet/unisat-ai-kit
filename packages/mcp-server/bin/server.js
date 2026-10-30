@@ -7,7 +7,7 @@ const { version } = require("../package.json");
 
 function loadCliExports() {
   try {
-    return require("@api-agent-test/ai-cli");
+    return require("@unisat/openapi-cli");
   } catch (_error) {
     return require("../../cli");
   }

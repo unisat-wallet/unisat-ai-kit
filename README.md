@@ -4,7 +4,7 @@ UniSat AI Kit provides a CLI and stdio MCP server for AI agents to discover and 
 
 ## Before you start
 
-- npm/npx installation requires Node.js 18 or later and npm. The standalone CLI executable does not require Node.js.
+- npm/npx installation requires Node.js `^22.23.4 || ^24.22.1 || ^26.12.1` and npm. The standalone CLI executable does not require Node.js.
 - Obtain a Bitcoin API key at [UniSat Developer Center](https://developer.unisat.io/) for the examples below.
 - Bitcoin and Fractal mainnets are supported, with separate keys and API permissions.
 - API keys grant service access, not wallet signing authority. Do not provide private keys or seed phrases.
@@ -15,7 +15,7 @@ UniSat AI Kit provides a CLI and stdio MCP server for AI agents to discover and 
 ### 1. Install
 
 ```bash
-npm install -g @api-agent-test/ai-cli --registry=https://registry.npmjs.org/
+npm install -g @unisat/openapi-cli --registry=https://registry.npmjs.org/
 ```
 
 Alternatively, extract the CLI archive for your OS and CPU from [GitHub Releases](https://github.com/unisat-wallet/unisat-ai-kit/releases). Use the corresponding command prefix below:
@@ -71,7 +71,7 @@ Add this stdio MCP server to your agent client (configuration format may vary by
   "mcpServers": {
     "unisat-ai": {
       "command": "npx",
-      "args": ["-y", "--registry=https://registry.npmjs.org/", "@api-agent-test/ai-mcp"],
+      "args": ["-y", "--registry=https://registry.npmjs.org/", "@unisat/openapi-mcp"],
       "env": {
         "UNISAT_BITCOIN_API_KEY": "YOUR_BITCOIN_API_KEY",
         "UNISAT_FRACTAL_API_KEY": "YOUR_FRACTAL_API_KEY"

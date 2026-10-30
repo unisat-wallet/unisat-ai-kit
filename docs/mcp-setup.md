@@ -13,20 +13,20 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
   "mcpServers": {
     "unisat-ai": {
       "command": "npx",
-      "args": ["-y", "@api-agent-test/ai-mcp"]
+      "args": ["-y", "@unisat/openapi-mcp"]
     }
   }
 }
 ```
 
-The package includes the MCP server and depends on `@api-agent-test/ai-cli`, whose request layer downloads OpenAPI definitions from the dev-docs manifest and uses a local cache.
+The package includes the MCP server and depends on `@unisat/openapi-cli`, whose request layer downloads OpenAPI definitions from the dev-docs manifest and uses a local cache.
 
 ## Option B: global npm install
 
 Install once:
 
 ```bash
-npm install -g @api-agent-test/ai-mcp
+npm install -g @unisat/openapi-mcp
 ```
 
 Configure the agent:
@@ -114,8 +114,8 @@ UNISAT_FRACTAL_API_KEY=YOUR_FRACTAL_KEY
 You can also configure keys with the CLI package:
 
 ```bash
-npx -y @api-agent-test/ai-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
-npx -y @api-agent-test/ai-cli config fractal-key --api-key YOUR_FRACTAL_KEY
+npx -y @unisat/openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
+npx -y @unisat/openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
 Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-cli api call` for exact-path calls.
@@ -125,7 +125,7 @@ Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-
 Swagger is downloaded from dev-docs and cached locally. For controlled deployments, override the manifest URL, cache directory or TTL with UNISAT_OPENAPI_MANIFEST_URL, UNISAT_OPENAPI_CACHE_DIR or UNISAT_OPENAPI_CACHE_TTL_MS. OPENAPI_SWAGGER_DIR bypasses remote downloads:
 
 ```bash
-OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @api-agent-test/ai-mcp
+OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/openapi-mcp
 ```
 
 ## Validation
