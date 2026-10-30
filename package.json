@@ -1,7 +1,7 @@
 {
   "name": "unisat-ai-kit",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "packageManager": "yarn@1.22.22",
   "engines": {
     "node": "^22.23.4 || ^24.22.1 || ^26.12.1"
