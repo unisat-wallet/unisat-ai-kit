@@ -1,53 +1,27 @@
 const path = require("path");
-let sea = null;
-try {
-  sea = require("node:sea");
-} catch (_error) {
-  sea = null;
-}
+const { creditsOperation } = require("./credits");
+const { requestBodySummary } = require("./operation-policy");
 const { getSourceRoots } = require("./repo-paths");
 const { walkFiles, readUtf8 } = require("./file-utils");
-
-const SWAGGER_ASSET_NAME = "openapi-swagger.json";
-let embeddedSwaggerFiles = null;
 
 function getSwaggerContext() {
   const { openapiSwaggerDir } = getSourceRoots();
   return {
     openapiSwaggerDir,
     swaggerDir: openapiSwaggerDir,
-    embedded: getEmbeddedSwaggerFiles() !== null,
+    embedded: false,
   };
 }
 
-function getEmbeddedSwaggerFiles() {
-  if (embeddedSwaggerFiles !== null) {
-    return embeddedSwaggerFiles;
-  }
-
-  embeddedSwaggerFiles = false;
-  if (!sea || !sea.isSea()) {
-    return null;
-  }
-
-  try {
-    const raw = sea.getAsset(SWAGGER_ASSET_NAME, "utf8");
-    embeddedSwaggerFiles = JSON.parse(raw);
-    return embeddedSwaggerFiles;
-  } catch (_error) {
-    return null;
-  }
-}
-
 function collectPathBlocks(swaggerDir) {
-  const embeddedFiles = getEmbeddedSwaggerFiles();
-  const files = embeddedFiles
-    ? Object.keys(embeddedFiles).sort()
-    : walkFiles(swaggerDir, (filePath) => filePath.endsWith(".yaml")).sort();
+  const files = walkFiles(
+    swaggerDir,
+    (filePath) => filePath.endsWith(".yaml")
+  ).sort();
   const blocks = [];
 
   files.forEach((filePath) => {
-    const content = embeddedFiles ? embeddedFiles[filePath] : readUtf8(filePath);
+    const content = readUtf8(filePath);
     const lines = content.split(/\r?\n/);
     let index = 0;
 
@@ -130,6 +104,58 @@ function extractTags(lines) {
   return tags;
 }
 
+function parseExtensionValue(value) {
+  const text = value.trim().replace(/^[\'\"]|[\'\"]$/g, "");
+  if (text === "true") {
+    return true;
+  }
+  if (text === "false") {
+    return false;
+  }
+  if (text.startsWith("[") && text.endsWith("]")) {
+    return text
+      .slice(1, -1)
+      .split(",")
+      .map((item) => item.trim().replace(/^[\'\"]|[\'\"]$/g, ""))
+      .filter(Boolean);
+  }
+  return text;
+}
+
+function extractUnisatExtensions(lines) {
+  const extensions = {};
+  let currentKey = null;
+
+  lines.forEach((line) => {
+    const scalarMatch = line.match(/^\s{6}(x-unisat-[A-Za-z0-9_-]+):\s+(.+)\s*$/);
+    if (scalarMatch) {
+      const [, key, rawValue] = scalarMatch;
+      extensions[key] = parseExtensionValue(rawValue);
+      currentKey = Array.isArray(extensions[key]) ? key : null;
+      return;
+    }
+
+    const listStartMatch = line.match(/^\s{6}(x-unisat-[A-Za-z0-9_-]+):\s*$/);
+    if (listStartMatch) {
+      currentKey = listStartMatch[1];
+      extensions[currentKey] = [];
+      return;
+    }
+
+    const listItemMatch = line.match(/^\s{8}-\s+(.+)\s*$/);
+    if (currentKey && listItemMatch) {
+      extensions[currentKey].push(normalizeYamlScalar(listItemMatch[1]));
+      return;
+    }
+
+    if (currentKey && !/^\s{8}/.test(line)) {
+      currentKey = null;
+    }
+  });
+
+  return extensions;
+}
+
 function createParameter() {
   return {
     name: "",
@@ -137,6 +163,12 @@ function createParameter() {
     required: false,
     description: "",
     type: "",
+    enum: [],
+    example: undefined,
+    default: undefined,
+    format: "",
+    minimum: undefined,
+    maximum: undefined,
   };
 }
 
@@ -144,11 +176,24 @@ function normalizeYamlScalar(value) {
   return value.trim().replace(/^[\'"]|[\'"]$/g, "");
 }
 
+function parseInlineEnum(value) {
+  const text = value.trim();
+  if (!text.startsWith("[") || !text.endsWith("]")) {
+    return null;
+  }
+  return text
+    .slice(1, -1)
+    .split(",")
+    .map((item) => normalizeYamlScalar(item.trim()))
+    .filter(Boolean);
+}
+
 function extractParameters(lines) {
   const parameters = [];
   let current = null;
   let inParameters = false;
   let inSchema = false;
+  let inDescription = false;
 
   function pushCurrent() {
     if (current && current.name) {
@@ -156,9 +201,15 @@ function extractParameters(lines) {
     }
     current = null;
     inSchema = false;
+    inDescription = false;
   }
 
   lines.forEach((line) => {
+    if (inDescription && current && /^\s{12}\S/.test(line)) {
+      current.description += `${current.description ? "\n" : ""}${line.trim()}`;
+      return;
+    }
+    if (line.trim()) inDescription = false;
     if (/^\s{6}parameters:\s*$/.test(line)) {
       inParameters = true;
       return;
@@ -204,9 +255,15 @@ function extractParameters(lines) {
       return;
     }
 
-    const propertyMatch = line.match(/^\s{10}(name|in|required|description):\s+(.+)\s*$/);
+    const propertyMatch = line.match(/^\s{10}(name|in|required|description|example):\s+(.+)\s*$/);
     if (propertyMatch) {
       const [, key, rawValue] = propertyMatch;
+      if (key === "description" && ["->", ">", ">-", "|", "|-"].includes(rawValue.trim())) {
+        current.description = "";
+        inDescription = true;
+        inSchema = false;
+        return;
+      }
       if (key === "required") {
         current.required = rawValue.trim() === "true";
       } else {
@@ -220,6 +277,30 @@ function extractParameters(lines) {
       const typeMatch = line.match(/^\s{12}type:\s+(.+)\s*$/);
       if (typeMatch) {
         current.type = normalizeYamlScalar(typeMatch[1]);
+        return;
+      }
+
+      const inlineEnumMatch = line.match(/^\s{12}enum:\s+(.+)\s*$/);
+      if (inlineEnumMatch) {
+        current.enum = parseInlineEnum(inlineEnumMatch[1]) || [];
+        return;
+      }
+
+      if (/^\s{12}enum:\s*$/.test(line)) {
+        current.enum = [];
+        return;
+      }
+
+      const schemaPropertyMatch = line.match(/^\s{12}(default|example|format|minimum|maximum):\s+(.+)\s*$/);
+      if (schemaPropertyMatch) {
+        const [, key, rawValue] = schemaPropertyMatch;
+        current[key] = normalizeYamlScalar(rawValue);
+        return;
+      }
+
+      const enumMatch = line.match(/^\s{14}-\s+(.+)\s*$/);
+      if (enumMatch && Array.isArray(current.enum)) {
+        current.enum.push(normalizeYamlScalar(enumMatch[1]));
       }
     }
   });
@@ -332,7 +413,8 @@ function fallbackOperationId(method, apiPath) {
 }
 
 function getOpenApiDetail(apiPath) {
-  const { openapiSwaggerDir, swaggerDir, embedded } = getSwaggerContext();
+  if (apiPath === creditsOperation.path) return creditsOperation;
+  const { openapiSwaggerDir, swaggerDir } = getSwaggerContext();
   const blocks = collectPathBlocks(swaggerDir);
   const block = blocks.find((item) => item.path === apiPath);
 
@@ -346,14 +428,16 @@ function getOpenApiDetail(apiPath) {
   return {
     path: block.path,
     method,
-    file: embedded ? block.filePath : path.relative(openapiSwaggerDir, block.filePath),
+    file: path.relative(openapiSwaggerDir, block.filePath),
     operationId: extractScalar(block.blockLines, /^\s{6}operationId:\s+/) || fallbackOperationId(method, block.path),
     summary: extractScalar(block.blockLines, /^\s{6}summary:\s+/),
     description: extractScalar(block.blockLines, /^\s{6}description:\s+/),
     tags: extractTags(block.blockLines),
+    unisat: extractUnisatExtensions(block.blockLines),
     parameters: extractParameters(block.blockLines),
     servers: extractServers(block.fileLines),
     requestBodyTemplate: buildRequestBodyTemplate(block.blockLines),
+    requestBody: requestBodySummary(block.blockLines, block.fileLines),
     sourceRoot: swaggerDir,
   };
 }
@@ -362,7 +446,10 @@ module.exports = {
   collectPathBlocks,
   extractTags,
   extractMethods,
+  extractParameters,
   extractScalar,
+  extractServers,
+  extractUnisatExtensions,
   getOpenApiDetail,
   getSwaggerContext,
 };

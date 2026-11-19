@@ -15,9 +15,9 @@ const {
   getConfiguredValue,
   getDotEnvPath,
   getSwaggerContext,
-  introResolve,
-  introShow,
-  listOpenApiEnvironments,
+  getSwaggerCacheStatus,
+  listOperationCommands,
+  getOperationCommand,
 } = cliExports;
 
 function toToolResult(payload, isError = false) {
@@ -38,6 +38,9 @@ function getToolNames() {
 }
 
 function getSwaggerStatus() {
+  if (typeof getSwaggerCacheStatus === "function") {
+    return getSwaggerCacheStatus();
+  }
   if (typeof getSwaggerContext !== "function") {
     return {
       available: false,
@@ -48,68 +51,72 @@ function getSwaggerStatus() {
   const context = getSwaggerContext();
   return {
     available: true,
-    source: context.embedded ? "embedded" : "filesystem",
+    source: "filesystem",
     path: context.swaggerDir,
   };
 }
 
-function hasApiKey(environment) {
-  if (typeof getConfiguredValue !== "function") {
-    return false;
-  }
-  return Boolean(getConfiguredValue(environment.apiKeyEnv));
-}
-
-const resolveApiSchema = z
-  .object({
-    query: z.string().describe("Natural-language task to resolve.").optional(),
-    path: z.string().describe("Exact OpenAPI path to resolve directly.").optional(),
-    shell: z.enum(["powershell", "bash"]).describe("Shell style for generated example commands.").optional(),
-    environment: z.enum(["bitcoin", "fractal"]).describe("OpenAPI environment.").optional(),
-    top: z.number().int().min(0).max(10).describe("Number of alternatives to include.").optional(),
-  })
-  .strict();
-
-const showApiSchema = z
-  .object({
-    path: z.string().describe("Exact OpenAPI path, for example /v1/indexer/brc20/status."),
-  })
-  .strict();
-
-const getStatusSchema = z.object({}).strict();
-
-const listEnvironmentsSchema = z.object({}).strict();
-
 const keyValueMapSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number(), z.boolean()]))]));
 const keyValueInputSchema = z.union([z.array(z.string()), keyValueMapSchema]);
-
+const getStatusSchema = z.object({}).strict();
 const callApiSchema = z
   .object({
-    path: z.string().describe("Exact UniSat OpenAPI path to call."),
-    environment: z.enum(["bitcoin", "fractal"]).describe("OpenAPI environment.").optional(),
-    apiKey: z.string().describe("Optional API key. Prefer environment config for normal use.").optional(),
-    apiKeySource: z.string().describe("Optional label for where apiKey came from.").optional(),
-    query: z.string().describe("Query parameters as URL query string, for example address=...&cursor=0.").optional(),
-    queryParams: keyValueInputSchema
-      .describe("Query parameters as key=value entries or a JSON object. Prefer this field for MCP calls, for example [\"address=...\", \"cursor=0\"] or {\"address\": \"...\"}.")
-      .optional(),
-    pathParams: z.string().describe("Path parameters as URL query string, for example address=...&ticker=ordi.").optional(),
-    pathParamEntries: keyValueInputSchema
-      .describe("Path parameters as key=value entries or a JSON object. Prefer this field for MCP calls, for example [\"address=...\"] or {\"address\": \"...\"}.")
-      .optional(),
-    body: z.string().describe("JSON request body string for POST/PUT style APIs.").optional(),
-    confirm: z
-      .boolean()
-      .describe("Required as true for non-GET API calls after the user explicitly confirms the operation.")
-      .optional(),
+    path: z.string().describe("Exact OpenAPI path. Response numbers outside safe integer range or losing decimal precision are exact strings; use BigInt/decimal arithmetic, not Number."),
+    environment: z.enum(["bitcoin", "fractal"]).optional(),
+    apiKey: z.string().optional(),
+    apiKeySource: z.string().optional(),
+    query: z.string().optional(),
+    queryParams: keyValueInputSchema.optional(),
+    pathParams: z.string().optional(),
+    pathParamEntries: keyValueInputSchema.optional(),
+    body: z.string().describe("JSON text, sent unchanged after validation. Preserve exact numeric literals; do not round large amounts through Number before encoding.").optional(),
+    confirm: z.boolean().optional(),
   })
   .strict();
+
+function configuredApiKey(environment) {
+  if (typeof getConfiguredValue !== "function") return "";
+  return getConfiguredValue(environment === "fractal" ? "UNISAT_FRACTAL_API_KEY" : "UNISAT_BITCOIN_API_KEY");
+}
 
 const toolDefinitions = [
   {
+    name: "list_operations",
+    title: "Discover OpenAPI Operations",
+    description: "Discover UniSat blockchain, address assets, inscriptions, BRC20 and marketplace operations locally without an API key. Returns a compact bounded list and business domains; domain is not network. Search first, then get_operation for parameters and safety. Select bitcoin/fractal only when calling an API.",
+    inputSchema: z.object({
+      query: z.string().optional(),
+      domain: z.string().optional(),
+      offset: z.number().int().min(0).default(0),
+      limit: z.number().int().min(1).max(50).default(20),
+    }).strict(),
+    handler({ query = "", domain, offset = 0, limit = 20 }) {
+      const all = listOperationCommands();
+      const domains = [...new Set(all.map((op) => op.domain))].sort();
+      const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      const matches = all.filter((op) => (!domain || op.domain === domain)
+        && words.every((word) => `${op.commandName} ${op.path} ${op.summary} ${op.domain}`.toLowerCase().includes(word)));
+      const operations = matches.slice(offset, offset + limit).map(({ commandName, path, method, summary, domain, readOnly, requiresConfirmation }) => ({ commandName, path, method, summary, domain, readOnly, requiresConfirmation }));
+      return toToolResult({ mode: "list", domains, total: matches.length, offset, operations,
+        nextOffset: offset + operations.length < matches.length ? offset + operations.length : null,
+        nextAction: matches.length ? "Use get_operation with a commandName or exact path before call_api." : "Relax query or choose a listed business domain; bitcoin is an environment, not a domain." });
+    },
+  },
+  {
+    name: "get_operation",
+    title: "Get Operation Parameters and Safety",
+    description: "Inspect an operation found by list_operations: exact path, parameters, JSON body definitions, network metadata and confirmation requirements. Does not perform a network request. Read-only queries still require a configured key; never infer transfer safety from a successful query.",
+    inputSchema: z.object({ operation: z.string().describe("Command name or exact API path from list_operations.") }).strict(),
+    handler({ operation }) {
+      const detail = getOperationCommand(operation) || listOperationCommands().find((op) => op.path === operation);
+      return detail ? toToolResult({ mode: "detail", operation: detail })
+        : toToolResult({ mode: "not_found", nextAction: "Use list_operations to discover a command name or exact path." }, true);
+    },
+  },
+  {
     name: "get_status",
     title: "Get Server Status",
-    description: "Return UniSat AI Kit MCP server, Node.js, CLI capability, swagger source, and tool status.",
+    description: "Return UniSat AI Kit MCP server status.",
     inputSchema: getStatusSchema,
     handler() {
       const payload = {
@@ -125,13 +132,7 @@ const toolDefinitions = [
           arch: process.arch,
         },
         cli: {
-          loaded: Boolean(introResolve && introShow && callApi),
-          capabilities: {
-            introResolve: typeof introResolve === "function",
-            introShow: typeof introShow === "function",
-            callApi: typeof callApi === "function",
-            listOpenApiEnvironments: typeof listOpenApiEnvironments === "function",
-          },
+          loaded: typeof callApi === "function",
         },
         swagger: getSwaggerStatus(),
         config: {
@@ -143,95 +144,15 @@ const toolDefinitions = [
     },
   },
   {
-    name: "list_environments",
-    title: "List OpenAPI Environments",
-    description: "List supported UniSat OpenAPI environments, base URLs, API key environment names, and key configuration status.",
-    inputSchema: listEnvironmentsSchema,
-    handler() {
-      const environments = typeof listOpenApiEnvironments === "function" ? listOpenApiEnvironments() : [];
-      const payload = {
-        command: "mcp.list_environments",
-        mode: "detail",
-        environments: environments.map((environment) => ({
-          name: environment.name,
-          label: environment.label,
-          baseUrl: environment.baseUrl,
-          apiKeyEnv: environment.apiKeyEnv,
-          apiKeyConfigured: hasApiKey(environment),
-        })),
-      };
-      return toToolResult(payload, environments.length === 0);
-    },
-  },
-  {
-    name: "resolve_api",
-    title: "Resolve API Interface",
-    description:
-      "Resolve the best UniSat OpenAPI interface, parameters, and runnable CLI example from a natural-language task.",
-    inputSchema: resolveApiSchema,
-    handler(args) {
-      const payload = introResolve({
-        query: args.query,
-        apiPath: args.path,
-        shell: args.shell || "powershell",
-        environment: args.environment || "bitcoin",
-        top: args.top ?? 5,
-      });
-      return toToolResult(payload, payload.mode === "not_found" || payload.mode === "missing_input");
-    },
-  },
-  {
-    name: "show_api",
-    title: "Show API Interface",
-    description: "Show raw OpenAPI detail for a known UniSat interface path.",
-    inputSchema: showApiSchema,
-    handler(args) {
-      const payload = introShow(args.path);
-      return toToolResult(payload, payload.mode === "not_found");
-    },
-  },
-  {
     name: "call_api",
     title: "Call OpenAPI Interface",
-    description: "Call a UniSat OpenAPI interface through the CLI capability layer. Non-GET calls require explicit user confirmation.",
+    description: "Call an exact UniSat OpenAPI path discovered with list_operations and inspected with get_operation. Use /openapi/public/get_credits to query the current API key's quota, usage, and expireTime (Unix seconds; 0 means no expiration, not unlimited quota); environment selects the configured Bitcoin or Fractal key. reqQuota is the remaining times-based credit balance, NOT the remaining daily allowance (reqPerDay minus creditsToday). Cumulative allocation is omitted from results. Only supply confirm after explicit user authorization of that write operation; it is not an error recovery flag.",
     inputSchema: callApiSchema,
     async handler(args) {
-      const detail = typeof introShow === "function" ? introShow(args.path) : null;
-      if (!detail || detail.mode === "not_found") {
-        return toToolResult(
-          {
-            command: "api.call",
-            mode: "not_found",
-            path: args.path,
-          },
-          true
-        );
-      }
-      const method = String(detail.method || "").toUpperCase();
-      if (method !== "GET" && args.confirm !== true) {
-        return toToolResult(
-          {
-            command: "api.call",
-            mode: "confirmation_required",
-            path: args.path,
-            method: detail.method,
-            summary: detail.summary,
-            message: "This API call may have side effects. Ask the user to confirm before retrying with confirm=true.",
-            confirmation: {
-              required: true,
-              retryWith: {
-                confirm: true,
-              },
-            },
-          },
-          true
-        );
-      }
       const environment = args.environment || "bitcoin";
-      const apiKey = args.apiKey || (typeof getConfiguredValue === "function" ? getConfiguredValue(environment === "fractal" ? "UNISAT_FRACTAL_API_KEY" : "UNISAT_BITCOIN_API_KEY") : "");
       const payload = await callApi({
         apiPath: args.path,
-        apiKey,
+        apiKey: args.apiKey || configuredApiKey(environment),
         apiKeySource: args.apiKey ? args.apiKeySource || "mcp_argument" : "configured_environment",
         environment,
         query: args.query,
@@ -239,6 +160,7 @@ const toolDefinitions = [
         pathParams: args.pathParams,
         pathParamsList: args.pathParamEntries,
         body: args.body,
+        confirm: args.confirm === true,
         clientSource: "mcp",
       });
       return toToolResult(payload, payload.mode !== "detail");

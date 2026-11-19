@@ -1,11 +1,17 @@
+import { testSwaggerDir } from "./test-swagger.mjs";
 import fs from "fs";
 import { spawn } from "child_process";
 import path from "path";
+import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { buildRequestPlan } from "../packages/cli/src/openapi-request.js";
 import { getOpenApiDetail } from "../packages/cli/src/openapi-utils.js";
+import { runRegressionChecks } from "./regression-checks.mjs";
+import { runAgentChecks } from "./agent-checks.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const require = createRequire(import.meta.url);
+const { buildPlanPayload } = require("../packages/cli/src/operation-runner.js");
 const smokeEnvFile = path.join(rootDir, ".smoke.env");
 
 function smokeEnv() {
@@ -15,7 +21,7 @@ function smokeEnv() {
   };
 }
 
-function runCommand(args) {
+function runCommand(args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn("node", args, {
       cwd: rootDir,
@@ -35,11 +41,19 @@ function runCommand(args) {
     });
 
     child.on("close", (code) => {
+      if (options.expectFailure) {
+        if (code === 0) {
+          reject(new Error(`command unexpectedly succeeded (${args.join(" ")}): ${stdout}`));
+          return;
+        }
+        resolve({ stdout, stderr, code });
+        return;
+      }
       if (code !== 0) {
         reject(new Error(`command failed (${args.join(" ")}): ${stderr || stdout}`));
         return;
       }
-      resolve({ stdout, stderr });
+      resolve({ stdout, stderr, code });
     });
   });
 }
@@ -105,31 +119,22 @@ async function runMcpSmoke() {
       try {
         const initResponse = responses.find((item) => item.id === 1);
         const listResponse = responses.find((item) => item.id === 2);
-        const resolveResponse = responses.find((item) => item.id === 3);
-        const showResponse = responses.find((item) => item.id === 4);
-        const statusResponse = responses.find((item) => item.id === 5);
-        const environmentsResponse = responses.find((item) => item.id === 6);
-        const callApiResponse = responses.find((item) => item.id === 7);
-        const postConfirmationResponse = responses.find((item) => item.id === 8);
-        if (!initResponse || !listResponse || !resolveResponse || !showResponse || !statusResponse || !environmentsResponse || !callApiResponse || !postConfirmationResponse) {
+        const statusResponse = responses.find((item) => item.id === 3);
+        const callResponse = responses.find((item) => item.id === 4);
+        if (!initResponse || !listResponse || !statusResponse || !callResponse) {
           return;
         }
         assert(initResponse.result?.protocolVersion === "2025-06-18", "initialize response invalid");
         assert(Array.isArray(listResponse.result?.tools), "tools/list response invalid");
-        ["get_status", "list_environments", "resolve_api", "show_api", "call_api"].forEach((toolName) => {
-          assert(listResponse.result.tools.some((item) => item.name === toolName), `${toolName} tool missing`);
-        });
-        assert(resolveResponse.result?.structuredContent?.command === "intro.resolve", "tools/call resolve_api invalid");
-        assert(showResponse.result?.structuredContent?.command === "intro.show", "tools/call show_api invalid");
+        assert(listResponse.result.tools.length === 4, "MCP should expose discovery, detail, status and call tools");
+        assert(listResponse.result.tools.some((tool) => tool.name === "get_status"), "get_status tool missing");
+        assert(listResponse.result.tools.some((tool) => tool.name === "call_api"), "call_api tool missing");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "tools/call get_status invalid");
-        assert(statusResponse.result.structuredContent.tools.includes("call_api"), "get_status tool list invalid");
-        assert(environmentsResponse.result?.structuredContent?.command === "mcp.list_environments", "tools/call list_environments invalid");
-        assert(environmentsResponse.result.structuredContent.environments.some((item) => item.name === "bitcoin"), "bitcoin environment missing");
-        assert(callApiResponse.result?.structuredContent?.command === "api.call", "tools/call call_api invalid");
-        assert(callApiResponse.result.structuredContent.mode === "not_found", "call_api should return not_found without network");
-        assert(postConfirmationResponse.result?.structuredContent?.command === "api.call", "tools/call post confirmation invalid");
-        assert(postConfirmationResponse.result.structuredContent.mode === "confirmation_required", "non-GET call_api should require confirmation");
-        assert(postConfirmationResponse.result.isError === true, "confirmation_required should be an MCP error result");
+        assert(statusResponse.result.structuredContent.tools.length === 4, "get_status tool list invalid");
+        assert(statusResponse.result.structuredContent.tools.includes("get_status"), "get_status tool name invalid");
+        assert(statusResponse.result.structuredContent.tools.includes("call_api"), "call_api tool name invalid");
+        assert(callResponse.result?.structuredContent?.command === "api.call", "tools/call call_api invalid");
+        assert(callResponse.result.structuredContent.mode === "not_found", "call_api should call exact path and return not_found");
         finish();
       } catch (error) {
         finish(error);
@@ -164,8 +169,8 @@ async function runMcpSmoke() {
         id: 3,
         method: "tools/call",
         params: {
-          name: "resolve_api",
-          arguments: { query: "marketplace brc20 ticker history" },
+          name: "get_status",
+          arguments: {},
         },
       });
       sendMessage(child.stdin, {
@@ -173,49 +178,53 @@ async function runMcpSmoke() {
         id: 4,
         method: "tools/call",
         params: {
-          name: "show_api",
-          arguments: { path: "/v1/indexer/brc20/{ticker}/info" },
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 5,
-        method: "tools/call",
-        params: {
-          name: "get_status",
-          arguments: {},
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 6,
-        method: "tools/call",
-        params: {
-          name: "list_environments",
-          arguments: {},
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 7,
-        method: "tools/call",
-        params: {
           name: "call_api",
-          arguments: { environment: "bitcoin", path: "/not-found", apiKey: "mcp_smoke" },
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 8,
-        method: "tools/call",
-        params: {
-          name: "call_api",
-          arguments: { environment: "bitcoin", path: "/v3/market/runes/auction/runes_types", apiKey: "mcp_smoke" },
+          arguments: {
+            path: "/not-found",
+            environment: "bitcoin",
+          },
         },
       });
     }, 100);
-
   });
+}
+
+function validateMcpToolModuleImport() {
+  const tools = require("../packages/mcp-server/src/tools.js");
+  assert(typeof tools.registerTools === "function", "mcp tools module should load and export registerTools");
+}
+
+function makeSyntheticPostOperation() {
+  return {
+    commandName: "postSyntheticSmoke",
+    operationId: "postSyntheticSmoke",
+    method: "post",
+    path: "/v1/indexer/local_pushtx",
+    file: "blockchain-indexer.yaml",
+    tags: ["Smoke"],
+    summary: "Synthetic POST smoke operation",
+    description: "Synthetic POST smoke operation",
+    parameters: [],
+    requestBody: {
+      required: true,
+      contentTypes: ["application/json"],
+    },
+    readOnly: false,
+    requiresConfirmation: true,
+  };
+}
+
+function validateSemanticPostBodyPlanning() {
+  const missingBody = buildPlanPayload(makeSyntheticPostOperation(), { "dry-run": "true" });
+  assert(missingBody.mode === "missing_required_params", "POST operation should require --body when requestBody is required");
+  assert(missingBody.missing.body === true, "POST missing body should be reported");
+  assert(missingBody.nextAction.includes("--body"), "POST missing body next action should mention --body");
+  assert(missingBody.example.includes("--body"), "POST example should include --body");
+
+  const withBody = buildPlanPayload(makeSyntheticPostOperation(), { body: "{\"tx\":\"00\"}", "dry-run": "true" });
+  assert(withBody.mode === "plan", "POST operation with --body should be plannable");
+  assert(withBody.request.body === "{\"tx\":\"00\"}", "POST plan should preserve raw JSON body string");
+  assert(withBody.safety.requiresConfirmation === true, "POST plan should require confirmation");
 }
 
 function validateRequestPlanning() {
@@ -249,10 +258,83 @@ function validateRequestPlanning() {
 
 async function main() {
   fs.rmSync(smokeEnvFile, { force: true });
+  validateMcpToolModuleImport();
+  console.log("ok mcp tools import");
   validateRequestPlanning();
   console.log("ok request planning");
+  validateSemanticPostBodyPlanning();
+  console.log("ok semantic POST body planning");
+  await runRegressionChecks();
+  console.log("ok API failure and bundle regressions");
+  await runAgentChecks();
+  console.log("ok agent onboarding, config status, errors, and confirmation");
 
   const cliChecks = [
+    {
+      name: "cli lists all semantic commands",
+      args: ["packages/cli/bin/unisat-ai.js", "commands", "--all", "--format", "json"],
+      validate(stdout) {
+        const payload = JSON.parse(stdout);
+        assert(payload.command === "commands", "commands payload invalid");
+        assert(payload.total > 16, "all swagger semantic commands should be enabled");
+        assert(payload.items.some((item) => item.domain === "alkanes" && item.commandName === "getAlkanesInfoList"), "alkanes-indexer command missing");
+        assert(payload.items.some((item) => item.domain === "blockchain" && item.commandName === "getRecommendedFees"), "blockchain-indexer command missing");
+        assert(payload.items.some((item) => item.commandName === "createOrder"), "POST command missing");
+        assert(payload.items.every((item) => !item.parameters && !item.description && !item.requestBody), "list must contain summaries only");
+      },
+    },
+    {
+      name: "cli lists BRC20 semantic commands",
+      args: ["packages/cli/bin/unisat-ai.js", "commands", "--domain", "brc20", "--format", "json"],
+      validate(stdout) {
+        const payload = JSON.parse(stdout);
+        assert(payload.command === "commands", "commands payload invalid");
+        assert(payload.total === 16, "BRC20 command count invalid");
+        assert(payload.items.some((item) => item.commandName === "getBrc20Status"), "getBrc20Status command missing");
+        assert(payload.items.some((item) => item.commandName === "getBrc20InfoByTicker"), "getBrc20InfoByTicker command missing");
+      },
+    },
+    {
+      name: "cli exposes single-command history metadata",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20HistoryByTickerAndTxid", "--help", "--format", "json"],
+      validate(stdout) {
+        const typeParam = JSON.parse(stdout).operation.parameters.find((parameter) => parameter.name === "type");
+        assert(typeParam?.enum?.includes("inscribe-deploy"), "BRC20 history type enum missing");
+        assert(typeParam.enum.includes("receive"), "BRC20 history type enum incomplete");
+      },
+    },
+    {
+      name: "cli exposes single-command sort metadata",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20Status", "--help", "--format", "json"],
+      validate(stdout) {
+        const sortParam = JSON.parse(stdout).operation.parameters.find((parameter) => parameter.name === "sort");
+        assert(sortParam?.enum?.includes("holders"), "BRC20 status sort enum missing");
+        assert(sortParam?.example === "deploy", "BRC20 status sort example missing");
+      },
+    },
+    {
+      name: "cli semantic command dry run",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20Status", "--start", "1", "--limit", "10", "--dry-run", "--format", "json"],
+      validate(stdout) {
+        const payload = JSON.parse(stdout);
+        assert(payload.command === "getBrc20Status", "semantic command payload invalid");
+        assert(payload.mode === "plan", "semantic command dry-run should plan");
+        assert(payload.request.url.includes("/v1/indexer/brc20/status?"), "semantic command plan URL invalid");
+        assert(payload.request.queryString.includes("start=1"), "semantic command start query missing");
+        assert(payload.request.queryString.includes("limit=10"), "semantic command limit query missing");
+      },
+    },
+    {
+      name: "cli semantic command detects missing params",
+      args: ["packages/cli/bin/unisat-ai.js", "getBrc20InfoByTicker", "--dry-run", "--format", "json"],
+      expectFailure: true,
+      validate(stdout) {
+        const payload = JSON.parse(stdout);
+        assert(payload.command === "getBrc20InfoByTicker", "missing param command payload invalid");
+        assert(payload.mode === "missing_required_params", "missing semantic params should be reported");
+        assert(payload.missing.pathParams.includes("ticker"), "missing ticker should be reported");
+      },
+    },
     {
       name: "cli config bitcoin key",
       args: ["packages/cli/bin/unisat-ai.js", "config", "bitcoin-key", "--api-key", "btc_smoke", "--format", "json"],
@@ -272,25 +354,8 @@ async function main() {
       },
     },
     {
-      name: "cli intro show",
-      args: ["packages/cli/bin/unisat-ai.js", "intro", "show", "--path", "/v1/indexer/brc20/{ticker}/info", "--format", "json"],
-      validate(stdout) {
-        const payload = JSON.parse(stdout);
-        assert(payload.command === "intro.show", "intro show payload invalid");
-        assert(payload.path === "/v1/indexer/brc20/{ticker}/info", "intro show path invalid");
-      },
-    },
-    {
-      name: "cli intro resolve",
-      args: ["packages/cli/bin/unisat-ai.js", "intro", "resolve", "--env", "bitcoin", "--query", "marketplace brc20 ticker history", "--format", "json"],
-      validate(stdout) {
-        const payload = JSON.parse(stdout);
-        assert(payload.command === "intro.resolve", "intro resolve payload invalid");
-        assert(payload.selected?.path, "intro resolve selected path missing");
-      },
-    },
-    {
       name: "cli api call uses dotenv key",
+      expectFailure: true,
       args: ["packages/cli/bin/unisat-ai.js", "api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"],
       validate(stdout) {
         const payload = JSON.parse(stdout);
@@ -301,10 +366,15 @@ async function main() {
   ];
 
   for (const check of cliChecks) {
-    const { stdout } = await runCommand(check.args);
+    const { stdout } = await runCommand(check.args, { expectFailure: check.expectFailure });
     check.validate(stdout);
     console.log(`ok ${check.name}`);
   }
+
+  const introCommand = await runCommand(["packages/cli/bin/unisat-ai.js", "intro", "resolve", "--env", "bitcoin", "--query", "address balance", "--format", "json"], { expectFailure: true });
+  const introPayload = JSON.parse(introCommand.stdout);
+  assert(introPayload.mode === "unknown_command" && introPayload.command === "intro", "intro command should be rejected as an unknown command");
+  console.log("ok cli rejects intro commands");
 
   await runMcpSmoke();
   console.log("ok mcp server");

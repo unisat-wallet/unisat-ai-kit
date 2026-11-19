@@ -21,7 +21,7 @@ function normalizeEnvironmentName(value) {
 
 function getOpenApiEnvironment(value) {
   const name = normalizeEnvironmentName(value);
-  return OPENAPI_ENVIRONMENTS[name] || null;
+  return Object.hasOwn(OPENAPI_ENVIRONMENTS, name) ? OPENAPI_ENVIRONMENTS[name] : null;
 }
 
 function listOpenApiEnvironments() {

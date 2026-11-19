@@ -5,6 +5,14 @@ const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio
 const { registerTools } = require("../src/tools");
 const { version } = require("../package.json");
 
+function loadCliExports() {
+  try {
+    return require("@unisat/openapi-cli");
+  } catch (_error) {
+    return require("../../cli");
+  }
+}
+
 const SERVER_INFO = {
   name: "unisat-openapi-mcp",
   title: "UniSat AI Kit MCP Server",
@@ -12,9 +20,17 @@ const SERVER_INFO = {
 };
 
 async function main() {
+  const { ensureSwaggerCache, setSwaggerRuntimeDir } = loadCliExports();
+  const swaggerStatus = await ensureSwaggerCache();
+  if (typeof setSwaggerRuntimeDir === "function") {
+    setSwaggerRuntimeDir(swaggerStatus.swaggerDir);
+  }
+  if (swaggerStatus.warning) {
+    console.error(`warning: using cached Swagger: ${swaggerStatus.warning}`);
+  }
   const server = new McpServer(SERVER_INFO, {
     instructions:
-      "UniSat AI Kit MCP server exposes UniSat OpenAPI discovery and call tools backed by local swagger data. Non-GET calls require explicit user confirmation.",
+      "UniSat AI Kit MCP server exposes UniSat OpenAPI discovery and call tools backed by a validated local Swagger cache. Non-GET calls require explicit user confirmation.",
   });
 
   registerTools(server);

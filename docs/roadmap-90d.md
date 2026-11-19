@@ -9,8 +9,8 @@
 
 ## Day 30-60
 
-- Ship the compact CLI release: `intro resolve`, `intro show`, `api call`
-- Ship the first MCP server release with 3-5 high-value tools
+- Ship the compact CLI release: `config` and exact-path `api call`
+- Ship the compact MCP server release with `get_status` and exact-path `call_api`
 - Dogfood the flow with internal agents
 
 ## Day 60-90

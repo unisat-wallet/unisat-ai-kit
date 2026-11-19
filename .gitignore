@@ -1,6 +1,7 @@
 node_modules
 dist
 coverage
+.agent-test-results/
 .cache
 .DS_Store
 .env

@@ -1,3 +1,4 @@
+import { testSwaggerDir } from "./test-swagger.mjs";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -33,7 +34,7 @@ function run(command, args, options = {}) {
     });
 
     child.on("close", (code) => {
-      if (code !== 0) {
+      if (options.expectFailure ? code === 0 || code === null : code !== 0) {
         reject(new Error(`${command} ${args.join(" ")} failed: ${stderr || stdout}`));
         return;
       }
@@ -90,21 +91,18 @@ async function runMcpSmoke(command, args, options = {}) {
       try {
         const initResponse = responses.find((item) => item.id === 1);
         const listResponse = responses.find((item) => item.id === 2);
-        const callResponse = responses.find((item) => item.id === 3);
-        const statusResponse = responses.find((item) => item.id === 4);
-        const environmentsResponse = responses.find((item) => item.id === 5);
-        const apiCallResponse = responses.find((item) => item.id === 6);
-        if (!initResponse || !listResponse || !callResponse || !statusResponse || !environmentsResponse || !apiCallResponse) {
+        const statusResponse = responses.find((item) => item.id === 3);
+        const callResponse = responses.find((item) => item.id === 4);
+        if (!initResponse || !listResponse || !statusResponse || !callResponse) {
           return;
         }
         assert(initResponse.result?.protocolVersion, "packed mcp initialize response invalid");
-        ["get_status", "list_environments", "resolve_api", "show_api", "call_api"].forEach((toolName) => {
-          assert(listResponse.result?.tools?.some((item) => item.name === toolName), `packed mcp ${toolName} missing`);
-        });
-        assert(callResponse.result?.structuredContent?.command === "intro.resolve", "packed mcp tools/call invalid");
+        assert(listResponse.result?.tools?.length === 4, "packed mcp should expose discovery, detail, status and call tools");
+        assert(listResponse.result.tools.some((tool) => tool.name === "get_status"), "packed mcp get_status missing");
+        assert(listResponse.result.tools.some((tool) => tool.name === "call_api"), "packed mcp call_api missing");
         assert(statusResponse.result?.structuredContent?.command === "mcp.get_status", "packed mcp get_status invalid");
-        assert(environmentsResponse.result?.structuredContent?.command === "mcp.list_environments", "packed mcp list_environments invalid");
-        assert(apiCallResponse.result?.structuredContent?.mode === "not_found", "packed mcp call_api not_found invalid");
+        assert(callResponse.result?.structuredContent?.command === "api.call", "packed mcp call_api invalid");
+        assert(callResponse.result.structuredContent.mode === "not_found", "packed mcp call_api should return not_found");
         finish();
       } catch (error) {
         finish(error);
@@ -158,8 +156,8 @@ async function runMcpSmoke(command, args, options = {}) {
         id: 3,
         method: "tools/call",
         params: {
-          name: "resolve_api",
-          arguments: { query: "marketplace brc20 ticker history" },
+          name: "get_status",
+          arguments: {},
         },
       });
       sendMessage(child.stdin, {
@@ -167,26 +165,11 @@ async function runMcpSmoke(command, args, options = {}) {
         id: 4,
         method: "tools/call",
         params: {
-          name: "get_status",
-          arguments: {},
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 5,
-        method: "tools/call",
-        params: {
-          name: "list_environments",
-          arguments: {},
-        },
-      });
-      sendMessage(child.stdin, {
-        jsonrpc: "2.0",
-        id: 6,
-        method: "tools/call",
-        params: {
           name: "call_api",
-          arguments: { environment: "bitcoin", path: "/not-found", apiKey: "release_smoke" },
+          arguments: {
+            path: "/not-found",
+            environment: "bitcoin",
+          },
         },
       });
     }, 100);
@@ -248,9 +231,11 @@ async function main() {
     cliTarball = cliPack.tarball;
     mcpTarball = mcpPack.tarball;
 
-    assert(cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/") && file.endsWith(".yaml")), "packed cli swagger vendor missing");
+    assert(!cliPack.files.some((file) => file.startsWith("vendor/openapi-swagger/")), "packed cli must use runtime Swagger, not bundled snapshots");
     assertPackedFile(mcpPack.files, "bin/server.js");
     assertPackedFile(mcpPack.files, "src/tools.js");
+    assertPackedFile(cliPack.files, "src/credits.js");
+    assert(!cliPack.files.includes("vendor/openapi-swagger/credits.yaml"), "credits must not depend on a swagger file");
 
     await run(npmCommand(), ["init", "-y"], { cwd: tempDir });
     await run(npmCommand(), ["install", cliTarball, mcpTarball], { cwd: tempDir });
@@ -260,23 +245,80 @@ async function main() {
     const mcpBin = packageBin(binDir, "unisat-openapi-mcp");
     const env = {
       ...process.env,
-      OPENAPI_SWAGGER_DIR: "",
+      OPENAPI_SWAGGER_DIR: testSwaggerDir,
+      UNISAT_BITCOIN_API_KEY: "release_smoke",
     };
 
-    const cliShow = await run(cliBin, ["intro", "show", "--path", "/v1/indexer/brc20/{ticker}/info", "--format", "json"], {
-      cwd: tempDir,
-      env,
+    const configStatus = await run(cliBin, ["config", "status", "--format", "json"], { cwd: tempDir, env });
+    const configPayload = JSON.parse(configStatus.stdout);
+    assert(configPayload.command === "config.status" && configPayload.networkChecked === false, "packed local config status invalid");
+    assert(configPayload.environments.find((item) => item.name === "bitcoin")?.source === "environment", "packed config source invalid");
+    assert(!configStatus.stdout.includes("release_smoke"), "packed config must not expose API keys");
+    const help = await run(cliBin, ["--help", "--format", "json"], { cwd: tempDir, env });
+    assert(JSON.parse(help.stdout).text.includes("commands domains"), "packed command discovery help missing");
+    const blockedWrite = await run(cliBin, ["api", "call", "--path", "/v2/inscribe/order/create", "--body", "{}", "--format", "json"], {
+      cwd: tempDir, env, expectFailure: true,
     });
-    const showPayload = JSON.parse(cliShow.stdout);
-    assert(showPayload.command === "intro.show", "packed cli intro show failed");
+    assert(JSON.parse(blockedWrite.stdout).mode === "confirmation_required", "packed exact-path call must require confirmation");
 
-    const cliResolve = await run(cliBin, ["intro", "resolve", "--env", "bitcoin", "--query", "marketplace brc20 ticker history", "--format", "json"], {
+    const allCommandList = await run(cliBin, ["commands", "--all", "--format", "json"], {
       cwd: tempDir,
       env,
     });
-    const resolvePayload = JSON.parse(cliResolve.stdout);
-    assert(resolvePayload.command === "intro.resolve", "packed cli intro resolve failed");
-    assert(resolvePayload.selected?.path, "packed cli resolve selected path missing");
+    const allCommandListPayload = JSON.parse(allCommandList.stdout);
+    assert(allCommandListPayload.command === "commands", "packed cli all commands failed");
+    assert(allCommandListPayload.items.some((item) => item.commandName === "getCredits"), "packed CLI credits command missing");
+    const creditsPlan = await run(cliBin, ["getCredits", "--env", "fractal", "--dry-run", "--format", "json"], {
+      cwd: tempDir, env,
+    });
+    assert(JSON.parse(creditsPlan.stdout).request.url === "https://developer.unisat.io/openapi/public/get_credits", "packed credits URL invalid");
+    assert(allCommandListPayload.total > 16, "packed cli should enable all swagger semantic commands");
+    assert(allCommandListPayload.items.some((item) => item.domain === "alkanes" && item.commandName === "getAlkanesInfoList"), "packed cli alkanes command missing");
+    assert(allCommandListPayload.items.some((item) => item.domain === "blockchain" && item.commandName === "getRecommendedFees"), "packed cli blockchain command missing");
+    assert(allCommandListPayload.items.every((item) => !item.parameters && !item.description), "packed lists must be compact");
+    const orderHelp = await run(cliBin, ["createOrder", "--help", "--format", "json"], { cwd: tempDir, env });
+    assert(JSON.parse(orderHelp.stdout).operation.requestBody.required === true, "packed cli POST body metadata missing");
+    const bidHelp = await run(cliBin, ["createBrc20BidPrepare", "--help", "--format", "json"]);
+    assert(JSON.parse(bidHelp.stdout).operation.requestBody.referencedSchemas["#/components/schemas/MarketCreateBidPrepareRequest"].includes("auctionId:"), "packed cli referenced body schema missing");
+    const domains = await run(cliBin, ["commands", "domains", "--format", "json"], { cwd: tempDir, env });
+    assert(JSON.parse(domains.stdout).items.some((item) => item.domain === "blockchain"), "packed domains missing");
+    const wrongDomain = await run(cliBin, ["commands", "--domain", "bitcoin", "--format", "json"], { cwd: tempDir, env, expectFailure: true });
+    assert(JSON.parse(wrongDomain.stdout).mode === "invalid_domain", "packed network/domain hint missing");
+
+    const commandList = await run(cliBin, ["commands", "--domain", "brc20", "--format", "json"], {
+      cwd: tempDir,
+      env,
+    });
+    const commandListPayload = JSON.parse(commandList.stdout);
+    assert(commandListPayload.command === "commands", "packed cli commands failed");
+    assert(commandListPayload.total === 16, "packed cli BRC20 command count invalid");
+    assert(commandListPayload.items.some((item) => item.commandName === "getBrc20Status"), "packed cli getBrc20Status missing");
+    const historyHelp = await run(cliBin, ["getBrc20HistoryByTickerAndTxid", "--help", "--format", "json"], { cwd: tempDir, env });
+    const typeParam = JSON.parse(historyHelp.stdout).operation.parameters.find((parameter) => parameter.name === "type");
+    assert(typeParam?.enum?.includes("inscribe-deploy"), "packed cli BRC20 history type enum missing");
+    const statusHelp = await run(cliBin, ["getBrc20Status", "--help", "--format", "json"], { cwd: tempDir, env });
+    const sortParam = JSON.parse(statusHelp.stdout).operation.parameters.find((parameter) => parameter.name === "sort");
+    assert(sortParam?.enum?.includes("holders"), "packed cli BRC20 status sort enum missing");
+    assert(sortParam?.example === "deploy", "packed cli BRC20 status sort example missing");
+
+    const dryRun = await run(cliBin, ["getBrc20Status", "--start", "1", "--limit", "10", "--dry-run", "--format", "json"], {
+      cwd: tempDir,
+      env,
+    });
+    const dryRunPayload = JSON.parse(dryRun.stdout);
+    assert(dryRunPayload.command === "getBrc20Status", "packed cli semantic command failed");
+    assert(dryRunPayload.mode === "plan", "packed cli semantic command should dry-run");
+    assert(dryRunPayload.request.queryString.includes("start=1"), "packed cli semantic command start query missing");
+    assert(dryRunPayload.request.queryString.includes("limit=10"), "packed cli semantic command limit query missing");
+
+    const cliCall = await run(cliBin, ["api", "call", "--env", "bitcoin", "--path", "/not-found", "--format", "json"], {
+      expectFailure: true,
+      cwd: tempDir,
+      env,
+    });
+    const callPayload = JSON.parse(cliCall.stdout);
+    assert(callPayload.command === "api.call", "packed cli api call failed");
+    assert(callPayload.mode === "not_found", "packed cli api call should return not_found without network");
 
     await runMcpSmoke(mcpBin, [], {
       cwd: tempDir,

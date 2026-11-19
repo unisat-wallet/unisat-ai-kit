@@ -1,6 +1,8 @@
 # MCP Setup
 
-UniSat AI Kit provides a stdio MCP server for UniSat OpenAPI discovery and calls. Public users should configure an installed command, not a local source path.
+UniSat AI Kit provides a stdio MCP server. Public users should configure an installed command, not a local source path.
+
+The MCP server exposes `get_status`, `list_operations`, `get_operation`, and exact-path `call_api`. Discover an interface and inspect its parameters using the built-in tools; an Agent Skill is not required.
 
 ## Option A: npx configuration
 
@@ -9,7 +11,7 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "npx",
       "args": ["-y", "@unisat/openapi-mcp"]
     }
@@ -17,7 +19,7 @@ This is the recommended setup for Cursor, Claude, Codex, and other agents that s
 }
 ```
 
-The package includes the MCP server and depends on `@unisat/openapi-cli`, whose npm package bundles the OpenAPI swagger data required by the tools.
+The package includes the MCP server and depends on `@unisat/openapi-cli`, whose request layer downloads OpenAPI definitions from the dev-docs manifest and uses a local cache.
 
 ## Option B: global npm install
 
@@ -32,7 +34,7 @@ Configure the agent:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "unisat-openapi-mcp"
     }
   }
@@ -48,7 +50,7 @@ macOS/Linux configuration:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "/absolute/path/to/unisat-openapi-mcp"
     }
   }
@@ -60,14 +62,14 @@ Windows configuration:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "C:/absolute/path/to/unisat-openapi-mcp.cmd"
     }
   }
 }
 ```
 
-Use an absolute path to the extracted launcher. The portable archive contains production dependencies and bundled swagger data.
+Use an absolute path to the extracted launcher. The portable archive contains production dependencies. Its first start downloads Swagger; later starts can use the local cache.
 
 ## Option D: local source development
 
@@ -83,7 +85,7 @@ Local source MCP config:
 ```json
 {
   "mcpServers": {
-    "unisat-ai-kit": {
+    "unisat-ai": {
       "command": "node",
       "args": ["/absolute/path/to/unisat-ai-kit/packages/mcp-server/bin/server.js"]
     }
@@ -95,11 +97,10 @@ Local source MCP config:
 
 The MCP server exposes:
 
-- `get_status`: returns MCP version, Node.js version, CLI capability status, swagger source, and available tools.
-- `list_environments`: lists `bitcoin` and `fractal` OpenAPI environments, base URLs, API key environment names, and whether keys are configured.
-- `resolve_api`: resolves a natural-language task or exact path to a UniSat OpenAPI interface.
-- `show_api`: shows raw OpenAPI detail for an exact path.
-- `call_api`: calls a UniSat OpenAPI interface through the CLI capability layer. `GET` calls run directly; non-GET calls first return `confirmation_required` and must be retried with `confirm: true` after the user explicitly confirms.
+- `get_status`: returns MCP version, Node.js version, CLI caller capability status, swagger source, and available tools.
+- `list_operations`: discovers interfaces by query/domain with bounded pagination.
+- `get_operation`: describes parameters and safety metadata.
+- `call_api`: calls an exact UniSat OpenAPI path.
 
 ## API keys
 
@@ -117,11 +118,11 @@ npx -y @unisat/openapi-cli config bitcoin-key --api-key YOUR_BITCOIN_KEY
 npx -y @unisat/openapi-cli config fractal-key --api-key YOUR_FRACTAL_KEY
 ```
 
-The MCP `list_environments` tool reports whether each key is configured.
+Use `get_status` for package diagnostics. Use MCP `call_api` or `unisat-openapi-cli api call` for exact-path calls.
 
 ## Optional environment overrides
 
-The public npm and portable packages already include swagger data. Override the swagger directory only for development or custom builds:
+Swagger is downloaded from dev-docs and cached locally. For controlled deployments, override the manifest URL, cache directory or TTL with UNISAT_OPENAPI_MANIFEST_URL, UNISAT_OPENAPI_CACHE_DIR or UNISAT_OPENAPI_CACHE_TTL_MS. OPENAPI_SWAGGER_DIR bypasses remote downloads:
 
 ```bash
 OPENAPI_SWAGGER_DIR=/absolute/path/to/swagger npx -y @unisat/openapi-mcp
@@ -136,4 +137,4 @@ npm run smoke
 npm run release:smoke
 ```
 
-The smoke checks cover MCP `initialize`, `tools/list`, and `tools/call` for `resolve_api`, `show_api`, `get_status`, `list_environments`, and a no-network `call_api` not-found case.
+The smoke checks cover CLI/MCP discovery, request safety, precision, proxy transport, and remote Swagger cache initialization.

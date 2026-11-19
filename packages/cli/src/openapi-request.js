@@ -4,6 +4,18 @@ const { DEFAULT_OPENAPI_ENVIRONMENT, getOpenApiEnvironment } = require("./openap
 function exampleValue(parameter) {
   const normalizedName = parameter.name.toLowerCase();
 
+  if (parameter.example !== undefined) {
+    return parameter.example;
+  }
+
+  if (parameter.default !== undefined) {
+    return parameter.default;
+  }
+
+  if (Array.isArray(parameter.enum) && parameter.enum.length > 0) {
+    return parameter.enum[0];
+  }
+
   if (normalizedName === "start" || normalizedName === "cursor" || normalizedName.endsWith("offset")) {
     return "0";
   }
@@ -174,7 +186,7 @@ function buildRequestPlan(apiPath, overrides = {}) {
   const requirePathParams = overrides.requirePathParams === true;
   const missingPathParams = parameters
     .filter((parameter) => parameter.in === "path")
-    .filter((parameter) => !objectHasCaseInsensitive(pathParamOverrides, parameter.name))
+    .filter((parameter) => !valueProvided(getCaseInsensitiveValue(pathParamOverrides, parameter.name)))
     .map((parameter) => parameter.name);
 
   if (requirePathParams && missingPathParams.length > 0) {
@@ -185,6 +197,14 @@ function buildRequestPlan(apiPath, overrides = {}) {
     };
   }
 
+  const missingQueryParams = parameters
+    .filter((parameter) => parameter.in === "query" && parameter.required)
+    .filter((parameter) => !valueProvided(getCaseInsensitiveValue(overrides.queryParams || {}, parameter.name)))
+    .map((parameter) => parameter.name);
+  if (overrides.requireQueryParams === true && missingQueryParams.length > 0) {
+    return { mode: "missing_query_params", path: apiPath, missingQueryParams };
+  }
+
   const environment = getOpenApiEnvironment(overrides.environment || DEFAULT_OPENAPI_ENVIRONMENT);
   if (!environment) {
     return {
@@ -193,7 +213,7 @@ function buildRequestPlan(apiPath, overrides = {}) {
     };
   }
 
-  const baseUrl = environment.baseUrl;
+  const baseUrl = detail.baseUrl || environment.baseUrl;
   const pathParams = parameters
     .filter((parameter) => parameter.in === "path")
     .map((parameter) => ({
@@ -208,6 +228,16 @@ function buildRequestPlan(apiPath, overrides = {}) {
     overrides.includeOptionalQuery !== false
   );
   const resolvedPath = buildResolvedPath(detail.path, pathParams);
+  const tickFilter = queryEntries.find((entry) => entry.name === "tick_filter");
+  const filterValues = tickFilter ? [].concat(tickFilter.value) : [];
+  if (environment.name === "fractal" && filterValues.some((value) => /^\d+$/.test(String(value)) && (BigInt(value) & 32n) !== 0n)) {
+    return {
+      mode: "invalid_parameters", path: apiPath, environment: environment.name,
+      parameter: "tick_filter",
+      message: "Fractal does not support tick_filter bit 32, including the combined value 56.",
+      nextAction: "Choose the intended supported Fractal filter (8, 16, or 24), or omit tick_filter for the server default. No filter has been substituted; Bitcoin character-length meanings do not apply to Fractal.",
+    };
+  }
   const queryString = buildQueryString(queryEntries);
   const url = queryString ? `${baseUrl}${resolvedPath}?${queryString}` : `${baseUrl}${resolvedPath}`;
 

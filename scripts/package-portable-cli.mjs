@@ -4,11 +4,12 @@ import os from "os";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
+import { assertSupportedNode } from "./node-version.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(rootDir, "dist", "portable-cli");
 const cacheDir = path.join(rootDir, ".cache", "node-runtime");
-const nodeVersion = process.env.UNISAT_AI_NODE_VERSION || process.versions.node;
+const nodeVersion = process.env.UNISAT_AI_NODE_VERSION || fs.readFileSync(path.join(rootDir, ".nvmrc"), "utf8").trim();
 
 const targets = {
   "windows-x64": {
@@ -198,9 +199,6 @@ function copyPortableFiles(target, packageDir) {
   copyTree(path.join(rootDir, "packages", "cli", "src"), path.join(cliTargetDir, "src"), (filePath) => filePath.endsWith(".js"));
   fs.copyFileSync(path.join(rootDir, "packages", "cli", "package.json"), path.join(cliTargetDir, "package.json"));
 
-  const swaggerSource = process.env.OPENAPI_SWAGGER_DIR || path.join(rootDir, "swagger");
-  copyTree(swaggerSource, path.join(cliTargetDir, "vendor", "openapi-swagger"), (filePath) => filePath.endsWith(".yaml"));
-
   fs.writeFileSync(
     path.join(packageDir, "README.txt"),
     [
@@ -292,6 +290,7 @@ async function main() {
     return;
   }
 
+  assertSupportedNode(nodeVersion);
   ensureDir(distDir);
   const outputs = [];
   for (const targetName of options.targets) {

@@ -4,11 +4,11 @@ import os from "os";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
+import { assertSupportedNode } from "./node-version.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(rootDir, "dist", "single-cli");
 const buildDir = path.join(distDir, "build");
-const swaggerDir = process.env.OPENAPI_SWAGGER_DIR || path.join(rootDir, "swagger");
 
 const targetNames = {
   win32: "windows",
@@ -60,50 +60,22 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function walkFiles(dir, predicate, results = []) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walkFiles(fullPath, predicate, results);
-      continue;
-    }
-    if (predicate(fullPath)) {
-      results.push(fullPath);
-    }
-  }
-  return results;
-}
-
-function writeSwaggerAsset() {
-  const files = {};
-  walkFiles(swaggerDir, (filePath) => filePath.endsWith(".yaml"))
-    .sort()
-    .forEach((filePath) => {
-      const relativePath = path.relative(swaggerDir, filePath).replace(/\\/g, "/");
-      files[relativePath] = fs.readFileSync(filePath, "utf8");
-    });
-
-  const assetPath = path.join(buildDir, "openapi-swagger.json");
-  fs.writeFileSync(assetPath, JSON.stringify(files), "utf8");
-  return assetPath;
-}
-
 function writeAppSource() {
+  const bundlePath = path.join(buildDir, "main.js");
+  fs.writeFileSync(bundlePath, buildAppSource(), "utf8");
+  return bundlePath;
+}
+
+export function buildAppSource() {
   const sourceRoot = path.join(rootDir, "packages", "cli");
   const entryPath = path.join(sourceRoot, "bin", "unisat-ai.js");
   const modules = collectLocalModules(entryPath, sourceRoot);
-  const bundlePath = path.join(buildDir, "main.js");
   const moduleEntries = [...modules.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([id, source]) => `${JSON.stringify(id)}: function(require, module, exports) {\n${source}\n}`)
     .join(",\n");
 
-  fs.writeFileSync(
-    bundlePath,
-    `const __modules = {\n${moduleEntries}\n};\nconst __cache = {};\nfunction __localRequire(id) {\n  if (__cache[id]) return __cache[id].exports;\n  if (!__modules[id]) return require(id);\n  const module = { exports: {} };\n  __cache[id] = module;\n  __modules[id](__localRequire, module, module.exports);\n  return module.exports;\n}\n__localRequire(${JSON.stringify(toModuleId(entryPath, sourceRoot))});\n`,
-    "utf8"
-  );
-  return bundlePath;
+  return `const __modules = {\n${moduleEntries}\n};\nconst __cache = {};\nfunction __localRequire(id) {\n  if (__cache[id]) return __cache[id].exports;\n  if (!__modules[id]) return require(id);\n  const module = { exports: {} };\n  __cache[id] = module;\n  __modules[id](__localRequire, module, module.exports);\n  return module.exports;\n}\n__localRequire(${JSON.stringify(toModuleId(entryPath, sourceRoot))});\n`;
 }
 
 function toModuleId(filePath, sourceRoot) {
@@ -126,6 +98,10 @@ function collectLocalModules(entryPath, sourceRoot, modules = new Map()) {
   }
 
   let source = fs.readFileSync(entryPath, "utf8").replace(/^#!.*\r?\n/, "");
+  if (path.extname(entryPath) === ".json") {
+    modules.set(id, `module.exports = ${JSON.stringify(JSON.parse(source))};`);
+    return modules;
+  }
   source = source.replace(/require\((['"])(\.\.?\/[^'"]+)\1\)/g, (match, quote, request) => {
     const resolved = resolveLocalRequire(entryPath, request);
     if (!resolved) {
@@ -138,7 +114,7 @@ function collectLocalModules(entryPath, sourceRoot, modules = new Map()) {
   return modules;
 }
 
-function writeSeaConfig(mainPath, assetPath) {
+function writeSeaConfig(mainPath) {
   const seaConfigPath = path.join(buildDir, "sea-config.json");
   fs.writeFileSync(
     seaConfigPath,
@@ -147,9 +123,6 @@ function writeSeaConfig(mainPath, assetPath) {
         main: mainPath,
         output: path.join(buildDir, "sea-prep.blob"),
         disableExperimentalSEAWarning: true,
-        assets: {
-          "openapi-swagger.json": assetPath,
-        },
       },
       null,
       2
@@ -234,9 +207,8 @@ async function build(options) {
   fs.rmSync(path.join(distDir, `unisat-openapi-cli-${options.target}.zip`), { force: true });
   fs.rmSync(path.join(distDir, `unisat-openapi-cli-${options.target}.tar.gz`), { force: true });
 
-  const assetPath = writeSwaggerAsset();
   const mainPath = writeAppSource();
-  const seaConfigPath = writeSeaConfig(mainPath, assetPath);
+  const seaConfigPath = writeSeaConfig(mainPath);
   await run(process.execPath, ["--experimental-sea-config", seaConfigPath]);
 
   const exePath = path.join(buildDir, executableName(options.target));
@@ -265,10 +237,13 @@ async function main() {
     printHelp();
     return;
   }
+  assertSupportedNode();
   await build(options);
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}

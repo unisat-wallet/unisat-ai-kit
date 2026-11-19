@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: Blockchain API
+  version: 1.0.4
+  description: >-
+    Blockchain API is a RESTful API for accessing Bitcoin blockchain data.
+    It provides endpoints to retrieve information about blocks, transactions,
+    addresses, and more. The API supports both mainnet and testnet environments.
+  contact:
+    email: contact@unisat.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://open-api.unisat.io
+  - url: https://open-api-staging.unisat.io
+  - url: https://open-api-testnet.unisat.io
+  - url: https://open-api-testnet4.unisat.io
+  - url: https://open-api-signet.unisat.io
+  - url: https://open-api-fractal.unisat.io
+  - url: https://open-api-fractal-testnet.unisat.io
+tags:
+  - name: Indexer-Blockchain
+    description: Indexer-Blockchain APIs
+paths:
+  /v1/indexer/blockchain/info:
+    get:
+      tags:
+        - Indexer-Blockchain
+      operationId: getBlockchainInfo
+      summary: Get chain tip, header height, and best block metadata
+      description: >-
+        Returns the indexed blockchain state, including chain name, block and header heights, best and previous block hashes, median time, and accumulated chainwork.
+      x-unisat-domain: blockchain
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      responses:
+        "200":
+          description: Fixture response
+
+  /v1/indexer/fees/recommended:
+    get:
+      tags:
+        - Indexer-Blockchain
+      operationId: getRecommendedFees
+      summary: Get recommended Bitcoin fee rates by confirmation target
+      description: >-
+        Returns fee-rate estimates for fastest, half-hour, hour, economy, and minimum confirmation targets, together with the update timestamp for freshness checks.
+      x-unisat-domain: blockchain
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      responses:
+        "200":
+          description: Fixture response
+
+  /v1/indexer/address/{address}/balance:
+    get:
+      tags:
+        - Indexer-Blockchain
+      operationId: getBalanceByAddress
+      summary: Get address balance split by BTC and inscription UTXOs
+      description: >-
+        Returns confirmed and pending satoshi totals plus UTXO counts for the address, separated into overall, plain BTC, and inscription-related balances.
+      x-unisat-domain: blockchain
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      parameters:
+        - name: address
+          description: Address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Fixture response
+
+  /v1/indexer/local_pushtx:
+    post:
+      tags:
+        - Indexer-Blockchain
+      operationId: localPushTx
+      summary: Broadcast one raw transaction to the selected network
+      description: >-
+        Submits a signed transaction hex and optional maximum fee rate for local validation and propagation. This can move funds or assets and requires explicit confirmation before execution.
+      x-unisat-domain: blockchain
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: false
+      x-unisat-requires-confirmation: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalPushParams"
+        required: true
+      responses:
+        "200":
+          description: Fixture response

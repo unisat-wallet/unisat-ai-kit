@@ -1,6 +1,6 @@
 {
   "name": "@unisat/openapi-cli",
-  "version": "0.1.5",
+  "version": "1.0.0",
   "description": "UniSat AI Kit CLI capability layer",
   "license": "MIT",
   "main": "./index.js",
@@ -34,6 +34,6 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "^22.23.4 || ^24.22.1 || ^26.12.1"
   }
 }

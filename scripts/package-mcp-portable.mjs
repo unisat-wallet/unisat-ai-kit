@@ -169,10 +169,10 @@ function writeReadme(target, packageDir) {
         ? "Windows command: C:/absolute/path/to/unisat-openapi-mcp.cmd"
         : "macOS/Linux command: /absolute/path/to/unisat-openapi-mcp",
       "",
-      "The package includes production npm dependencies and bundled UniSat OpenAPI swagger data.",
+      "Swagger is downloaded from the public UniSat API docs and cached on first start.",
       "Node.js must be available on PATH for this portable package.",
       "",
-      "Available MCP tools: get_status, list_environments, resolve_api, show_api, call_api.",
+      "Available MCP tools: get_status and exact-path call_api. Interface lookup is handled by the UniSat OpenAPI Agent Skill.",
       "Register API key: https://developer.unisat.io/",
       "",
     ].join("\n"),

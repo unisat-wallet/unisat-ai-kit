@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: BRC20 Marketplace API
+  version: 1.0.4
+  description: >-
+    BRC-20 marketplace APIs for address binding, market discovery, listing inspection, activity history, and PSBT-based listing, purchase, delisting, and price update workflows. Interfaces that require wallet addresses, signatures, or PSBT signing should be integrated with the UniSat Wallet according to https://github.com/unisat-wallet/unisat-dev-docs/tree/master/wallet-api/api-docs.
+  contact:
+    email: contact@unisat.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://open-api.unisat.io
+  - url: https://open-api-staging.unisat.io
+  - url: https://open-api-testnet.unisat.io
+  - url: https://open-api-fractal.unisat.io
+  - url: https://open-api-fractal-testnet.unisat.io
+tags:
+  - name: Marketplace-BRC20
+    description: BRC20 Marketplace Service
+paths:
+  /v3/market/brc20/auction/brc20_types_specified:
+    post:
+      operationId: getBrc20TypesSpecified
+      summary: Get marketplace metrics for selected BRC-20 tickers
+      description: Returns market statistics for specific BRC-20 tickers, such as price, price change, volume, market cap, and related ticker metadata. Use it when the client already knows which tickers to compare or display.
+      tags:
+        - Marketplace-BRC20
+      x-unisat-domain: marketplace
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Safe query-style POST: call without extra confirmation when required request parameters are provided.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timeType:
+                  enum:
+                    - day1
+                    - day7
+                    - day30
+                  type: string
+                tick:
+                  type: string
+              additionalProperties: false
+      responses:
+        "200":
+          description: Fixture response
+
+  /v3/market/brc20/auction/list:
+    post:
+      operationId: getBrc20AuctionList
+      summary: Search BRC-20 token listings for sale
+      description: Returns paginated marketplace listings with auction id, inscription id, seller address, ticker, token amount, total price, unit price, market type, and latest listing context. Use it to power order books, ticker detail pages, and buy-flow listing selection.
+      tags:
+        - Marketplace-BRC20
+      x-unisat-domain: marketplace
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Safe query-style POST: call without extra confirmation when required request parameters are provided.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+                - filter
+                - sort
+                - start
+                - limit
+              type: object
+              properties:
+                filter:
+                  required:
+                    - nftType
+                  type: object
+                  properties:
+                    nftType:
+                      enum:
+                        - brc20
+                      type: string
+                    address:
+                      type: string
+                    tick:
+                      type: string
+                    minPrice:
+                      type: number
+                    maxPrice:
+                      description: Server-side price filter; the specification does not define its units or whether it limits total or unit price. Do not use it as a hard purchase budget. Verify each returned listing total and obtain a fee quote before assessing affordability.
+                      type: number
+                    nftConfirm:
+                      type: boolean
+                    isEnd:
+                      description: Whether order ends
+                      type: boolean
+                    all:
+                      description: Ignore start and limit and return all collection data
+                      type: boolean
+                  additionalProperties: false
+                sort:
+                  type: object
+                  properties:
+                    unitPrice:
+                      enum:
+                        - 1
+                        - -1
+                      type: number
+                    onSaleTime:
+                      enum:
+                        - 1
+                        - -1
+                      type: number
+                    initPrice:
+                      enum:
+                        - 1
+                        - -1
+                      type: number
+                    inscriptionNumber:
+                      enum:
+                        - 1
+                        - -1
+                      type: number
+                  additionalProperties: false
+                start:
+                  description: The data is looked up from start
+                  type: number
+                limit:
+                  maximum: 100
+                  exclusiveMaximum: true
+                  description: Limit the amount of data
+                  type: number
+              additionalProperties: false
+        required: true
+      responses:
+        "200":
+          description: Fixture response
+
+  /v3/market/brc20/auction/create_bid_prepare:
+    post:
+      operationId: createBrc20BidPrepare
+      summary: Estimate fees and balance for a BRC-20 purchase
+      description: Calculates purchase preparation data for an auction id and bid price, including service fee, network fee, fee rate, estimated transaction size, inscription satoshi value, available balance, and total balance. Use it to decide whether a buy order can be created safely.
+      tags:
+        - Marketplace-BRC20
+      x-unisat-domain: marketplace
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Quote-only marketplace step: safe to call without confirmation, but do not treat the returned estimate as a purchase.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketCreateBidPrepareRequest"
+        required: true
+      responses:
+        "200":
+          description: Fixture response
+
+  /v3/market/brc20/auction/brc20_types:
+    post:
+      operationId: getBrc20Types
+      summary: List BRC-20 tickers and marketplace metrics
+      description: Returns paginated market statistics for BRC-20 tickers, including current price, price change, BTC volume, token volume, market cap, and featured deploy entries. Supports ticker length, time window, explicit ticker list, and pagination filters. The specification does not guarantee global sort order, volume units, or time-window boundaries. A locally sorted page is only a ranking of that sample; label the requested timeType, sample coverage and fetch time. Verify metric semantics before publishing a global ranking or converting units.
+      tags:
+        - Marketplace-BRC20
+      x-unisat-domain: marketplace
+      x-unisat-network: multi
+      x-unisat-status: recommended
+      x-unisat-readonly: true
+      x-unisat-requires-confirmation: false
+      x-unisat-ai-hints:
+        - Safe query-style POST: call without extra confirmation when required request parameters are provided.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tickLen:
+                  type: number
+                  enum:
+                    - 4
+                    - 5
+                  example: 4
+                timeType:
+                  enum:
+                    - day1
+                    - day7
+                    - day30
+                  description: "Optional: day1, day7, day30. Exact boundaries and timezone are unspecified; do not label day1 as a verified rolling 24-hour window."
+                  type: string
+                ticks:
+                  description: Specify a list of ticks
+                  type: array
+                  items:
+                    type: string
+                start:
+                  type: number
+                limit:
+                  type: number
+              additionalProperties: false
+      responses:
+        "200":
+          description: Fixture response
+
+components:
+  schemas:
+    MarketCreateBidPrepareRequest:
+      required:
+        - auctionId
+        - bidPrice
+        - address
+        - pubkey
+      type: object
+      properties:
+        auctionId:
+          type: string
+        bidPrice:
+          type: number
+        address:
+          description: Bidder address
+          type: string
+        pubkey:
+          description: Bidder pubkey
+          type: string
+      additionalProperties: false

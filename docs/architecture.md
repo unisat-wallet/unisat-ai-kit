@@ -29,6 +29,6 @@
 
 ## Source Ownership
 
-- `unisat-ai-kit/swagger`: default local OpenAPI source consumed by CLI and MCP
-- `unisat-dev-docs`: developer docs, site, and SDK outputs
+- `unisat-dev-docs`: OpenAPI source of truth, public manifest, split Swagger files, developer docs, site, and SDK outputs
+- UniSat AI Kit user cache: validated runtime snapshot consumed by CLI and MCP
 - `unisat-ai-kit`: AI capability packaging, retrieval, tool contracts, evaluation, and consumption interfaces
